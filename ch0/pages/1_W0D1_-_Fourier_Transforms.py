@@ -24,8 +24,8 @@ st.set_page_config(layout="wide")
 st.markdown("""
 <style>
 label.effi0qh3 {
-    font-size: 120%;
-    font-weight: bold;
+    font-size: 1.25rem;
+    font-weight: 600;
 }
 p {
     line-height:1.48em;
