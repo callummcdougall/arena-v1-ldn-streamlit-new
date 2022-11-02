@@ -24,7 +24,7 @@ st.set_page_config(layout="wide")
 st.markdown("""
 <style>
 code > span.string {
-    color: red;
+    color: red !important;
 }
 label.effi0qh3 {
     font-size: 1.25rem;
