@@ -18,6 +18,7 @@ def get_fig_dict():
 
 if "fig_dict" not in st.session_state:
     fig_dict = get_fig_dict()
+    st.session_state["fig_dict"] = fig_dict
 fig_dict = st.session_state["fig_dict"]
 
 st.set_page_config(layout="wide")
