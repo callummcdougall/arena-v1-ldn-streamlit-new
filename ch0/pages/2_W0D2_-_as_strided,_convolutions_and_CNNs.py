@@ -1,23 +1,23 @@
 import streamlit as st
 
-# import plotly.io as pio
-# import re
-# import json
+import plotly.io as pio
+import re
+import json
 
-# def read_from_html(filename):
-#     filename = f"./w0d2/images/{filename}.html"
-#     with open(filename) as f:
-#         html = f.read()
-#     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
-#     call_args = json.loads(f'[{call_arg_str}]')
-#     plotly_json = {'data': call_args[1], 'layout': call_args[2]}    
-#     return pio.from_json(json.dumps(plotly_json))
+def read_from_html(filename):
+    filename = f"./w0d2/images/{filename}.html"
+    with open(filename) as f:
+        html = f.read()
+    call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
+    call_args = json.loads(f'[{call_arg_str}]')
+    plotly_json = {'data': call_args[1], 'layout': call_args[2]}    
+    return pio.from_json(json.dumps(plotly_json))
 
-# # @st.cache
-# def get_fig_dict():
-#     return {str(i): read_from_html(f"fig{i}") for i in range(1, 16)}
+# @st.cache
+def get_fig_dict():
+    return {str(i): read_from_html(f"fig{i}") for i in range(1, 16)}
     
-# fig_dict = get_fig_dict()
+fig_dict = get_fig_dict()
 
 st.set_page_config(layout="wide")
 
@@ -26,7 +26,7 @@ st.markdown("""
 label.effi0qh3 {
     font-size: 1.25rem;
     font-weight: 600;
-    margin-top: 10px;
+    margin-top: 15px;
 }
 p {
     line-height:1.48em;
@@ -132,632 +132,926 @@ Happy coding!
 """)
 
 def section1():
+
     st.sidebar.markdown("""
 ## Table of Contents
 
 <ul class="contents">
-    <li><a class="contents-el" href="#recommended-reading">Recommended reading</a></li>
-    <li><a class="contents-el" href="#imports">Imports</a></li>
-    <li><a class="contents-el" href="#discrete-fourier-transform">Discrete Fourier Transform</a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#exercise-1-dft">Exercise 1 - DFT</a></li>
-        <li><a class="contents-el" href="#aside-typing">Aside - typing</a></li>
-        <li><a class="contents-el" href="#exercise-2-inverse-dft">Exercise 2 - inverse DFT</a></li>
-        <li><a class="contents-el" href="#aside-testing">Aside - testing</a></li>
-        <li><a class="contents-el" href="#exercise-3-test-functions">Exercise 3 - test functions</a></li>
-    </ul></li>
-    <li><a class="contents-el" href="#continuous-fourier-transform">Continuous Fourier Transform</a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#exercise-1-intergration">Exercise 1 - Integration</a></li>
-        <li><a class="contents-el" href="#exercise-2-fourier-series">Exercise 2 - Fourier series</a></li>
-    </ul></li>
+    <li><a class="contents-el" href="#reading">Reading</a></li>
+    <li><a class="contents-el" href="#einops">Einops</a></li>
+    <li><a class="contents-el" href="#einsum">Einsum</a></li>
 </ul>
 """, unsafe_allow_html=True)
 
-    st.markdown("""# Fourier Transforms
+    st.markdown("""
+## Reading
 
-The first set of exercises covers Fourier Transforms, using just the NumPy library. This should get you comfortable with the basic idea of working through exercises, and will also introduce some of the concepts that recur in part 2 of the exercises, where you will crete your own simple neural networks to fit functions to arbitrary polynomials.
+* Read about the benefits of the `einops` library [here](https://www.blopig.com/blog/2022/05/einops-powerful-library-for-tensor-operations-in-deep-learning/).
+* If you haven't already, then review the [Einops basics tutorial](https://einops.rocks/1-einops-basics/) (up to the "fancy examples" section).
+* Read [einsum is all you need](https://rockt.github.io/2018/04/30/einsum) for a brief overview of the `einsum` function and how it works.
 
-Fourier transforms are an interesting branch of mathematics which will crop up in several places later in this programme. For instance, they are used in feature visualisation because they often provide a more natural basis than the standard one. Additionally, the discrete Fourier transform was recently featured in Neel Nanda's [Grokking study](https://www.lesswrong.com/posts/N6WM6hs7RQMKDhYjB/a-mechanistic-interpretability-analysis-of-grokking), which we will look at in the interpretability week.
+## Einops
 
-This part should take you **2-3 hours**.
-
-## Recommended reading
-
-* [3Blue1Brown video](https://www.youtube.com/watch?v=spUNpyF58BY&vl=en) on Fourier transforms
-* [An Interactive Guide To The Fourier Transform](https://betterexplained.com/articles/an-interactive-guide-to-the-fourier-transform/)
-
-## Imports
+First, run this cell to import the libraries and define the objects you'll need:
 
 ```python
 import numpy as np
-import plotly.express as px
-import plotly.graph_objs as go
-from typing import Optional, Callable
-import ipywidgets as wg
 from fancy_einsum import einsum
-
+from einops import reduce, rearrange, repeat
+from typing import Union, Optional, Callable
+import torch as t
+import torchvision
 import utils
+
+arr = np.load("numbers.npy")
 ```
 
-## Discrete Fourier Transform""")
+`arr` is a 4D numpy array. The first axes corresponds to the number, and the next three axes are channels (i.e. RGB), height and width respectively. You have the function `utils.display_array_as_img` which takes in a numpy array and displays it as an image. There are two possible ways this function can be run:
 
-    st.markdown(r"""
+* If the input is three-dimensional, the dimensions are interpreted as `(channel, height, width)` - in other words, as an RGB image.
+* If the input is two-dimensional, the dimensions are interpreted as `(height, width)` - i.e. a monochrome image.
 
-Given a tuple of complex numbers $(x_0, x_1, ..., x_{N-1})$, it's **discrete Fourier transform** (DFT) is the sequence $(y_0, y_1, ..., y_{N-1})$ defined by: 
-$$
-y_k=\sum_{j=0}^{N-1} \omega_N^{jk} x_j
-$$
-where $\omega_N = e^{-2\pi i/N}$ is the **Nth root of unity**.
-
-This can equivalently be written as the following matrix equation:""")
-
-    st.latex(r"""\left[\begin{array}{ccccc}
-1 & 1 & 1 & \ldots & 1 \\
-1 & \omega_N & \omega_N^{2} & \ldots & \omega_N^{N-1} \\
-1 & \omega_N^{2} & \omega_N^{4} & \ldots & \omega_N^{2(N-1)} \\
-\vdots & \vdots & \vdots & \ddots & \vdots \\
-1 & \omega_N^{N-1} & \omega_N^{2(N-1)} & \ldots & \omega_N^{(N-1)^2}
-\end{array}\right]\left[\begin{array}{c}
-x_0 \\
-x_1 \\
-\vdots \\
-x_{N-1}
-\end{array}\right]=\left[\begin{array}{c}
-y_0 \\
-y_1 \\
-\vdots \\
-y_{N-1}
-\end{array}\right]
-""")
-
-    st.markdown("""### Exercise 1 - DFT
-
-Write a function which calculates the DFT of an array `x`, using the matrix equation above.""")
-
-    st.code('''
-def DFT_1d(arr : np.ndarray) -> np.ndarray:
-    """
-    Returns the DFT of the array `arr`, using the equation above.
-    """
-    pass''')
-
-    st.markdown("""###### """)
-
-    with st.expander("Help - I don't know how to implement complex numbers."):
-        st.markdown("Python represents complex numbers using the letter `j`. For instance, we can use `2j * np.pi` to represent the complex number $2\\pi i$")
-
-    with st.expander("Help - I'm not sure how to construct the left matrix."):
-        st.markdown("Try first making the exponents, using `np.outer`. Then take advantage of NumPy's vectorisation to make the full matrix.")
-
-    st.markdown("""
-
-### Aside - typing
-
-The `typing` module is extremely useful when catching errors in your code, when used alongside VSCode's type checker extension.
-
-You can activate typing by going to the `settings.json` file in VSCode, and adding this line:""")
-
-    st.code('''{
-    "python.analysis.typeCheckingMode": "basic"
-}''')
-
-    st.markdown("""You can open the `settings.json` file by first opening VSCode's Command Palette (shortcut `Shift + Cmd + P` for Mac, `Ctrl + Shift + P` for Windows/Linux), then finding the option **Preferences: Open User Settings (JSON)**.
-
-If you're finding that the type checker is throwing up too many warnings, you can suppress them by adding the comment `# type: ignore` at the end of a line, or using the `cast` function from the `typing` library to let the Python interpreter know what type it's dealing with. However, in general you should try and avoid doing this, because type checker warnings usually mean there's a better way for you to be writing your code. An (often better) solution is to add in an `assert isinstance` statement - for instance, if the output of a function should be an integer but the type checker is complaning because it doesn't "know" the output is an integer, the line `assert isinstance(out, int)` should remove the red line.""")
-
-    st.markdown("""### Exercise 2 - Inverse DFT
-
-Now try to write the same function, but with an optional `inverse` argument. If this is true, you should return the inverse discrete Fourier transform (the equation for which can be found [here](https://en.wikipedia.org/wiki/Discrete_Fourier_transform#Inverse_transform)).
-
-The code below also includes a test function. If you run this and it raises an error, then it probably means there's a mistake somewhere in your code. If there is no output, then the code is working as expected.
-""")
-
-    st.code('''def DFT_1d(arr: np.ndarray, inverse: bool = False) -> np.ndarray:
-    """
-    Returns the DFT of the array `arr`, with an optional `inverse` argument.
-    """
-    pass
-        
-utils.test_DFT_func(DFT_1d)''')
-
-    st.markdown("""
-
-### Aside - testing
-
-This is the first of many test functions you'll see during this programme. If you right-click on the function as it appears in your code, and select **Go to Definition**, you will see this:""")
-
-    st.code("""def test_DFT_func(DFT_1d, x=np.linspace(-1, 1), function=np.square) -> None:
-    
-    y = function(x)
-    
-    y_DFT_actual = DFT_1d(y)
-    y_reconstructed_actual = DFT_1d(y_DFT_actual, inverse=True)
-    
-    y_DFT_expected = np.fft.fft(y)
-    
-    np.testing.assert_allclose(y_DFT_actual, y_DFT_expected, atol=1e-10, err_msg="DFT failed")
-    np.testing.assert_allclose(y_reconstructed_actual, y, atol=1e-10, err_msg="Inverse DFT failed")
-
-""")
-
-    st.markdown("""Let's briefly go through this function to explain what it does.
-
-The first few lines define `y` as some function of the array `x` (by default `y = x^2`), then using your function DFT_1d` to apply the DFT, then inverse DFT. It then calculates the DFT using NumPy's function (which is assumed to be accurate). Finally, the last two lines raise an error if the values produced by your function are different from the values produced by NumPy's functions.
-
-Not all tests will be perfect, and there might be errors that they miss. For instance, consider the test below. What is the problem with using this to check that your implementation is correct?
+For example:
 
 ```python
-def test_DFT_func_bad(DFT_1d, x=np.linspace(-1, 1), function=np.square) -> None:
-    
-    y = function(x)
-    y_DFT = DFT_1d(y)
-    y_reconstructed = DFT_1d(y_DFT, inverse=True)
-    
-    np.testing.assert_allclose(y, y_reconstructed, atol=1e-10)
+display_array_as_img(arr[0])
 ```
+
+produces the following output:""")
+
+    st.plotly_chart(fig_dict["1"], use_container_width=False, config=dict(displayModeBar=False))
+
+    st.markdown("""A series of images follow below, which have been created using `einops` functions performed on `arr`. You should work through these and try to produce each of the images yourself. This page also includes solutions, but you should only look at them after you've tried for at least five minutes.""")
+
+    st.markdown("### Exercise 1")
+    st.plotly_chart(fig_dict["2"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = rearrange(arr, "b c h w -> c h (b w)")""")
+
+    st.markdown("### Exercise 2")
+    st.plotly_chart(fig_dict["3"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = repeat(arr[0], "c h w -> c (2 h) w")""")
+
+    st.markdown("### Exercise 3")
+    st.plotly_chart(fig_dict["4"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = repeat(arr[0:2], "b c h w -> c (b h) (2 w)")""")
+
+    st.markdown("### Exercise 4")
+    st.plotly_chart(fig_dict["5"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = repeat(arr[0], "c h w -> c (h 2) w")""")
+
+    st.markdown("### Exercise 5")
+    st.plotly_chart(fig_dict["6"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = rearrange(arr[0], "c h w -> h (c w)")""")
+
+    st.markdown("### Exercise 6")
+    st.plotly_chart(fig_dict["7"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = rearrange(arr, "(b1 b2) c h w -> c (b1 h) (b2 w)", b1=2)""")
+
+    st.markdown("### Exercise 7")
+    st.plotly_chart(fig_dict["8"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = reduce(arr.astype(float), "b c h w -> h (b w)", "max").astype(int)""")
+
+    st.markdown("### Exercise 8")
+    st.plotly_chart(fig_dict["9"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Hint"):
+        st.markdown("NumPy complains when you take the mean over an integer array. You may need to convert into `float` then back to `int` at the end. Use the `astype` array method.")
+    with st.expander("Solution"):
+        st.code("""arr2 = reduce(arr.astype(float), "b c h w -> h (b w)", "mean").astype(int)""")
+
+    st.markdown("### Exercise 9")
+    st.plotly_chart(fig_dict["10"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = reduce(arr.astype(float), "b c h w -> h w", "min").astype(int)""")
+
+    st.markdown("### Exercise 10")
+    st.plotly_chart(fig_dict["11"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Hint"):
+        st.markdown("Try to split this into 2 parts. The first part should just involve creating a 3D array corresponding to the image of [0, 1] side by side.")
+    with st.expander("Solution"):
+        st.code("""arr2 = rearrange(arr[:2], "b c h w -> c h (b w)")
+
+arr3 = rearrange(arr2, "c (h2 h) w -> c h (h2 w)", h2=2)""")
+
+    st.markdown("### Exercise 11")
+    st.plotly_chart(fig_dict["12"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = rearrange(arr[1], "c h w -> c w h")""")
+
+    st.markdown("### Exercise 12")
+    st.plotly_chart(fig_dict["13"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = rearrange(arr, "(b1 b2) c h w -> c (b1 w) (b2 h)", b1=2)""")
+
+    st.markdown("""### Exercise 13
+In this exercise, we use **max pooling**. This is a topic we'll dive deeper into later today, but essentially it involves splitting an array up into grid squares and taking the maximum over each of them. Note that the image below is half the standard size for this image. 
+
+You should find the `reduce` function useful here.
 """)
+    st.plotly_chart(fig_dict["14"], use_container_width=False, config=dict(displayModeBar=False))
+    with st.expander("Solution"):
+        st.code("""arr2 = reduce(arr, "(b1 b2) c (h h2) (w w2) -> c (b1 h) (b2 w)", "max", h2=2, w2=2, b1=2)""")
 
-    with st.expander("Reveal answer"):
-        st.markdown("""This test only checks whether the `inverse=True` argument causes `DFT_1d` to perform the inverse operation, not whether the original operation was actually the intended one. For instance, if your `DFT_1d` actually performed an identity mapping, this would pass the test.""")
+    st.markdown('''
 
-    st.markdown("""
-As the coding we do becomes more complicated, these kinds of issues will become more common. It will often be necessary to perform your own tests to verify that your outputs are correct, which apply more stringent tests than the functions we provide. It can be very frustrating to pass all of the tests, only for your code to fail later because the tests weren't good enough to catch all possible errors!
+## Einsum
 
-### Exercise 3 - test functions
+Einsum is a very useful function for performing linear operations, which you'll probably be using a lot during this programme. Although there are many different kinds of operations you can perform, they are all derived from three key rules:
 
-Write your own test function for `DFT_1d`. 
+1. Repeating letters in different inputs means those values will be multiplied, and those products will be in the output. 
+    * For example, `M = einsum("ij,jk->ik", A, B)` corresponds to the matrix equation $M=AB$.
+2. Omitting a letter means that the axis will be summed.
+    * For examples, if `x` is a 2D array with shape `(n0, n1)`, then `einsum("ij->i", x)` will be a 1D array of length `n0` containing the row sums of `x`.
+3. We can return the unsummed axes in any order.
+    * For example, `einsum("ijk->kji", x)` does the same thing as `einops.rearrange(x, "i j k -> k j i")`.
 
-Rather than using NumPy's built-in DFT function, this test should verify the behaviour of `DFT_1d` on a particular input, where the behaviour is known. For instance, the [Wikipedia page](https://en.wikipedia.org/wiki/Discrete_Fourier_transform#Example) gives an example signal, and its DFT. You can use `np.testing.assert_allclose` to check that you get the expected output.
-""")
+A quick note about `fancy_einsum` before we start - it behaves differently than `einsum`, because of spaces.
 
-    st.markdown("""## Continuous Fourier Transform
+For instance, `np.einsum` could use a string like `"ij->i"` to mean "sum a single array over the second dimension", but `fancy_einsum` would get confused because it sees `"ij"` and `"i"` each as single words, referring to individual dimensions. So you'd need `"i j -> i"` in this case. To avoid confusion, it's recommended to only use `fancy_einsum` rather than switching between the two (there will be cases when you'll be thankful for `fancy_einsum`'s features!).
 
-In subsequent exercises, we'll work with continuous Fourier transforms rather than discrete. 
+In the following exercises, you'll write simple functions using `einsum` which replicate the functionality of standard NumPy functions: trace, matrix multiplication, inner and outer products. We've also included some test functions which you should run.
 
-The DFT worked with a finite set of sampled values of a particular function, and allowed us to produce frequencies up to a finite maximum. In contrast, the continuous Fourier transform takes a real-valued function and can return the amplitude of any frequency.
-
-### Exercise 1 - Integration
-
-First, we'll build up a few functions to help us. The next two functions calculate an integral, and the product of two functions respectively (this will be useful when calculating Fourier coefficients).
-""")
-
-    st.code('''def integrate_function(func: Callable, x0: float, x1: float, n_samples: int = 1000):
+```python
+def einsum_trace(mat: np.ndarray):
     """
-    Calculates the approximation of the Riemann integral of the function `func`, 
-    between the limits x0 and x1.
-    
-    You should use the Left Rectangular Approximation Method (LRAM).
+    Returns the same as `np.trace`.
     """
-
     pass
 
-utils.test_integrate_function(integrate_function)''')
-
-    st.code('''def integrate_product(func1: Callable, func2: Callable, x0: float, x1: float, n_samples: int = 1000):
+def einsum_mv(mat: np.ndarray, vec: np.ndarray):
     """
-    Computes the integral of the function x -> func1(x) * func2(x).
+    Returns the same as `np.matmul`, when `mat` is a 2D array and `vec` is 1D.
     """
-    
     pass
 
-utils.test_integrate_product(integrate_product)''')
-
-    st.markdown(r"""Now, we will write a function which computes the Fourier coefficients. These are terms $(a_n)_{n\geq 0}, (b_n)_{n\geq 1}$ s.t. we can write any sufficiently well-behaved function as:
-$$
-f(x) = \frac{a_0}{2} + \sum_{n=1}^{\infty}a_n \cos{nx} + \sum_{n=1}^{\infty}b_n \sin{nx}
-$$
-
-You can find the formula for these coefficients on [Wolfram Alpha](https://mathworld.wolfram.com/FourierSeries.html).
-
-We can also get an approximation to $f(x)$, by truncating this Fourier series after a finite number of terms (i.e. up to some maximum frequency $N$):
-$$
-\hat{f}_N(x) = \frac{a_0}{2} + \sum_{n=1}^{N}a_n \cos{nx} + \sum_{n=1}^{N}b_n \sin{nx}
-$$
-
-### Exercise 2 - Fourier series
-""")
-
-
-    st.code('''def calculate_fourier_series(func: Callable, max_freq: int = 50):
+def einsum_mm(mat1: np.ndarray, mat2: np.ndarray):
     """
-    Calculates the fourier coefficients of a function, 
-    assumed periodic between [-pi, pi].
-    
-    Your function should return ((a_0, A_n, B_n), func_approx), where:
-        a_0 is a float
-        A_n, B_n are lists of floats, with n going up to `max_freq`
-        func_approx is the fourier approximation, as described above
+    Returns the same as `np.matmul`, when `mat1` and `mat2` are both 2D arrays.
     """
-
     pass
 
-step_func = lambda x: 1 * (x > 0)
-create_interactive_fourier_graph(calculate_fourier_series, func = step_func)''')
+def einsum_inner(vec1, vec2):
+    """
+    Returns the same as `np.inner`.
+    """
+    pass
 
-    with st.expander("Help - I'm having trouble calculating the coefficients."):
-        st.markdown("""To get `a_n`, try using `integrate_product` with the functions `f` and `lambda x: np.cos(n*x)`.""")
+def einsum_outer(vec1, vec2):
+    """
+    Returns the same as `np.outer`.
+    """
+    pass
 
+utils.test_einsum_trace(einsum_trace)
+utils.test_einsum_mv(einsum_mv)
+utils.test_einsum_mm(einsum_mm)
+utils.test_einsum_inner(einsum_inner)
+utils.test_einsum_outer(einsum_outer)
+```
+''')
 
-    st.markdown("""---
-
-If this code has been written correctly, then when run it should produce interactive output that looks like this:
-    """)
-
-    st.image("ch0/images/ani1.png")
-
-    st.markdown(r"""
-You should be able to move the slider to see how the Fourier series converges to the true function over time.
-
-You can change the `func` parameter in `create_interactive_fourier_graph`, and investigate some different behaviour. Here are a few you might want to try:
-
-* Polynomials of different order
-* Piecewise linear functions, e.g. the sawtooth
-* Linear combinations of trig terms, e.g. $\sin{3x} + \cos{17x}$. What do you expect to see in these cases?
-""")
-
-    with st.expander("Explanation for sin(3x) + cos(17x)"):
-        st.markdown("""You should see something like this:""")
-        st.image("ch0/images/ani1a.png")
-        st.image("ch0/images/ani1b.png")
-        st.image("ch0/images/ani1c.png")
-        st.markdown(r"""This is because the Fourier series are orthogonal in the range $[-\pi, \pi]$.""")
-        st.markdown("""The only non-zero coefficients are the ones that exactly match the frequencies already present in the data, so we only get changes in the reconstructed function once we add the 3rd and 17th frequencies.""")
-
-    st.markdown("""Use the sidebar to navigate to part 2 of today's exercises.""")
+    with st.expander("Help - I get 'TypeError: cannot use a string pattern on a bytes-like object'"):
+        st.markdown("""This is probably because you have strings and arrays the wrong way round. In `einsum`, the string goes first and the arrays follow. This is because `einsum` accepts a variable number of arrays but only one string. `einops` functions only work on single arrays, so the array is the first argument for those functions.""")
 
 def section2():
     st.sidebar.markdown("""
 ## Table of Contents
 
 <ul class="contents">
-    <li><a class="contents-el" href="#i-numpy">(I) NumPy</a></li>
-    <li><a class="contents-el" href="#ii-pytorch-tensors">(II) PyTorch & Tensors</a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#tensor-basics">Tensor basics</a></li>
-        <li><a class="contents-el" href="#how-to-create-tensors">How to create tensors</a></li>
-        <li><a class="contents-el" href="#exercise-refactor-your-code-ii">Exercise - refactor your code (II)</a></li>
-    </ul></li>
-    <li><a class="contents-el" href="#iii-autograd">(III) Autograd</a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#exercise-refactor-your-code-iii">Exercise - refactor your code (III)</a></li>
-    </ul></li>
-    <li><a class="contents-el" href="#iv-models">(IV) Models</a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#exercise-refactor-your-code-iv">Exercise - refactor your code (IV)</a></li>
-    </ul></li>
-    <li><a class="contents-el" href="#iii-optimizers">(V) Optimizers</a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#exercise-refactor-your-code-v">Exercise - refactor your code (V)</a></li>
-    </ul></li>
+    <li><a class="contents-el" href="#reading">Reading</a></li>
+    <li><a class="contents-el" href="#basic-stride-exercises">Basic stride exercises</a></li>
+    <li><a class="contents-el" href="#intermediate-stride-exercises">Intermediate stride exercises</a></li>
 </ul>
 """, unsafe_allow_html=True)
 
-    st.markdown("""# Basic Neural Network
-
-Here, we'll start to write up an actual neural network which builds on the work we've done in part 1.
-
-This part should take you **1-2 hours**.
-
-We will start by using only NumPy, working from first principles, and slowly add more elements of PyTorch until we're using a full neural network.
-
-This is the simplest possible neural network architecture - it only has a single layer, and only uses linear functions. All we are doing is learning the coefficients of a Fourier series. The inputs to our network are the frequencies, and the weights are the coefficients, so our output is the same as the truncated Fourier series expression we saw in the previous section:""")
-
-    st.image("ch0/images/diagram.png")
-
     st.markdown("""
-How can we learn these weights? Well, it turns out that the Fourier series coefficients are also minimisers of the **Mean Squared Error** (MSE) between the Fourier series and the original function. The mathematical reason for this is that taking a finite Fourier series actually orthogonally projects our function onto a different basis, which also minimises the MSE. So if we calculate the MSE, and differentiate it with respect to our coefficients, this will tell us how to adjust the coefficients in a way which makes the error smaller, thus moving our coefficients closer to the true Fourier series.
+## Reading
 
-#### Question - what is the derivative of the quadratic loss for a single sample, wrt the weights?
+* [Python NumPy, 6.1 - `as_strided()`](https://www.youtube.com/watch?v=VlkzN00P0Bc) explains what array strides are.
+* [`as_strided` and `sum` are all you need](https://jott.live/markdown/as_strided) gives an overview of how to use `as_strided` to perform array operations. 
+* [Advanced NumPy: Master stride tricks with 25 illustrated exercises](https://towardsdatascience.com/advanced-numpy-master-stride-tricks-with-25-illustrated-exercises-923a9393ab20) provides several clear and intuitive examples of `as_strided` being used to construct arrays.
 
-Try and derive the answer before you reveal it below.""")
+## Basic stride exercises
 
-    with st.expander("Reveal answer"):
-        st.markdown(r"""Our loss function is:
-$$
-L=(y-\hat{y})^2
-$$
-and the derivative of this wrt our prediction $\hat{y}$ is:
-$$
-\frac{dL}{d\hat{y}} = 2(\hat{y}-y)
-$$
-Furthermore, we can also easily find the gradient of our prediction $\hat{y}$ relative to the coefficients:
-$$
-\begin{aligned}
-&\frac{d\hat{y}}{d \boldsymbol{a}}=\left[\begin{array}{c}
-\frac{1}{2} \\
-\cos x \\
-\cos 2 x
-\end{array}\right], \;\;
-\frac{d\hat{y}}{d \boldsymbol{b}}=\left[\begin{array}{c}
-\sin x \\
-\sin 2 x
-\end{array}\right]
-\end{aligned}
-$$
-so if we use the **chain rule**, then we can find the gradient of the loss wrt each of our coefficients:
-$$
-\begin{aligned}
-&\frac{dL}{d \boldsymbol{a}}=2(\hat{y}-y)\left[\begin{array}{c}
-\frac{1}{2} \\
-\cos x \\
-\cos 2 x
-\end{array}\right], \;\;
-\frac{dL}{d \boldsymbol{b}}=2(\hat{y}-y)\left[\begin{array}{c}
-\sin x \\
-\sin 2 x
-\end{array}\right]
-\end{aligned}
-$$""")
+Array strides, and the `as_strided` method, are important to understand well because lots of linear operations are actually implementing something like `as_strided` under the hood.
 
-    st.markdown(r"""
-## (I) NumPy
+Consider the following tensor:
 
-Here, you should fill in a function which performs gradient descent on the coefficients of your function. At each step, we will calculate the total squared error between the true function `y` and your prediction `y_pred` over the range $[-\pi, \pi]$. We then manually implement gradient descent on our learned coefficients, moving them closer to the ideal values.
+```python
+test_input = t.tensor(
+    [[0, 1, 2, 3, 4], 
+    [5, 6, 7, 8, 9], 
+    [10, 11, 12, 13, 14], 
+    [15, 16, 17, 18, 19]], dtype=t.float
+)
+```
 
-You have the global variables `TARGET_FUNC` (the function you should be trying to approximate), `NUM_FREQUENCIES` (which corresponds to our value $N$ in the truncated Fourier series expression that we saw in the previous section), and the **hyperparameters** `TOTAL_STEPS` and `LEARNING_RATE` which control how gradient descent is implemented.
+This tensor is stored in a contiguous block in computer memory.
 
-Lots of this function is already filled in for you, but some sections are replaced with comments saying `# TODO`, followed by a description of what should go in this section. These are the sections of code you need to fill in (replacing the `raise Exception` statement with your own code).
+We can call the `stride` method to get the strides of this particular array. Running `test_input.stride()`, we get `(5, 1)`. This means that we need to skip over one element in the storage of this tensor to get to the next element in the row, and 5 elements to get the next element in the column (because you have to jump over all 5 elements in the row). Another way of phrasing this: the `n`th element in the stride is the number of elements we need to skip over to move one index position in the `n`th dimension.
 
-Note - you might find the library `einsum` useful here. You can read up on how to use it [here](https://rockt.github.io/2018/04/30/einsum). We will also cover it in more depth tomorrow.
-    """)
+In the exercises below, we will work with the `test_input` tensor above. You should fill in the `size` and `stride` arguments so that calling `test_input.as_strided` with these arguments produces the desired output. When you run the cell, the `for` loop at the end will iterate through the test cases and print out whether the test passed or failed.
 
-    st.code("""
-NUM_FREQUENCIES = 2
-TARGET_FUNC = lambda x: 1 * (x > 1)
-TOTAL_STEPS = 4000
-LEARNING_RATE = 1e-6
+We've already filled in the first one as an example. The output is a 1D tensor of length 4 (hence we want `size=(4,)`), and the values are the first row of `input_tensor` (hence we want to move one element along the `input_tensor` at each step, i.e. `stride=1`).
 
-x = np.linspace(-np.pi, np.pi, 2000)
-y = TARGET_FUNC(x)
+By the end of these examples, hopefully you'll have a clear idea of what's going on. If you're still confused by some of these, then `solutions.py` contains some annotations to explain the answers.
 
-x_cos = np.array([np.cos(n*x) for n in range(1, NUM_FREQUENCIES+1)])
-x_sin = np.array([np.sin(n*x) for n in range(1, NUM_FREQUENCIES+1)])
+```python
+import torch as t
+from collections import namedtuple
 
-a_0 = np.random.randn()
-A_n = np.random.randn(NUM_FREQUENCIES)
-B_n = np.random.randn(NUM_FREQUENCIES)
+TestCase = namedtuple("TestCase", ["output", "size", "stride"])
 
-y_pred_list = []
-coeffs_list = []
+test_cases = [
+    TestCase(
+        output=t.tensor([0, 1, 2, 3]), 
+        size=(4,), 
+        stride=(1,)),
+    TestCase(
+        output=t.tensor([0, 1, 2, 3, 4]), 
+        size=None, 
+        stride=None),
+    TestCase(
+        output=t.tensor([0, 5, 10, 15]), 
+        size=None, 
+        stride=None),
+    TestCase(
+        output=t.tensor([[0, 1, 2], [5, 6, 7]]), 
+        size=None, 
+        stride=None),
+    TestCase(
+        output=t.tensor([[0, 1, 2], [10, 11, 12]]), 
+        size=None, 
+        stride=None),
+    TestCase(
+        output=t.tensor([[0, 0, 0], [11, 11, 11]]), 
+        size=None,
+        stride=None),    
+    TestCase(
+        output=t.tensor([0, 6, 12, 18]), 
+        size=None, 
+        stride=None),
+    TestCase(
+        output=t.tensor([[[0, 1, 2]], [[9, 10, 11]]]), 
+        size=None, 
+        stride=None),
+    TestCase(
+        output=t.tensor([[[[0, 1], [2, 3]], [[4, 5], [6, 7]]], [[[12, 13], [14, 15]], [[16, 17], [18, 19]]]]),
+        size=None,
+        stride=None),
+]
+for (i, case) in enumerate(test_cases):
+    if (case.size is None) or (case.stride is None):
+        print(f"Test {i} failed: attempt missing.")
+    else:
+        actual = test_input.as_strided(size=case.size, stride=case.stride)
+        if (case.output != actual).any():
+            print(f"Test {i} failed:")
+            print(f"Expected: {case.output}")
+            print(f"Actual: {actual}\n")
+        else:
+            print(f"Test {i} passed!\n")
+```
 
-for step in range(TOTAL_STEPS):
-    
-    # TODO: compute `y_pred` using your coeffs, and the terms `x_cos`, `x_sin`
-    raise Exception("Not yet implemented.")
+## Intermediate stride exercises
 
-    # TODO: compute `loss`, which is the sum of squared error between `y` and `y_pred`
-    raise Exception("Not yet implemented.")
-    
-    if step % 100 == 0:
-        print(f"{loss = :.2f}")
-        coeffs_list.append([a_0, A_n.copy(), B_n.copy()])
-        y_pred_list.append(y_pred)
-    
-    # TODO: compute gradients of coeffs with respect to `loss`
-    raise Exception("Not yet implemented.")
+Now that you're comfortable with the basics, we'll dive a little deeper with `as_strided`. In the last few exercises of this section, you'll start to implement some more challenging stride functions: trace, matrix-vector and matrix-matrix multiplication, just like we did for `einsum` in the previous section.
 
-    # TODO update weights using gradient descent (using the parameter `LEARNING_RATE`)
-    raise Exception("Not yet implemented.")
+```python
+def as_strided_trace(mat: t.Tensor) -> t.Tensor:
+    '''
+    Returns the same as `torch.trace`, using only `as_strided` and `sum` methods.
+    '''
+    pass
 
-utils.visualise_fourier_coeff_convergence(x, y, y_pred_list, coeffs_list)
+utils.test_trace(as_strided_trace)
+```
 """)
 
-    with st.expander("""Help - I'm not sure how to compute the gradients wrt loss."""):
-        st.markdown(r"""You should refer back to the **Question - what is the derivative of the quadratic loss for a single sample, wrt the weights?** section above.
+    with st.expander("Hint"):
+        st.markdown("The trace is the sum of all the elements you get from starting at `[0, 0]` and then continually stepping down and right one element. Use strides to create a 1D array which contains these elements.")
+
+    st.markdown("""
+```python
+def as_strided_mv(mat: t.Tensor, vec: t.Tensor) -> t.Tensor:
+    '''
+    Returns the same as `torch.matmul`, using only `as_strided` and `sum` methods.
+    '''
+    pass
+
+utils.test_mv(as_strided_mv)
+utils.test_mv2(as_strided_mv)
+```
+""")
+
+    with st.expander("Hint 1"):
+        st.markdown("""You want your output array to be as follows:
+    
+```output[i] = sum_j { mat[i, j] * vec[j] }```
+
+so first try to create an array with `arr[i, j] = mat[i, j] * vec[j]`, then we can sum over this to get our output.""")
+
+    with st.expander("Hint 2"):
+        st.markdown("""Use striding to create an expanded vector with `vec_expanded[i, j] = vec[j]`, then we can compute `arr` as described in hint 1.""")
+
+    with st.expander("Help - I'm passing the first test, but failing the second."):
+        st.markdown("""It's possible that the input matrices you recieve could themselves be the output of an `as_strided` operation, so that they're represented in memory in a non-contiguous way. Make sure that your `as_strided `operation is using the strides from the original input arrays, i.e. it's not just assuming the last element in the `stride()` tuple is 1.""")
+
+    st.markdown("""
+```python
+def as_strided_mm(matA: t.Tensor, matB: t.Tensor) -> t.Tensor:
+    '''
+    Returns the same as `torch.matmul`, using only `as_strided` and `sum` methods.
+    '''
+    pass
+
+utils.test_mm(as_strided_mm)
+utils.test_mm2(as_strided_mm)
+```
+""")
+
+    with st.expander("Hint 1"):
+        st.markdown("""
+If you did the first one, this isn't too dissimilar. We have:
+
+```output[i, k] = sum_j { matA[i, j] * matB[j, k] }```
+
+so in this case, try to create an array with `arr[i, j, k] = matA[i, j] * matB[j, k]`.
+
+We need to create expanded versions of both `matA` and `matB` in order to take this product.
+""")
+
+    with st.expander("Hint 2"):
+        st.markdown("""We want `matA_expanded[i, j, k] = matA[i, j]`, so our stride for `matA should be `(matA.stride(0), matA.stride(1), 0)`.
         
-You may find it helpful to first define `grad_y_pred` as the derivative of $L$ wrt $\hat{y}$, and then calculating the gradients wrt each of the weights.""")
-
-    st.markdown("""
-If this works, then you should see a graph with a slider, that you can move to see the convergence of your function to the target one over time (along with a changing title to represent the coefficients):
-""")
-
-    st.image("ch0/images/ani2.png")
-
-    st.markdown("""## (II) PyTorch & Tensors
-
-### Tensor basics
-
-Tensors are the standard object in PyTorch, analogous to arrays in NumPy. However, they come with several additional features, most notably:
-
-* They can be moved to the GPU, for much faster computation
-* They can store gradients as computations are performed on them, which enables backpropogation in neural networks
-
-Fortunately, many of the ways of working with tensors carry over quite nicely from NumPy arrays. A few differences are:
-
-* There's some additional subtlety in how to create tensors (see next section).
-* Many PyTorch functions take an optional keyword argument `out`. If provided, instead of allocating a new tensor and returning that, the output is written directly to the out tensor.
-* PyTorch tends to use the keyword argument `dim` where NumPy uses `axis`.
-* Not all functions have the same name (e.g. the equivalent of `np.concatenate` is `torch.cat`).
-
-If you haven't already, this would be a good time to review the [100 NumPy exercises](https://github.com/rougier/numpy-100/blob/master/100_Numpy_exercises.ipynb), and work through them using PyTorch. This should get you a lot more fluent in how to create and manipulate tensors. If one member of your pair has done these exercises but the other hasn't, it's fine to just read over the solutions.
-
-### How to create tensors
-
-Two ways to create objects of type `torch.Tensor` are:
-
-* Call the constructor of `torch.Tensor`
-* Use the creation function `torch.tensor`
-
-The constructor way is fraught with peril. Try running the following code:""")
-
-    st.code("""import torch
-x = torch.arange(5)
-y1 = torch.Tensor(x.shape)
-y2 = torch.Tensor(tuple(x.shape))
-y3 = torch.Tensor(list(x.shape))
-print(y1, y2, y3)""")
-
-    st.markdown("""Why is this output weird? The argument to `torch.Tensor` can be interpreted in one of two ways:
-
-* As the tensor's **shape**, in which case it acts like `torch.empty`; returning a tensor of the given shape & filled with uninitialised data
-    * This happens for `y1` in the example above
-* As the tensor's **input data**, in which case it acts equivalently to NumPy's `np.array` function when you pass it a list or tuple
-    * This happens for `y2` and `y3`
-
-Becuase of this ambiguity, it's usually best to use `torch.tensor`, which always takes input data rather than a shape. `t.tensor` with no dtype specified will try to detect the type of your input automatically. This is usually what you want, but not always. For example, what does the following code do?""")
-
-    st.code("""try:
-    print(torch.tensor([1, 2, 3, 4]).mean())
-except Exception as e:
-    print("Exception raised: ", e)
-""")
-
-    st.markdown("""NumPy's `np.mean` would coerce to float and return `2.5` here, but PyTorch detects that your inputs all happen to be integers and refuses to compute the mean because it's ambiguous if you wanted `2.5` or `10 // 4 = 2` instead.
-
-The best practice to avoid surprises and ambiguity is to use `torch.tensor` and pass the dtype explicitly.
-
-One final gotcha with `torch.tensor` - in NumPy you can create a 2D array using `np.array(array_list)`, where `array_list` is a list of arrays. In PyTorch, you can't do this with `torch.tensor`. The best way to convert a list of equal-length 1D tensors into a 2D tensor is by using `torch.stack`.
-
-Other good ways to create tensors are:
-
-* If you already have a tensor `input` and want a new one of the same size, use functions like `torch.zeros_like(input)`. This uses the dtype and device of the input by default, saving you from manually specifying it.
-* If you already have a tensor `input` and want a new one with the same dtype and device but new data, use the `input.new_tensor` method.
-Many [other creation functions](https://pytorch.org/docs/stable/torch.html#creation-ops) exist, for which you should also specify the dtype explicitly.
-
-NumPy arrays can be converted into tensors using `torch.from_numpy`. Tensors can be converted into numpy arrays using the tensor method `.numpy()`.
-
-One final note - since we'll be using `torch` functions frequently, we'll be using the convention here of `import torch as t`.
-
-### Exercise - refactor your code (II)
-
-Rewrite the code from the previous exercise, but use PyTorch tensors rather than NumPy arrays. Your final code shouldn't contain any instances of `np`.
-
-Some tips here:
-* Remember you can use `torch.stack` to create 2D arrays
-* You should still append numpy arrays rather than tensors to `coeffs_list`. You can use `.numpy()` for this.
-
-You can move on when your code successfully produces the same graphical output as it did before.""")
-
-    with st.expander("Help - the cos and sin coefficients in my title aren't changing."):
-        st.markdown("""This is probably because you've appended the original tensor to `y_pred_list`. Try to append a copy instead.""")
-
-    st.markdown("""## (III) Autograd
-
-We'll be covering autograd and the backpropagation mechanism a lot more in subsequent days and weeks. For now, we'll keep things relatively straightforward.
-
-Rather than manually computing gradients, PyTorch keeps track of operations performed on tensors and stores those gradients within the tensors themselves (provided the tensor in question was initialised with `requires_grad=True`). The gradients can be accessed using the `grad` attribute. An example:
-""")
-
-    st.code("""import torch
-
-a = torch.tensor(2, dtype=torch.float, requires_grad=True)
-b = torch.tensor(3, dtype=torch.float, requires_grad=True)
-
-Q = 3*a**3 - b**2""")
-
-    st.markdown(r"""Note that we require `a` and `b` to have `float` dtypes, since we can't propagate gradients with `int` dtypes.
-
-We have created `Q` as a function of tensors `a` and `b`. When this happens, PyTorch keeps track of the operations performed on `Q`. We can explicitly calculate the gradients ourselves:
-$$
-
-\begin{aligned}
-Q &= 3a^3 - b^2 \\
-\\
-\frac{\partial Q}{\partial a} &=9 a^2 \\
-\frac{\partial Q}{\partial b} &=-2 b
-\end{aligned}
-
-$$""")
-
-    st.markdown("""
-When we call `.backward()` on `Q`, autograd calculates these gradients and stores them in the respective tensors’ `.grad` attribute.
-
-Note that, if `Q` had more than one element, we would need to consider directional derivatives (see [this page](https://pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html) for more information). But here `Q` only has a single element, so we don't need to worry about this.
-""")
-
-    st.code("""
-# check if collected gradients are correct
-assert 9*a**2 == a.grad
-assert -2*b == b.grad
-""")
-
-    st.markdown("""
-### Exercise - refactor your code (III)
-
-Use autograd to refactor the code you wrote in the previous section, so that gradient descent is implemented using autograd. This will mainly involve rewriting the last two `# TODO`'s in the code.
-
-Additionally, you will also need to be a bit more careful when adding your tensors to `y_pred_list`. Rather than just calling `.numpy()` on our tensor, we first have to call `.detach()`. A description of what `detach` does can be found [here](https://www.tutorialspoint.com/what-does-tensor-detach-do-in-pytorch). We will go into more detail when we study backpropagation later on in this course.
-
-A final note - after you apply the GD step, you'll need to reset the gradients of your parameters. If you don't do this, PyTorch will keep accumulating gradients every time you run `backward()`. In later sections we'll see more advanced ways to reset gradients, but for now you can just call `param.grad = None` to reset the gradients of `param`.
-
-## (IV) Models
-
-Large neural networks are often structured in **layers**. Many of these layers have **learnable parameters** which will be optimised during learning. PyTorch gives us the `nn`. package to arrange the computation into layers, thereby abstracting away much of the difficulty for us.
-
-The `nn` package defines a set of **Modules**, which are roughly equivalent to neural network layers. A Module receives input Tensors and computes output Tensors, but may also hold internal state such as Tensors containing learnable parameters. If you have more than one layer, you can combine them into a single object using `nn.Sequential(*args)`.
-
-The `nn` package also defines a set of useful loss functions that are commonly used when training neural networks.
-
-### Exercise - refactor your code (IV)
-
-Now, you should rewrite your previous code to make use of the `nn` library. In other words, rather than defining parameters `a_0`, `A_n` and `B_n` explicitly, you can define a linear layer `nn.Linear`, and have the parameters correspond to the weights of that network.
-
-This will probably be the most difficult refactoring so far, especially if you don't have much experience working with `torch.nn`. A few notes here:
-
-* Once you define `model`, you can create output by simply calling `model(input)`. Previously you had three inputs: a constant term, `x_cos` and `x_sin`. Since a linear layer comes with a bias term by default, we only have to worry about `x_cos` and `x_sin`. You'll need to combine these into a single array before feeding it into your model.
-* When neural networks get multi-dimensional input, they always interpret the `0`th dimension as the **batch dimension**. In this case, the batch dimension is the linspace of the `x` tensor (since for every possible value in this tensor, our network is computing a single output which will be a value in the tensor `y_pred`). So your input to the neural network should have shape `(2000, 2 * NUM_FREQUENCIES)`.
-* You can also add an instance of `nn.Flatten` to go after your linear layer, which does something similar to the `squeeze` method for NumPy arrays. Look at the PyTorch documentation page for more.
-* `model.parameters()` returns an iterator, which you can loop through to apply gradient descent to each `param`.
-    * It's good practice to use `torch.no_grad()` during the gradient descent step, to make sure that you don't propagate gradients during this step. `torch.inference_mode()` does the same thing, and is currently preferred (you can see [this documentation page](https://pytorch.org/docs/stable/generated/torch.autograd.inference_mode.html#:~:text=InferenceMode%20is%20a%20new%20context,tracking%20and%20version%20counter%20bumps.) for more details).
-* You will also need to reset gradients before each step of gradient descent. You can do this in the for loop above by setting `param.grad = None`, but PyTorch provides an easier method: calling `model.zero_grad()` resets the gradients of all parameters in the model.
-* Streamlit
-
-Again, you'll be finished once you can produce the same output as before.
-
-## (V) Optimizers
-
-Up to this point we have updated the weights of our models by manually mutating the Tensors holding learnable parameters with torch.no_grad(). This is not a huge burden for simple optimization algorithms like stochastic gradient descent, but in practice we often train neural networks using more sophisticated optimizers like AdaGrad, RMSProp, Adam, etc.
-
-The optim package in PyTorch abstracts the idea of an optimization algorithm and provides implementations of commonly used optimization algorithms.
-
-In this example we will use the nn package to define our model as before, but we will optimize the model using the SGD algorithm provided by the optim package.
-
-### Exercise - refactor your code (V)
-
-Refactor your code for a final time. You won't need as many changes as you did last time; you'll just have to:
-* Define an optimizer using SGD, with first argument the model parameters and second argument learning rate (see [this documentation page](https://pytorch.org/docs/stable/optim.html)).
-* Remove the gradient descent step from your previous code (which should have involved a for loop), and replace it with a single line of code involving an optimizer.
-
-Note - you can also replace `model.zero_grad()` with `optimizer.zero_grad()`. This is functionally the same here, because the optimizer is fed all the parameters of the model. However this might not always be the case (e.g. when finetuning a model, you might only want to optimise the final layer). You might also have more than one optimiser for the same model. In these cases, it is often safer to call `model.zero_grad()`, so that every gradient is reset.
-
-""")
+A similar idea applies for `matB`.""")
 
 def section3():
-    st.markdown(r"""# Bonus Exercises
+    st.sidebar.markdown("""
+## Table of Contents
 
-Congratulations on getting through the core exercises of the first day!""")
+<ul class="contents">
+    <li><a class="contents-el" href="#reading">Reading</a></li>
+    <li><a class="contents-el" href="#exercise-1-implement-conv1d-minimal">Exercise 1 - Implement conv1d_minimal</a></li>
+    <li><a class="contents-el" href="#exercise-2-implement-conv2d-minimal">Exercise 2 - Implement conv2d_minimal</a></li>
+    <li><a class="contents-el" href="#exercise-3-implement-pad1d-and-pad2d">Exercise 3 - Implement pad1d and pad2d</a></li>
+    <li><a class="contents-el" href="#exercise-4-implement-conv1d-and-conv2d">Exercise 4 - Implement conv1d and conv2d</a></li>
+    <li><a class="contents-el" href="#exercise-5-implement-maxpool">Exercise 5 - Implement maxpool</a></li>
+</ul>
+""", unsafe_allow_html=True)
 
-    button = st.button("Press me when you're finished! 🙂", on_click = st.balloons)
+    st.markdown("""
+## Reading
 
-    st.markdown("""Now, you'll have time to explore some more of these exercises in greater detail. Some suggested exercises:
+* [A Comprehensive Guide to Convolutional Neural Networks (TowardsDataScience)](https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53)
 
-### Fill out the [feedback form](https://forms.gle/fzp5HbhHjU96NELK8)
-
-This is the most important exercise of all! We're keen to make sure ARENA is as useful and enjoyable as possible, so we're keen to hear about the experience you had with these exercises. Did you like working in Streamlit, or would you prefer to keep everything in Markdown files? Were the exercises appropriately challenging, or too hard / easy? You can let us know here.
-
-### Compare your results from parts 1 and 2
-
-Do the Fourier coefficients that you calculated explicitly in part 1 match the learned Fourier coefficients in part 2? Why, or why not? Does this depend on whether you use quadratic loss or some other loss function (e.g. $L_1$ loss)?
-
-### FFT
-
-The FFT (Fast Fourier Transform) is an algorithm that speeds up the DFT significantly. The DFT is $O(n^2)$, but the FFT is $O(n \log{n})$ when correctly implemented. Can you write a function in Python which implements the DFT? How does it compare in speed to NumPy's built-in DFT functions?
-
-### DFT on PyTorch
-
-Try rewriting your DFT code (and FFT, if you did the exercise above), but using PyTorch tensors rather than NumPy arrays. How does this compare in speed to PyTorch's built-in functions? Can you get another speedup by making your function run on the GPU?
-
-### Fourier series convergence
-
-In the second exercise, you hopefully saw the loss fall over time, down to some lower bound which depended on the function you used and the number of frequencies which were used to approximate the function. Try choosing a fixed function (e.g. $y=x^2$ or the Heaviside step function). Can you see a pattern in the loss lower bound as the number of Fourier terms increases?
-
-You can also try playing around with some different functions, e.g. polynomial / trigonometric / piecewise linear. What features of a function determine the speed of convergence as you add more Fourier terms?
+Here are some questions to make sure you've understood the material. Once you finish the article above, you should try and answer these questions without referring back to the original article.
 """)
+
+    with st.expander("Why would convolutional layers be less likely to overfit data than standard linear (fully connected) layers?"):
+        st.markdown("""Convolutional layers require significantly fewer weights to be learned. This is because the same kernel is applied all across the image, rather than every pair of `(input, output)` nodes requiring a different weight to be learned.""")
+
+    with st.expander("Suppose you fixed some random permutation of the pixels in an image, and applied this to all images in your dataset, before training a convolutional neural network for classifying images. Do you expect this to be less effective, or equally effective?"):
+        st.markdown("""It will be less effective, because CNNs work thanks to **spatial locality** - groups of pixels close together are more meaningful. For instance, CNNs will often learn convolutions at an early layer which recognise gradients or simple shapes. If you permute the pixels (even if you permute in the same way for every image), you destroy locality. """)
+
+    with st.expander("If you have a 28x28 image, and you apply a 3x3 convolution with stride 1, padding 1, what shape will the output be?"):
+        st.markdown("""It will be the same shape, i.e. `28x28`. In the post linked above, this is described as **same padding**. Tomorrow, we'll build an MNIST classifier which uses these convolutions.""")
+
+    st.markdown("""
+## Exercise 1 - Implement `conv1d_minimal`
+
+Here, we will implement the PyTorch `conv1d` function, which can be found [here](https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html). We will start with a simple implementation where `stride=1` and `padding=0`, with the other arguments set to their default values.
+
+Firstly, some explanation of `conv1d` in PyTorch. The `1` in `1d` here refers to the number of dimensions along which we slide the weights (also called the kernel) when we convolve. Importantly, it does not refer to the number of dimensions of the tensors that are being used in our calculations. Typically the input and kernel are both 3D:
+
+* `input.shape = (batch, in_channels, width)`
+* `kernel.shape = (out_channels, in_channels, kernel_width)`
+
+A typical convolution operation is illustrated in the sketch below. Some notes on this sketch:
+
+* The `kernel_width` dimension of the kernel slides along the `width` dimension of the input. The `output_width` of the output is determined by the number of kernels that can be fit inside it; the formula can be seen in the right part of the sketch.
+* For each possible position of the kernel inside the model (i.e. each freezeframe position in the sketch), the operation happening is as follows:
+    * We take the product of the kernel values with the corresponding input values, and then take the sum
+    * This gives us a single value for each output channel
+    * These values are then passed into the output tensor
+* The sketch assumes a batch size of 1. To generalise to a larger batch number, we can just imagine this operation being repeated identically on every input.
+""")
+
+    st.image("w0d2/images/conv1d_illustration.png")
+
+    st.markdown("""
+Below, you should implement `conv1d_minimal`. This is a function which works just like `conv1d`, but takes the default stride and padding values (these will be added back in later). You are allowed to use `as_strided` and `einsum`.
+
+This is intended to be pretty challenging, so we've provided several hints which you should work through in sequence if you get stuck.
+""")
+
+    with st.expander("Hint 1"):
+        st.markdown("""First, consider a simplified version where `batch` and `out_channels` are both 1. These are both pretty simple to add back in later, because the convolution operation is done identically along the batch dimension, and each slice of the kernel corresponding to one of the `out_channels` is convolved with `x` in exactly the same way.
+        
+So we have `x.shape = (in_channels, width)`, and `weights.shape = (in_channels, kernel_width)`, and we want to get output of shape `(output_width,)`.""")
+
+    with st.expander("Hint 2"):
+        st.markdown("""We want to get a strided version of `x`, which we can then multiply with `weights` (using `einops`) to get something of the required shape.
+        
+The shape of `x_strided` should be `(in_channels, output_width, kernel_width)`. Try and think about what each of the strides should be.""")
+
+    with st.expander("Hint 3"):
+        st.markdown("""The strides for the first two dimensions of `x_strided` should be the same as `x.stride()`. For the stride corresponding to `kernel_width`, every time we move the kernel one step along inside `x` we also want to move one step inside `x`, so this stride should be `x.stride()[1]`.
+        
+So we have:
+
+```python
+xsB, xsI, xsWi = x.stride()
+x_new_stride = (xsB, xsI, xsWi, xsWi)
+```
+
+Now try and turn this into a full function. Return to Hint1 if you're confused.""")
+
+    st.markdown("""
+```python
+def conv1d_minimal(x: t.Tensor, weights: t.Tensor) -> t.Tensor:
+    '''Like torch's conv1d using bias=False and all other keyword arguments left at their default values.
+
+    x: shape (batch, in_channels, width)
+    weights: shape (out_channels, in_channels, kernel_width)
+
+    Returns: shape (batch, out_channels, output_width)
+    '''
+    pass
+    
+utils.test_conv1d_minimal(conv1d_minimal)
+```
+
+## Exercise 2 - Implement `conv2d_minimal`
+
+2D convolutions are conceptually similar to 1D. The only difference is in how you move the kernel across the tensor as you take your convolution. In this case, you will be moving the tensor across two dimensions:
+""")
+    st.image("w0d2/images/conv2d_illustration.png", width=600)
+
+    st.markdown("""
+For this reason, 1D convolutions tend to be used for signals (e.g. audio), 2D convolutions are used for images, and 3D convolutions are used for 3D scans (e.g. in medical applications). 
+
+You should implement `conv2d` in a similar way to `conv1d`. Again, this is expected to be difficult and there are several hints you can go through.
+""")
+
+    with st.expander("Hint 1"):
+        st.markdown("""This is conceptually very similar to conv1d. You can start by copying your code from the conv1d function, but changing it whenever it refers to `width` (since you'll need to use `width` *and* `height`).""")
+
+    with st.expander("Hint 2"):
+        st.markdown("""The shape of `x_strided` should be `(batch, in_channels, output_height, output_width, kernel_height, kernel_width)`. 
+        
+Just like last time, some of these strides should just correspond to their equivalents in `x.stride()`, and you can work out the others by thinking about how the kernel is moved around inside `x`.""")
+
+    st.markdown(r"""
+```python
+def conv2d_minimal(x: t.Tensor, weights: t.Tensor) -> t.Tensor:
+    '''Like torch's conv2d using bias=False and all other keyword arguments left at their default values.
+
+    x: shape (batch, in_channels, height, width)
+    weights: shape (out_channels, in_channels, kernel_height, kernel_width)
+
+    Returns: shape (batch, out_channels, output_height, output_width)
+    '''
+    pass
+    
+utils.test_conv2d_minimal(conv2d_minimal)
+```
+
+## Exercise 3 - Implement `pad1d` and `pad2d`
+
+For a full version of `conv`, and for `maxpool` (which will follow shortly), you'll need to implement `pad` helper functions. PyTorch has some very generic padding functions, but to keep things simple and build up gradually, we'll write 1D and 2D functions individually.
+
+Tip: use the `new_full` method of the input tensor. This is a clean way to ensure that the output tensor is on the same device as the input, and has the same dtype.
+
+Tip: you can use three dots to denote slicing over multiple dimensions. For instance, `x[..., 0]` will take the `0th` slice of `x` along its last dimension. This is equivalent to `x[:, 0]` for 2D, `x[:, :, 0]` for 3D, etc.
+
+```python
+def pad1d(x: t.Tensor, left: int, right: int, pad_value: float) -> t.Tensor:
+    '''Return a new tensor with padding applied to the edges.
+
+    x: shape (batch, in_channels, width), dtype float32
+
+    Return: shape (batch, in_channels, left + right + width)
+    '''
+    pass
+
+
+utils.test_pad1d(pad1d)
+utils.test_pad1d_multi_channel(pad1d)
+```
+
+```python
+
+def pad2d(x: t.Tensor, left: int, right: int, top: int, bottom: int, pad_value: float) -> t.Tensor:
+    '''Return a new tensor with padding applied to the edges.
+
+    x: shape (batch, in_channels, height, width), dtype float32
+
+    Return: shape (batch, in_channels, top + height + bottom, left + width + right)
+    '''
+    pass
+
+utils.test_pad2d(pad2d)
+utils.test_pad2d_multi_channel(pad2d)
+```
+
+## Exercise 4 - Implement `conv1d` and `conv2d`
+
+Now extend `conv1d` to handle the `stride` and `padding` arguments.
+
+`stride` is the number of input positions that the kernel slides at each step. `padding` is the number of zeros concatenated to each side of the input before the convolution.
+
+Output shape should be (batch, output_channels, output_length), where output_length can be calculated as follows:
+
+$$
+\text{output\_length} = \left\lfloor\frac{\text{input\_length} + 2 \times \text{padding} - \text{kernel\_size}}{\text{stride}} \right\rfloor + 1
+$$
+
+Verify for yourself that the forumla above simplifies to the formula we used earlier when padding is 0 and stride is 1.
+
+Docs for pytorch's `conv1d` can be found [here](https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html).""")
+
+    with st.expander("Hint"):
+        st.markdown("""Each step of the kernel inside the input tensor, you're moving by `stride` elements rather than just 1 element.
+        
+So when creating `x_strided`, you should change the `stride` argument at the positions corresponding to the movement of the kernel inside `x`, so that you're jumping over `stride` elements rather than 1.
+
+You will also need a new `output_width` (use the formula in the documentation).""")
+
+    st.markdown("""
+```python
+def conv1d(x, weights, stride: int = 1, padding: int = 0) -> t.Tensor:
+    '''Like torch's conv1d using bias=False.
+
+    x: shape (batch, in_channels, width)
+    weights: shape (out_channels, in_channels, kernel_width)
+
+    Returns: shape (batch, out_channels, output_width)
+    '''
+    pass
+
+utils.test_conv1d(conv1d)
+```
+""")
+
+    st.markdown("""
+#### Helper functions for pairs
+
+A recurring pattern in these 2d functions is allowing the user to specify either an int or a pair of ints for an argument: examples are stride and padding. We've provided some type aliases and a helper function to simplify working with these.
+
+```python
+IntOrPair = Union[int, tuple[int, int]]
+Pair = tuple[int, int]
+
+def force_pair(v: IntOrPair) -> Pair:
+    '''Convert v to a pair of int, if it isn't already.'''
+    if isinstance(v, tuple):
+        if len(v) != 2:
+            raise ValueError(v)
+        return (int(v[0]), int(v[1]))
+    elif isinstance(v, int):
+        return (v, v)
+    raise ValueError(v)
+
+# Examples of how this function can be used:
+#       force_pair((1, 2))     ->  (1, 2)
+#       force_pair(2)          ->  (2, 2)
+#       force_pair((1, 2, 3))  ->  ValueError
+```
+
+Finally, you can implement a full version of `conv2d`. If you've done the full version of `conv1d`, and you've done `conv2d_minimal`, then this shouldn't be too much trouble.
+
+```python
+def conv2d(x, weights, stride: IntOrPair = 1, padding: IntOrPair = 0) -> t.Tensor:
+    '''Like torch's conv2d using bias=False
+
+    x: shape (batch, in_channels, height, width)
+    weights: shape (out_channels, in_channels, kernel_height, kernel_width)
+
+
+    Returns: shape (batch, out_channels, output_height, output_width)
+    '''
+    pass
+    
+utils.test_conv2d(conv2d)
+```
+
+## Exercise 5 - Implement `maxpool`
+
+Before we move to section 4, we'll implement one last function: **max pooling**. You can review the [TowardsDataScience](https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53) post from earlier to understand max pooling better.
+
+A "max pooling" layer is similar to a convolution in that you have a window sliding over some number of dimensions. The main difference is that there's no kernel: instead of multiplying by the kernel and adding, you just take the maximum.
+
+The way multiple channels work is also different. A convolution has some number of input and output channels, and each output channel is a function of all the input channels. There can be any number of output channels. In a pooling layer, the maximum operation is applied independently for each input channel, meaning the number of output channels is necessarily equal to the number of input channels.
+
+Implement `maxpool2d` using `torch.as_strided` and `torch.amax` (= max over axes) together. Your version should behave the same as the PyTorch version, but only the indicated arguments need to be supported.""")
+
+    with st.expander("Hint"):
+        st.markdown("""Conceptually, this is similar to `conv2d`. 
+    
+In `conv2d`, you had to use `as_strided` to turn the 4D tensor `x` into a 6D tensor `x_strided` (adding dimensions over which you would take the convolution), then multiply this tensor by the kernel and sum over these two new dimensions.
+
+`maxpool2d` is the same, except that you're simply taking max over those dimensions rather than a dot product with the kernel. So you should find yourself able to reuse a lot of code from your `conv2d` function.""")
+
+    st.markdown("""```python
+def maxpool2d(x: t.Tensor, kernel_size: IntOrPair, stride: Optional[IntOrPair] = None, padding: IntOrPair = 0
+) -> t.Tensor:
+    '''Like PyTorch's maxpool2d.
+
+    x: shape (batch, channels, height, width)
+    stride: if None, should be equal to the kernel size
+
+    Return: (batch, channels, out_height, output_width)
+    '''
+    pass
+
+utils.test_maxpool2d(maxpool2d)
+```""")
+
+    with st.expander("Help - I'm getting a small number of mismatched elements each time (e.g. between 0 and 5%)."):
+        st.markdown("""This is likely because you used an incorrect `pad_value`. In the convolution function, we set `pad_value=0` so these values wouldn't have any effect in the linear transformation. What pad value would make our padded elements "invisible" when we take the maximum?
+        
+Click on the expander below to reveal the answer.""")
+
+    with st.expander("""Click to reveal the answer to the question posed in the expander above this one."""):
+        st.markdown("""<span style="background-color: #31333F">$$-\infty$$</span>""", unsafe_allow_html=True)
+
+def section4():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+    <li><a class="contents-el" href="#subclassing-nn-module">Subclassing nn.Module</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#init-and-forward">__init__ and forward</a></li>
+        <li><a class="contents-el" href="#the-nn-parameter-class">The nn.Parameter class</a></li>
+        <li><a class="contents-el" href="#printing-information-with-extra-repr">Printing information with extra_repr</a></li>
+    </ul></li>
+    <li><a class="contents-el" href="#exercise-1-maxpool2d-module">Exercise 1 - MaxPool2d module</a></li>
+    <li><a class="contents-el" href="#exercise-2-relu-and-flatten">Exercise 2 - ReLU and Flatten</a></li>
+    <li><a class="contents-el" href="#exercise-3-linear-module">Exercise 3 - Linear module</a></li>
+    <li><a class="contents-el" href="#exercise-4-conv2d-module">Exercise 4 - Conv2d module</a></li>
+</ul>
+""", unsafe_allow_html=True)
+
+    st.markdown("""
+## Subclassing `nn.Module`
+
+One of the most basic parts of PyTorch that you will see over and over is the `nn.Module` class (you may have encountered this at the [end of yesterday's exercises](https://arena-w0d1.streamlitapp.com/Basic_Neural_Network)). All types of neural net components inherit from it, from the simplest `nn.Relu` to the most complex `nn.Transformer`. Often, a complex `nn.Module` will have sub-`Module`s which implement smaller pieces of its functionality.
+
+Other common `Module`s  you’ll see include
+
+- `nn.Linear`, for fully-connected layers with or without a bias, like you’d see in an MLP
+- `nn.Conv2d`, for a two-dimensional convolution, like you’d see in a CNN
+- `nn.Softmax`, which implements the softmax function
+
+The list goes on, including activation functions, normalizations, pooling, attention, and more. You can see all the `Module`s that torch provides [here](https://pytorch.org/docs/stable/nn.html). You can also create your own `Module`s, as we will do often!
+
+The `Module` class provides a lot of functionality, but we’ll only cover a little bit of it here.
+
+In this section, we'll add another layer of abstraction to all the linear operations we've done in previous sections, by packaging them inside `nn.Module` objects.
+
+### `__init__` and `forward`
+
+A subclass of `nn.Module` usually looks something like this:
+
+```python
+import torch.nn as nn
+
+class MyModule(nn.Module):
+    def __init__(self, arg1, arg2, ...):
+        super().__init__()
+        # Initialization code 
+
+    def forward(self, x: t.Tensor) -> t.Tensor:
+        # Forward pass code
+```
+
+The initialization sets up attributes that will be used for the life of the `Module`, like its parameters, hyperparameters, or other sub-`Module`s it might need to use. These are usually added to the instance with something like `self.attribute = attr`, where `attr` might be provided as an argument. Some modules are simple enough that they don’t need any persistent attributes, and in this case you can skip the `__init__`.
+
+The `forward` method is called on each forward pass of the `Module`, possibly using the attributes that were set up in the `__init__`. It should take in the input, do whatever it’s supposed to do, and return the result. Subclassing `nn.Module` automatically makes instances of your class callable, so you can do `model(x)` on an input `x` to invoke the `forward` method. 
+
+### The `nn.Parameter` class
+
+A `nn.Parameter` is a special type of `Tensor`. Basically, this is the class that torch has provided for storing the weights and biases of a `Module`. It has some special properties for doing this:
+
+- If a `Parameter` is set as an attribute of a `Module`, it will be auto-detected by torch and returned when you call `module.parameters()` (along with all the other `Parameters` associated with the `Module`, or any of the `Module`'s sub-modules!).
+- This makes it easy to pass all the parameters of a model into an optimizer and update them all at once.
+
+When you create a `Module` that has weights or biases, be sure to wrap them in `nn.Parameter` so that torch can detect and update them appropriately:
+
+```python
+def __init__(self, weights: t.Tensor, biases: t.Tensor):
+    super().__init__()
+    self.weights = nn.Parameter(weights) # wrapping a tensor in nn.Parameter
+    self.biases = nn.Parameter(biases)
+```
+
+### Printing information with `extra_repr`
+
+Although the code above covers all the essential parts of creating a module, we will add one more method: `extra_repr`. This sets the extra representation of a module - in other words, if you have a module `class MyModule(nn.Module)`, then when you print an instance of this module, it will return the (formatted) string `f"MyModule({extra_repr})"`. You might want to take this opportunity to print out useful invariant information about the module (e.g. `kernel_size`, `stride` or `padding`). The Python built-in function `getattr` might be helpful here (it can be used e.g. as `getattr(self, "padding")`, which returns the same as `self.padding` would).
+
+## Exercise 1 - `MaxPool2d` module
+
+```python
+class MaxPool2d(nn.Module):
+    def __init__(self, kernel_size: IntOrPair, stride: Optional[IntOrPair] = None, padding: IntOrPair = 1):
+        pass
+
+    def forward(self, x: t.Tensor) -> t.Tensor:
+        '''Call the functional version of maxpool2d.'''
+        pass
+
+    def extra_repr(self) -> str:
+        '''Add additional information to the string representation of this class.'''
+        pass
+
+utils.test_maxpool2d_module(MaxPool2d)
+m = MaxPool2d(kernel_size=3, stride=2, padding=1)
+print(f"Manually verify that this is an informative repr: {m}")
+```
+""")
+
+    with st.expander("""Help - I'm really confused about what to do here!"""):
+        st.markdown("""Your `forward` method should just implement the `maxpool2d` function that you defined earlier in these exercises. In order to get the parameters for this function like `kernel_size` and `stride`, you'll need to initialise them in `__init__`. 
+
+Later modules will be a bit more complicated because you'll need to initialise weights, but `MaxPool2d` has no weights - it's just a wrapper for the `maxpool2d` function.
+
+---
+
+You want the `extra_repr` method to output something like:
+```python
+"kernel_size=3, stride=2, padding=1"
+```
+
+so that when you print the module, it will look like this:
+
+```python
+MaxPool2d(kernel_size=3, stride=2, padding=1)
+```
+""")
+
+    with st.expander("Help - I get the error 'MaxPool2d' object has no attribute '_backward_hooks'"):
+        st.markdown("""Remember to call `super().__init__()` in all your `Module` subclasses. This is a very easy thing to forget!""")
+
+    st.markdown("""
+## Exercise 2 - `ReLU` and `Flatten`
+
+Now, you should do the same for the functions `ReLU` and `Flatten`. Neither of these have learnable parameters, so they should both follow exactly the same pattern as `MaxPool2d` above. Make sure you look at the PyTorch documentation pages for [ReLU](https://pytorch.org/docs/stable/generated/torch.nn.ReLU.html) and [Flatten](https://pytorch.org/docs/stable/generated/torch.nn.Flatten.html) so that you're comfortable with what they do and why they're useful in neural networks.""")
+
+    with st.expander("""Question - in a CNN, should you have Flatten layers before or after convolutional layers?"""):
+        st.markdown("""Flatten is most often used to stack over all non-batched dimensions, which includes the height and width dimensions of an image. This will destroy spatial relationships, meaning you should do it **after** you've done all your convolutions.
+    
+`Flatten` is usually only used after convolutions, before applying fully connected linear layers. For an example of this, see the CNN and ResNet architectures in tomorrow's exercise which we'll be attempting to build.""")
+
+    st.markdown("""Note that ReLU's constructor has no arguments, so it doesn't need an `extra_repr`.
+
+```python
+class ReLU(nn.Module):
+    def forward(self, x: t.Tensor) -> t.Tensor:
+        pass
+
+utils.test_relu(ReLU)
+```
+
+```python
+class Flatten(nn.Module):
+    def __init__(self, start_dim: int = 1, end_dim: int = -1) -> None:
+        pass
+
+    def forward(self, input: t.Tensor) -> t.Tensor:
+        '''Flatten out dimensions from start_dim to end_dim, inclusive of both.
+        '''
+        pass
+
+    def extra_repr(self) -> str:
+        pass
+
+utils.test_flatten(Flatten)
+```
+""")
+
+    with st.expander("""Help - I'm not sure which function to use for Flatten."""):
+        st.markdown("""You could use `einops.rearrange`, but constructing the rearrangement pattern as a string is nontrivial. Using `torch.reshape` will be easier.""")
+
+    with st.expander("""Help - I can't figure out what shape the output should be in Flatten."""):
+        st.markdown("""
+If `input.shape = (n0, n1, ..., nk)`, and the `Flatten` module has `start_dim=i, end_dim=j`, then the new shape should be `(n0, n1, ..., ni*...*nj, ..., nk)`. This is because we're **flattening** over these dimensions.
+
+Try first constructing this new shape object (you may find `functools.reduce` helpful for taking the product of a list), then using `torch.reshape` to get your output.
+""")
+
+    with st.expander("""Help - I can't see why my Flatten module is failing the tests."""):
+        st.markdown("""
+The most common reason is failing to correctly handle indices. Make sure that:
+* You're indexing up to **and including** `end_dim`.
+* You're correctly managing the times when `end_dim` is negative (e.g. if `input` is an nD tensor, and `end_dim=-1`, this should be interpreted as `end_dim=n-1`).
+""")
+
+    st.markdown("""
+## Exercise 3 - `Linear` module
+
+Now implement your own `Linear` module. This applies a simple linear transformation, with a weight matrix and optional bias vector. The PyTorch documentation page is [here](https://pytorch.org/docs/stable/generated/torch.nn.Linear.html). Note that this is the first `Module` you'll implement that has learnable weights and biases.""")
+
+    with st.expander("""Question - what type should these variables be?"""):
+        st.markdown("""They have to be `torch.Tensor` objects wrapped in `nn.Parameter` in order for `nn.Module` to recognize them. If you forget to do this, `module.parameters()` won't include your `Parameter`, which prevents an optimizer from being able to modify it during training. 
+        
+Also, in tomorrow's exercises we'll be building a ResNet and loading in weights from a pretrained model, and this is hard to do if you haven't registered all your parameters!""")
+
+    st.markdown(r"""For any layer, initialization is very important for the stability of training: with a bad initialization, your model will take much longer to converge or may completely fail to learn anything. The default PyTorch behavior isn't necessarily optimal and you can often improve performance by using something more custom, but we'll follow it for today because it's simple and works decently well.
+
+Each float in the weight and bias tensors are drawn independently from the uniform distribution on the interval:
+
+$$ \bigg[-\frac{1}{\sqrt{N_{in}}}, \frac{1}{\sqrt{N_{in}}}\bigg] $$
+
+where $N_{in}$ is the number of inputs contributing to each output value. The rough intuition for this is that it keeps the variance of the activations at each layer constant, since each one is calculated by taking the sum over $N_{in}$ inputs multiplied by the weights (and standard deviation of the sum of independent random variables scales as the square root of number of variables).
+
+The name for this is **Xavier (uniform) initialisation**.""")
+
+    st.markdown("""
+```python
+class Linear(nn.Module):
+    def __init__(self, in_features: int, out_features: int, bias=True):
+        '''A simple linear (technically, affine) transformation.
+
+        The fields should be named `weight` and `bias` for compatibility with PyTorch.
+        If `bias` is False, set `self.bias` to None.
+        '''
+        pass
+
+    def forward(self, x: t.Tensor) -> t.Tensor:
+        '''
+        x: shape (*, in_features)
+        Return: shape (*, out_features)
+        '''
+        pass
+
+    def extra_repr(self) -> str:
+        pass
+    
+utils.test_linear_forward(Linear)
+utils.test_linear_parameters(Linear)
+utils.test_linear_no_bias(Linear)
+```""")
+
+    with st.expander("""Help - when I print my Linear module, it also prints a large tensor."""):
+        st.markdown("""This is because you've (correctly) defined `self.bias` as either `torch.Tensor` or `None`, rather than set it to the boolean value of `bias` used in initialisation.
+        
+To fix this, you will need to change `extra_repr` so that it prints the boolean value of `bias` rather than the value of `self.bias`.""")
+
+    st.markdown("""## Exercise 4 - `Conv2d` module
+
+Finally, we'll implement a module version of our `conv2d` function. This should look very similar to our linear layer implementation above, with weights and an optional bias tensor. The `nn.Conv2d` documentation page can be found [here](https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html). You should implement this without any bias term.
+    """)
+
+    with st.expander("""Help - I don't know what to use as number of inputs, when doing Xavier initialisation."""):
+        st.markdown("""In the case of convolutions, each value in the output is computed by taking the product over `in_channels * kernel_width * kernel_height` elements. So this should be our value for $N_{in}$.""")
+
+    st.markdown("""
+```python
+class Conv2d(nn.Module):
+    def __init__(
+        self, in_channels: int, out_channels: int, kernel_size: IntOrPair, stride: IntOrPair = 1, padding: IntOrPair = 0
+    ):
+        '''
+        Same as torch.nn.Conv2d with bias=False.
+
+        Name your weight field `self.weight` for compatibility with the PyTorch version.
+        '''
+        pass
+
+    def forward(self, x: t.Tensor) -> t.Tensor:
+        '''Apply the functional conv2d you wrote earlier.'''
+        pass
+
+    def extra_repr(self) -> str:
+        pass
+
+utils.test_conv2d_module(Conv2d)
+```
+---
+
+Congratulations for getting to the end of day 2! That was a lot of material we covered!""")
+
+    st.button("Press me when you're finished! 🙂", on_click = st.balloons)
+
+    st.markdown("""We'll start day 3 by using all of our code from the last section to build a CNN, and construct a basic training loop for our neural network.
+
+We'll then proceed to a more advanced architecture: residual neural networks, to classify ImageNet images.
+
+We'd be grateful if you could give feedback on today's exercises - you can find the form [here](https://forms.gle/cEt3zzWyPcM2Cgrr5).
+""")
+
 
 func_list = [section0, section1, section2, section3]
 
-page_list = ["🏠 Home", "1️⃣ Fourier Transforms", "2️⃣ Basic Neural Network", "3️⃣ Bonus Exercises"]
+page_list = ["1️⃣ Einops and Einsum", "2️⃣ Array strides", "3️⃣ Convolutions", "4️⃣ Making your own modules"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
@@ -767,7 +1061,3 @@ with st.sidebar:
     st.markdown("---")
 
 func_list[page_dict[radio]]()
-# for idx, section in enumerate(sections_selectbox):
-#     func_list[idx]()
-
-
