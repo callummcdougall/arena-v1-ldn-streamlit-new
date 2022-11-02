@@ -23,7 +23,7 @@ st.set_page_config(layout="wide")
 
 st.markdown("""
 <style>
-label.css-81oif8 {
+label {
     font-size: 120% !important;
     font-weight: bold !important;
 }
