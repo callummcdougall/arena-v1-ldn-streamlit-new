@@ -84,7 +84,7 @@ def section0():
 </ul>
 """, unsafe_allow_html=True)
 
-    st.markdown("""## About this paged
+    st.markdown("""## About this page
 
 This page was made using an app called Streamlit. It's hosted from the [ARENA GitHub repo](https://github.com/callummcdougall/arena-v1-streamlit). It provides a very simple way to display markdown, as well as more advanced features like interactive plots and animations. This is how the instructions for each day will be presented. You may also want to learn Streamlit in order to have a convenient way to present the results of your personal projects at the end of each week.
 
