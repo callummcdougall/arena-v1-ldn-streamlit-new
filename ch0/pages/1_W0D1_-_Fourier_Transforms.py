@@ -23,8 +23,8 @@ st.set_page_config(layout="wide")
 
 st.markdown("""
 <style>
-button[data-baseweb="tab"] {
-    font-family: monospace;
+label.effi0qh3 {
+    font-weight: bold;
 }
 p {
     line-height:1.48em;
