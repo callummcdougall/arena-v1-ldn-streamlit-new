@@ -23,6 +23,11 @@ st.set_page_config(layout="wide")
 
 st.markdown("""
 <style>
+label.effi0qh3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 10px;
+}
 p {
     line-height:1.48em;
 }
@@ -758,6 +763,8 @@ page_dict = {name: idx for idx, name in enumerate(page_list)}
 with st.sidebar:
 
     radio = st.radio("Section", page_list)
+
+    st.markdown("---")
 
 func_list[page_dict[radio]]()
 # for idx, section in enumerate(sections_selectbox):
