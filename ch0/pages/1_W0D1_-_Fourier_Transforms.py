@@ -26,6 +26,7 @@ st.markdown("""
 label.effi0qh3 {
     font-size: 1.25rem;
     font-weight: 600;
+    margin-top: 10px;
 }
 p {
     line-height:1.48em;
