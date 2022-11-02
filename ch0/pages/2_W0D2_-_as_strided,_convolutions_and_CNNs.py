@@ -23,11 +23,12 @@ fig_dict = st.session_state["fig_dict"]
 
 st.set_page_config(layout="wide")
 
+# code > span.string {
+#     color: red !important;
+# }
+
 st.markdown("""
 <style>
-code > span.string {
-    color: red !important;
-}
 label.effi0qh3 {
     font-size: 1.25rem;
     font-weight: 600;
