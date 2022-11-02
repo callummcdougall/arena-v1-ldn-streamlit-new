@@ -81,4 +81,6 @@ BERT is an encoder-only transformer, which has a different kind of architecture 
 
 Once you've built BERT, you'll be able to train it to perform well on tasks like classification and sentiment analysis.
 
+Test.
+
 """)
