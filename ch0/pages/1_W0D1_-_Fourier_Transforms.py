@@ -760,9 +760,9 @@ page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
 
-    selectbox = st.selectbox("Section", page_list)
+    radio = st.radio("Section", page_list)
 
-func_list[page_dict[selectbox]]()
+func_list[page_dict[radio]]()
 # for idx, section in enumerate(sections_selectbox):
 #     func_list[idx]()
 
