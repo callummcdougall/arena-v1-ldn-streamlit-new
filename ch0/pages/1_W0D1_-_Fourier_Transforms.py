@@ -756,12 +756,13 @@ You can also try playing around with some different functions, e.g. polynomial /
 func_list = [section0, section1, section2, section3]
 
 page_list = ["🏠 Home", "1️⃣ Fourier Transforms", "2️⃣ Basic Neural Network", "3️⃣ Bonus Exercises"]
+page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
 
-    sections_selectbox = st.selectbox("Section", list(range(4)), lambda x: page_list[x])
+    selectbox = st.selectbox("Section", page_list)
 
-func_list[sections_selectbox]()
+func_list[page_dict[selectbox]]()
 # for idx, section in enumerate(sections_selectbox):
 #     func_list[idx]()
 
