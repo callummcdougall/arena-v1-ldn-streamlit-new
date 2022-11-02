@@ -23,6 +23,9 @@ st.set_page_config(layout="wide")
 
 st.markdown("""
 <style>
+code > span.string {
+    color: red;
+}
 label.effi0qh3 {
     font-size: 1.25rem;
     font-weight: 600;
@@ -42,7 +45,7 @@ header {
     background: rgba(255, 255, 255, 0) !important;
 }
 code {
-    color:red;
+    color: red;
     white-space: pre-wrap !important;
 }
 .css-ffhzg2 code:not(pre code) {
