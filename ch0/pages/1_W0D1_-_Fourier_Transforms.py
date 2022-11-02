@@ -755,9 +755,11 @@ You can also try playing around with some different functions, e.g. polynomial /
 
 func_list = [section0, section1, section2, section3]
 
+page_list = ["🏠 Home", "1️⃣ Fourier Transforms", "2️⃣ Basic Neural Network", "3️⃣ Bonus Exercises"]
+
 with st.sidebar:
 
-    sections_selectbox = st.selectbox("Section", ["🏠 Home", "1️⃣ Fourier Transforms", "2️⃣ Basic Neural Network", "3️⃣ Bonus Exercises"])
+    sections_selectbox = st.selectbox("Section", list(range(4)), lambda x: page_list[x])
 
 func_list[sections_selectbox]()
 # for idx, section in enumerate(sections_selectbox):
