@@ -13,11 +13,12 @@ def read_from_html(filename):
     plotly_json = {'data': call_args[1], 'layout': call_args[2]}    
     return pio.from_json(json.dumps(plotly_json))
 
-# @st.cache(suppress_st_warning=True)
 def get_fig_dict():
     return {str(i): read_from_html(f"fig{i}") for i in range(1, 16)}
-    
-fig_dict = get_fig_dict()
+
+if "fig_dict" not in st.session_state:
+    fig_dict = get_fig_dict()
+fig_dict = st.session_state["fig_dict"]
 
 st.set_page_config(layout="wide")
 
