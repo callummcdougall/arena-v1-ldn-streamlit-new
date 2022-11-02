@@ -763,6 +763,8 @@ with st.sidebar:
 
     radio = st.radio("Section", page_list)
 
+    st.markdown("---")
+
 func_list[page_dict[radio]]()
 # for idx, section in enumerate(sections_selectbox):
 #     func_list[idx]()
