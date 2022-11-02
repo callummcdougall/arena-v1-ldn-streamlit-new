@@ -759,7 +759,8 @@ with st.sidebar:
 
     sections_selectbox = st.selectbox("Section", ["🏠 Home", "1️⃣ Fourier Transforms", "2️⃣ Basic Neural Network", "3️⃣ Bonus Exercises"])
 
-for idx, section in enumerate(sections_selectbox):
-    func_list[idx]()
+func_list[sections_selectbox]()
+# for idx, section in enumerate(sections_selectbox):
+#     func_list[idx]()
 
 
