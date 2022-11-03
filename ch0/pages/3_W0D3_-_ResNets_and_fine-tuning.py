@@ -908,7 +908,7 @@ page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
 
-    radio = st.radio("Section", page_list)
+    radio = st.radio("Sections", page_list)
 
     st.markdown("---")
 
