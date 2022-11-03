@@ -70,7 +70,7 @@ ul.contents a:hover {
 def section_home():
     st.markdown("""## 1️⃣ Building & training a CNN
 
-In part 1, we'll use the modules that we defined yesterday to build a basic CNNN to classify MNIST images. We'll understand the basics of `Datasets` and `DataLoaders`, see how a basic training loop works, and also measure our model's accuracy on a test set.
+In part 1, we'll use the modules that we defined yesterday to build a basic CNN to classify MNIST images. We'll understand the basics of `Datasets` and `DataLoaders`, see how a basic training loop works, and also measure our model's accuracy on a test set.
 
 This section should take **2-3 hours**.
 
@@ -88,11 +88,7 @@ This section may take quite a long time to finish, and you're encouraged to go f
 
 ---
 
-Note - it seems that the exercises have been slightly miscalibrated, and that they're too long or difficult for a single day. For that reason, we've decided that these will be the last (strongly recommended) exercises we go through this week.
-
-There will still be optional exercises on Friday (which will go through some basics of backprop, and allow you to build up objects that behave like `nn.Module`s essentially from first principles). But these aren't essential for the rest of the programme, and if you have found the last two days of exercises to have gone by very quickly / felt like you didn't fully understand everything, we encourage you to omit the backprop exercises in favour of spending some more time really getting to grips with the exercises so far. You are encouraged to see the backprop day as "bonus exercises".
-
-In particular, today's exercises are probably the most directly relevant for the rest of the programme, because the practice of assembling a complicated neural network architecture from a set of instructions will lead straight into next week, when we'll be building our own transformers! So forming a deep understanding of everything that's going on in today's exercises will be very helpful going forwards.
+Today's exercises are probably the most directly relevant for the rest of the programme out of everything we've done this week. This is because we'll be looking at important concepts like training loops and neural network architectures. Additionally, the task of assembling a complicated neural network architecture from a set of instructions will lead straight into next week, when we'll be building our own transformers! So forming a deep understanding of everything that's going on in today's exercises will be very helpful going forwards.
 
 """)
  
