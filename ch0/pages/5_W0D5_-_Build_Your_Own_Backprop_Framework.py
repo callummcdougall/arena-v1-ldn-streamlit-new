@@ -1680,13 +1680,14 @@ def section_bonus():
 ## Table of Contents
 
 <ul class="contents">
-    <li><a class="contents-el" href="#imports">Imports</a></li>
-    <li><a class="contents-el" href="#exercise-create-convnet">Exercise - create ConvNet</a></li>
-    <li><a class="contents-el" href="#transforms">Transforms</a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#interlude-tqdm">Interlude - tqdm</a></li>
-    </li></ul>
-    <li><a class="contents-el" href="#exercise-add-testing">Exercise - add testing</a></li>
+    <li><a class="contents-el" href="#in-place-operation-warnings">In-Place Operation Warnings</a></li>
+    <li><a class="contents-el" href="#in-place-relu">Backward for einsum</a></li>
+    <li><a class="contents-el" href="#backward-for-einsum">Backward for <code>einsum</code></a></li>
+    <li><a class="contents-el" href="#resnet-support">ResNet Support</a></li>
+    <li><a class="contents-el" href="#central-difference-checking">Central Difference Checking</a></li>
+    <li><a class="contents-el" href="#non-differentiable-function-support">Non-Differentiable Function Support</a></li>
+    <li><a class="contents-el" href="#differentiation-wrt-keyword-arguments">Differentiation wrt Keyword Arguments</a></li>
+    <li><a class="contents-el" href="#torch-stack"><code>torch.stack</code></a></li>
 </ul>
 """, unsafe_allow_html=True)
 
@@ -1734,7 +1735,7 @@ Your `Tensor` does not currently support equivalents of `torch.all`, `torch.any`
 In the real PyTorch, you can sometimes pass tensors as keyword arguments and differentiation will work, as in `t.add(other=t.tensor([3,4]), input=t.tensor([1,2]))`. In other similar looking cases like `t.dot`, it raises an error that the argument must be passed positionally. Decide on a desired behavior in your system and implement and test it.
 
 ### `torch.stack`
-So far we've registered a separate backwards for each input argument that could be a Tensor. This is problematic if the function can take any number of tensors like torch.stack or numpy.stack. Think of and implement the backward function for stack. It may require modification to your other code.
+So far we've registered a separate backwards for each input argument that could be a Tensor. This is problematic if the function can take any number of tensors like `torch.stack` or `numpy.stack`. Think of and implement the backward function for stack. It may require modification to your other code.
 """)
 
 func_list = [section_home, section_intro, section_autograd, section_more_fwd_bwd, section_putting_together, section_bonus]
