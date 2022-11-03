@@ -1332,7 +1332,7 @@ Implement your version of `torch.matmul`, restricting it to the simpler case whe
 Try working it out on paper, starting from a couple 2x2 matrices. Can you express the answer in terms of another matrix multiply and a transpose?""")
 
     with st.expander("Help - I'm still confused about matmul2d_back (and the hint above didn't help)!"):
-        st.markdown("""
+        st.markdown(r"""
 Let $M = X \times Y$, and let $\text{ grad\_out }$ be the gradient of our root node $L$ wrt $M$, i.e.:
 
 $$
