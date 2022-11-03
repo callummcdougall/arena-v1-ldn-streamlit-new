@@ -51,6 +51,10 @@ code {
     color: red;
     white-space: pre-wrap !important;
 }
+a.contents-el > code {
+    color:
+    background-color: gray;
+}
 .css-ffhzg2 code:not(pre code) {
     color: orange;
 }
@@ -766,14 +770,14 @@ def section4():
 <ul class="contents">
     <li><a class="contents-el" href="#subclassing-nn-module">Subclassing nn.Module</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#init-and-forward">__init__ and forward</a></li>
-        <li><a class="contents-el" href="#the-nn-parameter-class">The nn.Parameter class</a></li>
-        <li><a class="contents-el" href="#printing-information-with-extra-repr">Printing information with extra_repr</a></li>
+        <li><a class="contents-el" href="#init-and-forward"><code>__init__</code> and <code>forward</code></a></li>
+        <li><a class="contents-el" href="#the-nn-parameter-class">The <code>nn.Parameter</code> class</a></li>
+        <li><a class="contents-el" href="#printing-information-with-extra-repr">Printing information with <code>extra_repr</code></a></li>
     </ul></li>
-    <li><a class="contents-el" href="#exercise-1-maxpool2d-module">Exercise 1 - MaxPool2d module</a></li>
-    <li><a class="contents-el" href="#exercise-2-relu-and-flatten">Exercise 2 - ReLU and Flatten</a></li>
-    <li><a class="contents-el" href="#exercise-3-linear-module">Exercise 3 - Linear module</a></li>
-    <li><a class="contents-el" href="#exercise-4-conv2d-module">Exercise 4 - Conv2d module</a></li>
+    <li><a class="contents-el" href="#exercise-1-maxpool2d-module">Exercise 1 - <code>MaxPool2d</code> module</a></li>
+    <li><a class="contents-el" href="#exercise-2-relu-and-flatten">Exercise 2 - <code>ReLU</code> and <code>Flatten</code></a></li>
+    <li><a class="contents-el" href="#exercise-3-linear-module">Exercise 3 - <code>Linear</code> module</a></li>
+    <li><a class="contents-el" href="#exercise-4-conv2d-module">Exercise 4 - <code>Conv2d</code> module</a></li>
 </ul>
 """, unsafe_allow_html=True)
 
