@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 def generate_fig():
-    f = "ch0/images/curriculum/headers/"
+    f = "ch0/images/headers/"
     f_table = "ch0/images/table.csv"
     datetime_index = pd.date_range(start="2022-10-31", periods=7*10)
     datetime_index = datetime_index[datetime_index.dayofweek <= 4]
