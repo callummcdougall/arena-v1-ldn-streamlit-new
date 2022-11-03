@@ -236,8 +236,8 @@ Note - it might seem strange at first why we need $x$ and $\text{out}$ to be inp
         st.markdown("""The most obvious answer is the exponential function. Here, the gradient is equal to `out`. We'll see this when we implement a backward version of `torch.exp` later today.""")
 
     with st.expander("""Question - what should the output of this backward function for log be?"""):
-        st.markdown(r"""By the chain rule, we have:$$
-\frac{dL}{dx} = \frac{dL}{d(\text{out})} \cdot \frac{d(\text{out})}{dx} = \frac{dL}{d(\text{out})} \cdot \frac{d(\log{x})}{dx} = \frac{dL}{d(\text{out})} \cdot \frac{1}{x}
+        st.markdown(r"""By the chain rule, we have:
+$$\frac{dL}{dx} = \frac{dL}{d(\text{out})} \cdot \frac{d(\text{out})}{dx} = \frac{dL}{d(\text{out})} \cdot \frac{d(\log{x})}{dx} = \frac{dL}{d(\text{out})} \cdot \frac{1}{x}
 $$""")
 
     st.markdown("""
