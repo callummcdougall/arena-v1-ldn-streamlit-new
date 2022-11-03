@@ -379,30 +379,30 @@ def section_nn():
 ## Table of Contents
 
 <ul class="contents">
-    <li><a class="contents-el" href="#i-numpy">(I) NumPy</a></li>
-    <li><a class="contents-el" href="#ii-pytorch-tensors">(II) PyTorch & Tensors</a></li>
+    <li><a class="contents-el" href="#i-numpy"><code>(I)</code> NumPy</a></li>
+    <li><a class="contents-el" href="#ii-pytorch-tensors"><code>(II)</code> PyTorch & Tensors</a></li>
     <li><ul class="contents">
         <li><a class="contents-el" href="#tensor-basics">Tensor basics</a></li>
         <li><a class="contents-el" href="#how-to-create-tensors">How to create tensors</a></li>
-        <li><a class="contents-el" href="#exercise-refactor-your-code-ii">Exercise - refactor your code (II)</a></li>
+        <li><a class="contents-el" href="#exercise-refactor-your-code-ii">Exercise - refactor your code <code>(II)</code></a></li>
     </ul></li>
-    <li><a class="contents-el" href="#iii-autograd">(III) Autograd</a></li>
+    <li><a class="contents-el" href="#iii-autograd"><code>(III)</code> Autograd</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#exercise-refactor-your-code-iii">Exercise - refactor your code (III)</a></li>
+        <li><a class="contents-el" href="#exercise-refactor-your-code-iii">Exercise - refactor your code <code>(III)</code></a></li>
     </ul></li>
-    <li><a class="contents-el" href="#iv-models">(IV) Models</a></li>
+    <li><a class="contents-el" href="#iv-models"><code>(IV)</code> Models</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#exercise-refactor-your-code-iv">Exercise - refactor your code (IV)</a></li>
+        <li><a class="contents-el" href="#exercise-refactor-your-code-iv">Exercise - refactor your code <code>(IV)</code></a></li>
     </ul></li>
-    <li><a class="contents-el" href="#iii-optimizers">(V) Optimizers</a></li>
+    <li><a class="contents-el" href="#iii-optimizers"><code>(V)</code> Optimizers</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#exercise-refactor-your-code-v">Exercise - refactor your code (V)</a></li>
+        <li><a class="contents-el" href="#exercise-refactor-your-code-v">Exercise - refactor your code <code>(V)</code></a></li>
     </ul></li>
 </ul>
 """, unsafe_allow_html=True)
 
     st.markdown("""
-## Basic Neural Network
+# Basic Neural Network
 
 Here, we'll start to write up an actual neural network which builds on the work we've done in part 1.
 
@@ -736,5 +736,3 @@ with st.sidebar:
 func_list[page_dict[radio]]()
 # for idx, section in enumerate(sections_selectbox):
 #     func_list[idx]()
-
-

@@ -92,7 +92,7 @@ ul.contents a:hover {
 
 def section_home():
     st.markdown(r"""
-# Weights and Biases
+## 1️⃣ Weights and Biases
 
 Today, we'll look at methods for choosing hyperparameters effectively. You'll learn how to use **Weights and Biases**, a useful tool for hyperparameter search, which should allow you to tune your own transformer model by the end of today's exercises.
 
