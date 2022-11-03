@@ -153,7 +153,7 @@ A second obvious way is to write out the function for the entire network, and th
 
 Suppose that you have some computation graph, and you want to determine the derivative of the some scalar loss L with respect to NumPy arrays a, b, and c:""")
 
-    st.write("""<figure style="max-width:900px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:600px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
 
     st.markdown(r"""This graph corresponds to the following Python:
 
@@ -226,7 +226,7 @@ During backpropagation, for each forward function in our computational graph we 
 
 First, we'll write the backward function for $x \to \text{out} = \log{x}$. This should be a function which, when fed the values $(x, \text{out}, \frac{dL}{d\text{out}})$ returns the value of $\frac{dL}{dx}$ based on the contribution from this particular computational path.""")
 
-    st.write("""<figure style="max-width:900px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNo1zbEOwjAMBNBfiW5ufyADE2ydYM1iNW4bqYmr4Eigqv9eg-CWu-FJt2OUyPCYK22LG-6hOMvL9f3FDTJ_W5qiQ-aaKUWz-wcF6MKZA7zNyBO1VQNCOYy2LZLyLSaVCj_R-uQO1FQe7zLCa238R9dEdp1_6jgBox4vQQ" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:400px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNo1zbEOwjAMBNBfiW5ufyADE2ydYM1iNW4bqYmr4Eigqv9eg-CWu-FJt2OUyPCYK22LG-6hOMvL9f3FDTJ_W5qiQ-aaKUWz-wcF6MKZA7zNyBO1VQNCOYy2LZLyLSaVCj_R-uQO1FQe7zLCa238R9dEdp1_6jgBox4vQQ" /></figure>""", unsafe_allow_html=True)
 
 
     st.markdown(r"""
