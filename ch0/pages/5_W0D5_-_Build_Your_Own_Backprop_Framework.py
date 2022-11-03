@@ -361,7 +361,7 @@ You might be wondering why we need a `multiply_back0` and a `multiply_back1` fun
 
 Now we'll use our backward functions to do backpropagation manually, for the following computational graph:""")
 
-    st.write("""<figure style="max-width:900px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpFj7EOgzAMRH8l8ljBAGOGTu3G1I6kgxubgEQSlCZDhfj3plCKB8s-PZ_OM2hPDBKUMwGnXjQ35UQuFGV5FlPwVLWnx7rQX6p3qVv76E3VNt5smtkMnofBJuidrQ-WD0vloADLweJAOc_8PVIQe7asQOaRuMM0RpWjLhlNE2HkKw3RB5Adji8uAFP097fTIGNIvEOXAfNz9kctHyZgSew" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:800px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpFj7EOgzAMRH8l8ljBAGOGTu3G1I6kgxubgEQSlCZDhfj3plCKB8s-PZ_OM2hPDBKUMwGnXjQ35UQuFGV5FlPwVLWnx7rQX6p3qVv76E3VNt5smtkMnofBJuidrQ-WD0vloADLweJAOc_8PVIQe7asQOaRuMM0RpWjLhlNE2HkKw3RB5Adji8uAFP097fTIGNIvEOXAfNz9kctHyZgSew" /></figure>""", unsafe_allow_html=True)
 
     st.markdown("""
 This should give you a feel for how the backwards functions that you've defined so far will actually work in practice (although eventually you'll be automating these steps in a way similar to PyTorch's `autograd`).

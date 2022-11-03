@@ -83,58 +83,29 @@ ul.contents a:hover {
 </style>""", unsafe_allow_html=True)
 
 def section0():
-    st.sidebar.markdown("""
-## Table of Contents
+    st.markdown("""## 1️⃣ Einops and Einsum
 
-<ul class="contents">
-    <li><a class="contents-el" href="#about-this-page">About this page</a></li>
-    <li><a class="contents-el" href="#hints">Hints</a></li>
-    <li><a class="contents-el" href="#test-functions">Test functions</a></li>
-    <li><a class="contents-el" href="#tips">Tips</a></li>
-    <li><a class="contents-el" href="#support">Support</a></li>
-</ul>
-""", unsafe_allow_html=True)
+In part 1, we'll go through some basic `einops` and `einsum` exercises. These are designed to get you comfortable with using Einstein summation convention, and why it's useful in tensors. 
 
-    st.markdown("""## About this page
+This section should take approximately **1 hour** (maybe less if you're already familiar with summation convention)
 
-This page was made using an app called Streamlit. It's hosted from the [ARENA GitHub repo](https://github.com/callummcdougall/arena-v1-streamlit). It provides a very simple way to display markdown, as well as more advanced features like interactive plots and animations. This is how the instructions for each day will be presented. You may also want to learn Streamlit in order to have a convenient way to present the results of your personal projects at the end of each week.
+## 2️⃣ Array strides
 
-On the left, you can see a sidebar (or if it's collapsed, you will be able to see if you click on the small arrow in the top-left to expand it). This sidebar should show a page called `Home` (which is the page you're currently reading), as well as one for each of the different parts of today's exercises.""")
+`as_strided` is a low-level array method that forces you to engage with the messy details of linear operations like matrix multiplictions and convolutions. Although you probably won't need to use them on a regular basis, they will form an essential part of your toolbox as you build up a neural network from scratch.
 
-    st.info("""
-Note - these exercises form different sections of the day, rather than corresponding to different days. At the start of each exercise, I've included an estimated completion time. This should be taken with a pinch of salt (you might prefer to go at different speeds, or be more/less comfortable with certain sections). But if you find yourself going well outside this estimate, then it's probably a sign that you should be more willing to ask for help (either by sending a message in the `#technical-questions` Slack, or sending a direct message to Callum).
-""")
+This section should take approximately **1-2 hours**.
 
-    st.markdown("""If you want to change to dark mode, you can do this by clicking the three horizontal lines in the top-right, then navigating to Settings → Theme.
+## 3️⃣ Convolutions
 
-## Hints
+Convolutions are a vital part of image classifiers. In part 3, has you write your own functions to perform 1D and 2D convolutions, using your knowledge of `einsum` and `as_strided` from previous sections.
 
-There will be occasional hints throughout the document, for when you're having trouble with a certain task but you don't want to read the solutions. Click on the expander to reveal the solution in these cases. Below is an example of what they'll look like:""")
+This section should take **1-2 hours**. If you're confident you understand the basic mechanism of convolutions, and you're pushed for time, you can skip some of the questions in this section.
 
-    with st.expander("Help - I'm stuck on a particular problem."):
-        st.markdown("Here is the answer!")
+## 4️⃣ Making your own modules
 
-    st.markdown("""Always try to solve the problem without using hints first, if you can.
+In part 4, we start on some of the exercises that will be built on in day 3. We'll be taking our functions from sections 2 & 3, and using them to create modules which inherit from PyTorch's `nn.Module`. 
 
-## Test functions
-
-Most of the blocks of code will also come with test functions. These are imported from python files with names such as `w0d1/utils.py`. You should make sure these files are in your working directory while you're writing solutions. One way to do this is to clone the [main GitHub repo](https://github.com/callummcdougall/arena-v1) into your working directory, and run it there. When we decide exactly how to give participants access to GPUs, we might use a different workflow, but this should suffice for now. Make sure that you're getting the most updated version of utils at the start of every day (because changes might have been made), and keep an eye out in the `#errata` channel for mistakes which might require you to change parts of the test functions.
-
-## Tips
-
-* To get the most out of these exercises, make sure you understand why all of the assertions should be true, and feel free to add more assertions.
-* If you're having trouble writing a batched computation, try doing the unbatched version first.
-* If you find these exercises challenging, it would be beneficial to go through them a second time so they feel more natural.
-
-## Support
-
-If you ever need help, you can send a message on the ARENA Slack channel `#technical-questions`. You can also reach out to a TA (e.g. Callum) if you'd like a quick videocall to talk through a concept or a problem that you've been having, although there might not always be someone available.
-
-You can also read the solutions by downloading them from the [GitHub](https://github.com/callummcdougall/arena-v1). However, ***this should be a last resort***. Really try and complete the exercises as a pair before resorting to the solutions. Even if this involves asking a TA for help, this is preferable to reading the solutions. If you do have to read the solutions, then make sure you understand why they work rather than just copying and pasting. 
-
-At the end of each day, it can be beneficial to look at the solutions. However, these don't always represent the optimal way of completing the exercises; they are just how the author chose to solve them. If you think you have a better solution, we'd be really grateful if you could send it in, so that it can be used to improve the set of exercises for future ARENA iterations.
-
-Happy coding!
+Don't worry if you don't get through all of this part; today's exercises are quite long and it's more important to understand them deeply than to rush ahead! If you do get to this section, it should take you approximately **2 hours**.
 """)
 
 def section1():
@@ -1055,9 +1026,9 @@ We'd be grateful if you could give feedback on today's exercises - you can find 
 """)
 
 
-func_list = [section0, section1, section2, section3]
+func_list = [section0, section1, section2, section3, section4]
 
-page_list = ["1️⃣ Einops and Einsum", "2️⃣ Array strides", "3️⃣ Convolutions", "4️⃣ Making your own modules"]
+page_list = ["🏠 Home", "1️⃣ Einops and Einsum", "2️⃣ Array strides", "3️⃣ Convolutions", "4️⃣ Making your own modules"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
