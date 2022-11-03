@@ -232,7 +232,7 @@ First, we'll write the backward function for $x \to \text{out} = \log{x}$. This 
     st.markdown(r"""
 Note - it might seem strange at first why we need $x$ and $\text{out}$ to be inputs, since $\text{out}$ can just be calculated directly from $x$. The answer is that sometimes it is computationally cheaper to express the derivative in terms of $\text{out}$ than in terms of $x$.""")
 
-    with st.expander("""Question - can you think of an example function where it would be computationally cheaper to use `out`?"""):
+    with st.expander("""Question - can you think of an example function where it would be computationally cheaper to use 'out'?"""):
         st.markdown("""The most obvious answer is the exponential function. Here, the gradient is equal to `out`. We'll see this when we implement a backward version of `torch.exp` later today.""")
 
     with st.expander("""Question - what should the output of this backward function for log be?"""):
