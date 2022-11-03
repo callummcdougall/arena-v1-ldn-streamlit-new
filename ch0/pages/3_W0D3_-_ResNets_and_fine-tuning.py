@@ -903,7 +903,7 @@ p.s. - we'd be grateful if you could give feedback on today's exercises - you ca
  
 func_list = [section_home, section_cnn, section_resnet, section_finetune]
 
-page_list = ["1️🏠 Home", "1️⃣ Building & Training a CNN", "2️⃣ Assembling ResNet", "3️⃣ Finetuning ResNet"]
+page_list = ["🏠 Home", "1️⃣ Building & Training a CNN", "2️⃣ Assembling ResNet", "3️⃣ Finetuning ResNet"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
