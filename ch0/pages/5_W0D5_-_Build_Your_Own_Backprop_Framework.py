@@ -936,9 +936,7 @@ def section_more_fwd_bwd():
     <li><a class="contents-el" href="#mixed-scalar-tensor-operations">Mixed scalar-tensor operations</a></li>
     <li><a class="contents-el" href="#in-place-operations">In-Place Operations</a></li>
     <li><a class="contents-el" href="#max"><code>max</code></a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#functional-relu">Functional <code>ReLU</code></a></li>
-    </li></ul>
+    <li><a class="contents-el" href="#functional-relu">Functional <code>ReLU</code></a></li>
     <li><a class="contents-el" href="#2d-matmul">2D <code>matmul</code></a></li>
 </ul>
 """, unsafe_allow_html=True)
@@ -1309,7 +1307,7 @@ utils.test_maximum(Tensor)
 utils.test_maximum_broadcasted(Tensor)
 ```
 
-### Functional ReLU
+## Functional `ReLU`
 
 A simple and correct ReLU function can be defined in terms of your maximum function. Note the PyTorch version also supports in-place operation, which we are punting on for now.
 
