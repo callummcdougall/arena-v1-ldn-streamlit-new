@@ -128,7 +128,7 @@ import utils
 We'll be attempting to build the following neural network architecture:
 """)
 
-    st.image("w0d3/images/mnist_diagram.png")
+    st.image("ch0/images/mnist_diagram.png")
 
     st.markdown("""
 Let's briefly discuss this architecture. We see that it starts with two consecutive stacks of:
@@ -764,7 +764,7 @@ In order to make sure there is a 1-1 correspondence between your model and PyTor
 
     cols1, cols2, cols3 = st.columns([1, 15, 1])
     with cols2:
-        st.image("w0d3/images/resnet-compared.png")
+        st.image("ch0/images/resnet-compared.png")
 
     st.info("""
 I just want to emphasise that this task is meant to be really difficult! If you're able to implement this then that's amazing, but if you've been trying for a while without making much progress you should definitely move on. Alternatively, you can ping me (Callum) on Slack with screenshots of your model and I can help with troubleshooting. In the meantime, you can proceed with the rest of the exercises using PyTorch's implementation.
@@ -828,7 +828,7 @@ Our `images` are of type `PIL.Image.Image`, so we can just call them in a cell t
 images[0]
 ```""")
 
-    st.image("w0d3/images/chimpanzee.jpg", width=600)
+    st.image("ch0/images/chimpanzee.jpg", width=600)
 
     st.markdown("""We now need to define a `transform` object like we did for MNIST. We will use the same transforms to convert the PIL image to a tensor, and to normalize it. But we also want to resize the images to `height=224, width=224`, because not all of them start out with this size and we need them to be consistent before passing them through our model. You should use `transforms.Resize` for this. Note that you should apply this resize to a tensor, not to the PIL image.
 
@@ -908,7 +908,7 @@ page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
 
-    radio = st.radio("Sections", page_list)
+    radio = st.radio("Section", page_list)
 
     st.markdown("---")
 
