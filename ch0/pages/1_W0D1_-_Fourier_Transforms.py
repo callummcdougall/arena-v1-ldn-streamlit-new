@@ -42,8 +42,16 @@ header {
     background: rgba(255, 255, 255, 0) !important;
 }
 code {
-    color:red;
+    color: red;
     white-space: pre-wrap !important;
+}
+a.contents-el > code {
+    color: black;
+    background-color: rgb(248, 249, 251);
+}
+.css-ffhzg2 a.contents-el > code {
+    color: orange;
+    background-color: rgb(26, 28, 36);
 }
 .css-ffhzg2 code:not(pre code) {
     color: orange;
@@ -76,6 +84,25 @@ ul.contents a:hover {
 }
 </style>""", unsafe_allow_html=True)
 
+def section_home():
+    st.markdown("""
+## 1️⃣ Fourier Transforms
+
+The first set of exercises covers Fourier Transforms, using just the NumPy library. This should get you comfortable with the basic idea of working through exercises, and will also introduce some of the concepts that recur in part 2 of the exercises, where you will crete your own simple neural networks to fit functions to arbitrary polynomials.
+
+This part should take you **2-3 hours**.
+
+## 2️⃣ Basic Neural Network
+
+Here, we'll start to write up an actual neural network which builds on the work we've done in part 1.
+
+This part should take you **1-2 hours**.
+
+## 3️⃣ Bonus Exercises
+
+If you get through the first two sections, you can use some of the suggestions here as jumping off points to explore some of the exercises in greater detail.
+""")
+
 def section_fourier():
     st.sidebar.markdown("""
 ## Table of Contents
@@ -101,11 +128,7 @@ def section_fourier():
 
     st.markdown("""# Fourier Transforms
 
-The first set of exercises covers Fourier Transforms, using just the NumPy library. This should get you comfortable with the basic idea of working through exercises, and will also introduce some of the concepts that recur in part 2 of the exercises, where you will crete your own simple neural networks to fit functions to arbitrary polynomials.
-
 Fourier transforms are an interesting branch of mathematics which will crop up in several places later in this programme. For instance, they are used in feature visualisation because they often provide a more natural basis than the standard one. Additionally, the discrete Fourier transform was recently featured in Neel Nanda's [Grokking study](https://www.lesswrong.com/posts/N6WM6hs7RQMKDhYjB/a-mechanistic-interpretability-analysis-of-grokking), which we will look at in the interpretability week.
-
-This part should take you **2-3 hours**.
 
 ## Recommended reading
 
@@ -378,11 +401,10 @@ def section_nn():
 </ul>
 """, unsafe_allow_html=True)
 
-    st.markdown("""# Basic Neural Network
+    st.markdown("""
+## Basic Neural Network
 
 Here, we'll start to write up an actual neural network which builds on the work we've done in part 1.
-
-This part should take you **1-2 hours**.
 
 We will start by using only NumPy, working from first principles, and slowly add more elements of PyTorch until we're using a full neural network.
 
