@@ -76,7 +76,7 @@ ul.contents a:hover {
 }
 </style>""", unsafe_allow_html=True)
 
-def section1():
+def section_fourier():
     st.sidebar.markdown("""
 ## Table of Contents
 
@@ -351,7 +351,7 @@ You can change the `func` parameter in `create_interactive_fourier_graph`, and i
 
     st.markdown("""Use the sidebar to navigate to part 2 of today's exercises.""")
 
-def section2():
+def section_nn():
     st.sidebar.markdown("""
 ## Table of Contents
 
@@ -668,7 +668,7 @@ Note - you can also replace `model.zero_grad()` with `optimizer.zero_grad()`. Th
 
 """)
 
-def section3():
+def section_bonus():
     st.markdown(r"""# Bonus Exercises
 
 Congratulations on getting through the core exercises of the first day!""")
@@ -700,7 +700,7 @@ In the second exercise, you hopefully saw the loss fall over time, down to some 
 You can also try playing around with some different functions, e.g. polynomial / trigonometric / piecewise linear. What features of a function determine the speed of convergence as you add more Fourier terms?
 """)
 
-func_list = [section1, section2, section3]
+func_list = [section_fourier, section_nn, section_bonus]
 
 page_list = ["1️⃣ Fourier Transforms", "2️⃣ Basic Neural Network", "3️⃣ Bonus Exercises"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
