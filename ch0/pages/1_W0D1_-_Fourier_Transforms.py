@@ -722,9 +722,9 @@ In the second exercise, you hopefully saw the loss fall over time, down to some 
 You can also try playing around with some different functions, e.g. polynomial / trigonometric / piecewise linear. What features of a function determine the speed of convergence as you add more Fourier terms?
 """)
 
-func_list = [section_fourier, section_nn, section_bonus]
+func_list = [section_home, section_fourier, section_nn, section_bonus]
 
-page_list = ["1️⃣ Fourier Transforms", "2️⃣ Basic Neural Network", "3️⃣ Bonus Exercises"]
+page_list = ["🏠 Home", "1️⃣ Fourier Transforms", "2️⃣ Basic Neural Network", "3️⃣ Bonus Exercises"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
