@@ -383,11 +383,11 @@ test_cases = [
         size=None, 
         stride=None),
     TestCase(
-        output=t.tensor([[[0, 1, 2]], [[9, 10, 11]]]), 
+        output=t.tensor(<code>0, 1, 2]], [[9, 10, 11</code>), 
         size=None, 
         stride=None),
     TestCase(
-        output=t.tensor([[[[0, 1], [2, 3]], [[4, 5], [6, 7]]], [[[12, 13], [14, 15]], [[16, 17], [18, 19]]]]),
+        output=t.tensor(<code>[0, 1], [2, 3]], [[4, 5], [6, 7</code>, <code>12, 13], [14, 15]], [[16, 17], [18, 19</code>]),
         size=None,
         stride=None),
 ]
@@ -483,11 +483,11 @@ def section3():
 
 <ul class="contents">
     <li><a class="contents-el" href="#reading">Reading</a></li>
-    <li><a class="contents-el" href="#exercise-1-implement-conv1d-minimal">Exercise 1 - Implement conv1d_minimal</a></li>
-    <li><a class="contents-el" href="#exercise-2-implement-conv2d-minimal">Exercise 2 - Implement conv2d_minimal</a></li>
-    <li><a class="contents-el" href="#exercise-3-implement-pad1d-and-pad2d">Exercise 3 - Implement pad1d and pad2d</a></li>
-    <li><a class="contents-el" href="#exercise-4-implement-conv1d-and-conv2d">Exercise 4 - Implement conv1d and conv2d</a></li>
-    <li><a class="contents-el" href="#exercise-5-implement-maxpool">Exercise 5 - Implement maxpool</a></li>
+    <li><a class="contents-el" href="#exercise-1-implement-conv1d-minimal">Exercise 1 - Implement <code>conv1d_minimal</code></a></li>
+    <li><a class="contents-el" href="#exercise-2-implement-conv2d-minimal">Exercise 2 - Implement <code>conv2d_minimal</code></a></li>
+    <li><a class="contents-el" href="#exercise-3-implement-pad1d-and-pad2d">Exercise 3 - Implement <code>pad1d</code> and <code>pad2d</code></a></li>
+    <li><a class="contents-el" href="#exercise-4-implement-conv1d-and-conv2d">Exercise 4 - Implement <code>conv1d</code> and <code>conv2d</code></a></li>
+    <li><a class="contents-el" href="#exercise-5-implement-maxpool">Exercise 5 - Implement <code>maxpool</code></a></li>
 </ul>
 """, unsafe_allow_html=True)
 

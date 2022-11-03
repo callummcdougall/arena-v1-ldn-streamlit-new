@@ -102,10 +102,10 @@ def section_cnn():
 
 <ul class="contents">
     <li><a class="contents-el" href="#imports">Imports</a></li>
-    <li><a class="contents-el" href="#exercise-create-convnet">Exercise - create ConvNet</a></li>
+    <li><a class="contents-el" href="#exercise-create-convnet">Exercise - create <code>ConvNet</code></a></li>
     <li><a class="contents-el" href="#transforms">Transforms</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#interlude-tqdm">Interlude - tqdm</a></li>
+        <li><a class="contents-el" href="#interlude-tqdm">Interlude - <code>tqdm</code></a></li>
     </li></ul>
     <li><a class="contents-el" href="#exercise-add-testing">Exercise - add testing</a></li>
 </ul>
@@ -447,16 +447,16 @@ def section_resnet():
 ## Table of Contents
 
 <ul class="contents">
-    <li><a class="contents-el" href="#some-final-nn-module-s">Some final nn.Modules</a></li>
+    <li><a class="contents-el" href="#some-final-nn-module-s">Some final <code>nn.Module</code>s</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#nn-sequential">nn.Sequential</a></li>
-        <li><a class="contents-el" href="#implement-nn-batchnorm2d">Implement nn.BatchNorm2d</a></li>
+        <li><a class="contents-el" href="#nn-sequential"><code>nn.Sequential</code></a></li>
+        <li><a class="contents-el" href="#implement-nn-batchnorm2d">Implement <code>nn.BatchNorm2d</code></a></li>
         <li><ul class="contents">
             <li><a class="contents-el" href="#train-and-eval-modes">Train and Eval Modes</a></li>
         </li></ul>
-        <li><a class="contents-el" href="#implementing-nn-averagepool">Implementing nn.AveragePool</a></li>
+        <li><a class="contents-el" href="#implementing-nn-averagepool">Implementing <code>nn.AveragePool</code></a></li>
     </li></ul>
-    <li><a class="contents-el" href="#building-resnet">Building ResNet</a></li>
+    <li><a class="contents-el" href="#building-resnet">Building <code>ResNet</code></a></li>
     <li><ul class="contents">
         <li><a class="contents-el" href="#residual-block">Residual Block</a></li>
         <li><a class="contents-el" href="#blockgroup">BlockGroup</a></li>
@@ -896,8 +896,7 @@ The goal here is to write a training loop for your ResNet (also recording accura
 
 [This PyTorch tutorial](https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html) takes you through the key ideas of **finetuning**, and also gives you an example task: distinguising ants from bees. You should have most the information you need to apply this technique to your own resnet. A few extra things you might need/want to look into:
 
-* The function `datasets.ImageFolder` will be necessary to read in your data. See the [documentation page]() for more details on how this function works. You can use the `hymenoptera` data in the ARENA GitHub repo (or you can download it directly from the PyTorch tutorial page). 
-* Some things on this page you won't yet have encountered, like the `lr_scheduler`. Although this isn't essential, it does help improve training, so you might want to have a look into what it is and how it works. 
+* The function `datasets.ImageFolder` will be necessary to read in your data. See the [documentation page](https://pytorch.org/vision/main/generated/torchvision.datasets.ImageFolder.html) for more details on how this function works. You can use the `hymenoptera` data in the ARENA GitHub repo (or you can download it directly from the PyTorch tutorial page). 
 * You will need to use `model.train()` before each batch of training starts, as discussed earlier (see [this StackOverflow answer](https://stackoverflow.com/questions/51433378/what-does-model-train-do-in-pytorch) for an explanation of why), and you'll need to use `model.eval()` when going into testing mode.
 
 If you get stuck, then you can look at more parts of the PyTorch tutorial page (and maybe copy some parts of it), although you should ideally try and write the code on your own before doing this.

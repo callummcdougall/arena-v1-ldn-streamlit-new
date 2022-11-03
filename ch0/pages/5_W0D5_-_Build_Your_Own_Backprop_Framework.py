@@ -410,12 +410,12 @@ def section_autograd():
 ## Table of Contents
 
 <ul class="contents">
-    <li><a class="contents-el" href="#wrapping-arrays-tensor">Wraiing Arrays (Tensor)</a></li>
+    <li><a class="contents-el" href="#wrapping-arrays-tensor">Wrapping Arrays (Tensor)</a></li>
     <li><a class="contents-el" href="#recipe">Recipe</a></li>
     <li><a class="contents-el" href="#registering-backwards-functions">Registering backwards functions</a></li>
     <li><a class="contents-el" href="#tensors">Tensors</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#requires-grad">requires_grad</a></li>
+        <li><a class="contents-el" href="#requires-grad"><code>requires_grad</code></a></li>
     </li></ul>
     <li><a class="contents-el" href="#forward-pass-building-the-computational-graph">Forward Pass: Building the Computational Graph
     <li><a class="contents-el" href="#forward-pass-generic-version">Forward Pass: Generic Version</a></li>
@@ -924,22 +924,22 @@ def section_more_fwd_bwd():
 
 <ul class="contents">
     <li><a class="contents-el" href="#non-differentiable-functions">Non-Differentiable Functions</a></li>
-    <li><a class="contents-el" href="#implementing-negative">Implementing negative</a></li>
-    <li><a class="contents-el" href="#implementing-exp">Implementing exp</a></li>
-    <li><a class="contents-el" href="#implementing-reshape">Implementing reshape</a></li>
-    <li><a class="contents-el" href="#permute">permute</a></li>
-    <li><a class="contents-el" href="#expand">expand</a></li>
-    <li><a class="contents-el" href="#sum">sum</a></li>
-    <li><a class="contents-el" href="#indexing">indexing</a></li>
-    <li><a class="contents-el" href="#elementwise-add-divide-subtract">Elementwise add, divide, subtract</a></li>
+    <li><a class="contents-el" href="#negative"><code>negative</code></a></li>
+    <li><a class="contents-el" href="#exp"><code>exp</code></a></li>
+    <li><a class="contents-el" href="#reshape"><code>reshape</code></a></li>
+    <li><a class="contents-el" href="#permute"><code>permute</code></a></li>
+    <li><a class="contents-el" href="#expand"><code>expand</code></a></li>
+    <li><a class="contents-el" href="#sum"><code>sum</code></a></li>
+    <li><a class="contents-el" href="#indexing">Indexing</a></li>
+    <li><a class="contents-el" href="#elementwise-add-divide-subtract">Elementwise <code>add</code>, <code>divide</code>, <code>subtract</code></a></li>
     <li><a class="contents-el" href="#in-place-operations">In-Place Operations</a></li>
     <li><a class="contents-el" href="#mixed-scalar-tensor-operations">Mixed scalar-tensor operations</a></li>
     <li><a class="contents-el" href="#in-place-operations">In-Place Operations</a></li>
-    <li><a class="contents-el" href="#max">max</a></li>
+    <li><a class="contents-el" href="#max"><code>max</code></a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#functional-relu">Functional ReLU</a></li>
+        <li><a class="contents-el" href="#functional-relu">Functional <code>ReLU</code></a></li>
     </li></ul>
-    <li><a class="contents-el" href="#2d-matrix-multiply">2D Matrix Multiply</a></li>
+    <li><a class="contents-el" href="#2d-matmul">2D <code>matmul</code></a></li>
 </ul>
 """, unsafe_allow_html=True)
 
@@ -968,7 +968,7 @@ assert b.recipe is None
 assert b.item() == 3
 ```
 
-## Implementing `negative`
+## `negative`
 
 `torch.negative` just performs `-x` elementwise. Make your own version `negative` using `wrap_forward_fn`.
 
@@ -983,7 +983,7 @@ BACK_FUNCS.add_back_func(np.negative, 0, negative_back)
 utils.test_negative_back(Tensor)
 ```
 
-## Implementing `exp`
+## `exp`
 
 Make your own version of `torch.exp`. The backward function should express the result in terms of the `out` parameter - this more efficient than expressing it in terms of `x`.
 
@@ -997,7 +997,7 @@ BACK_FUNCS.add_back_func(np.exp, 0, exp_back)
 utils.test_exp_back(Tensor)
 ```
 
-## Implementing `reshape`
+## `reshape`
 
 `reshape` is a bit more complicated than the many functions we've dealt with so far: there is an additional positional argument `new_shape`. Since it's not a `Tensor`, we don't need to think about differentiating with respect to it. Remember, `new_shape` is the argument that gets passed into the **forward function**, and we're trying to reverse this operation and return to the shape of the input.
 
@@ -1134,7 +1134,7 @@ utils.test_sum_keepdim_true(Tensor)
 utils.test_sum_dim_none(Tensor)
 ```
 
-## indexing
+## Indexing
 
 In its full generality, indexing a `torch.Tensor` is really complicated and there are quite a few cases to handle separately.
 
@@ -1324,7 +1324,8 @@ utils.test_relu(Tensor)
 ```""")
 
     st.markdown(r"""
-## 2D Matrix Multiply
+## 2D `matmul`
+
 Implement your version of `torch.matmul`, restricting it to the simpler case where both inputs are 2D.
 
 Help - I'm confused about matmul2d_back!
@@ -1383,10 +1384,10 @@ def section_putting_together():
 ## Table of Contents
 
 <ul class="contents">
-    <li><a class="contents-el" href="#build-your-own-nn-parameter">Build Your Own nn.Parameter</a></li>
+    <li><a class="contents-el" href="#build-your-own-nn-parameter">Build Your Own <code>nn.Parameter</code></a></li>
     <li><a class="contents-el" href="#build-your-own-linear-layer">Build Your Own Linear Layer</a></li>
     <li><a class="contents-el" href="#build-your-own-cross-entropy-loss">Build Your Own Cross-Entropy Loss</a></li>
-    <li><a class="contents-el" href="#build-your-own-no-grad">Build Your Own no_grad</a></li>
+    <li><a class="contents-el" href="#build-your-own-no-grad">Build Your Own <code>no_grad</code></a></li>
     <li><a class="contents-el" href="#training-your-network">Training Your Network</a></li>
     <li><ul class="contents">
         <li><a class="contents-el" href="#training-loop">Training Loop</a></li>

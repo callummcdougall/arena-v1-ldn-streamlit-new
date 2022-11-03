@@ -107,11 +107,11 @@ def section_wandb():
 
 <ul class="contents">
     <li><a class="contents-el" href="#imports">Imports</a></li>
-    <li><a class="contents-el" href="#cifar10">CIFAR10</a></li>
+    <li><a class="contents-el" href="#cifar10"><code>CIFAR10</code></a></li>
     <li><a class="contents-el" href="#what-is-weights-and-biases">What is Weights and Biases?</a></li>
-    <li><a class="contents-el" href="#logging-runs-with-wandb">Logging runs with wandb</a></li>
+    <li><a class="contents-el" href="#logging-runs-with-wandb">Logging runs with <code>wandb</code></a></li>
     <li><a class="contents-el" href="#hyperparameter-search">Hyperparameter search</a></li>
-    <li><a class="contents-el" href="#running-hyperparameter-sweeps-with-wandb">Running hyperparameter sweeps with wandb</a></li>
+    <li><a class="contents-el" href="#running-hyperparameter-sweeps-with-wandb">Running hyperparameter sweeps with <code>wandb</code></a></li>
 </ul>
 """, unsafe_allow_html=True)
 
