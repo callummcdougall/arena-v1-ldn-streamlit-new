@@ -192,7 +192,7 @@ tabs = st.tabs([f"CH {i}" for i in range(10)])
 
 with tabs[0]:
 
-    st.image("curriculum/headers/w0.png", width=250)
+    st.image("ch0/images/headers/w0.png", width=250)
     st.subheader("Chapter 0 - Prerequisites")
 
     st.markdown("""
@@ -248,7 +248,7 @@ This is bonus content, and won't be essential for any other parts of the course.
 
 with tabs[1]:
 
-    st.image("curriculum/headers/w1.png", width=250)
+    st.image("ch0/images/headers/w1.png", width=250)
     st.subheader("Chapter 1 - Transformers")
 
     st.markdown("""
@@ -298,7 +298,7 @@ The rest of this chapter will be spent on additional transformer exercises, incl
 
 with tabs[2]:
 
-    st.image("curriculum/headers/w2.png", width=250)
+    st.image("ch0/images/headers/w2.png", width=250)
     st.subheader("Chapter 2 - Scaling Laws")
 
     st.markdown("""
@@ -333,7 +333,7 @@ In this week, we will read foundational papers on scaling laws, and perform our 
 
 with tabs[3]:
 
-    st.image("curriculum/headers/w3.png", width=250)
+    st.image("ch0/images/headers/w3.png", width=250)
     st.subheader("Chapter 3 - Optimisation")
 
     st.markdown("""
@@ -367,7 +367,7 @@ Run your own experiments on optimisation algorithms.
 
 with tabs[4]:
 
-    st.image("curriculum/headers/w4.png", width=250)
+    st.image("ch0/images/headers/w4.png", width=250)
     st.subheader("Chapter 4 - Modelling Objectives")
 
     st.markdown("""
@@ -408,7 +408,7 @@ Over these two days, you'll be implementing your own diffusion models. Like duri
 
 with tabs[5]:
 
-    st.image("curriculum/headers/w5.png", width=250)
+    st.image("ch0/images/headers/w5.png", width=250)
     st.subheader("Chapter 5 - Training at Scale")
 
     st.markdown("""
@@ -428,7 +428,7 @@ with tabs[5]:
 
 with tabs[6]:
 
-    st.image("curriculum/headers/w6.png", width=250)
+    st.image("ch0/images/headers/w6.png", width=250)
     st.subheader("Chapter 6 - RL")
 
     st.markdown("""
@@ -448,7 +448,7 @@ In this chapter, you will be learning about some of the fundamentals of RL, and 
 
 with tabs[7]:
 
-    st.image("curriculum/headers/w7.png", width=250)
+    st.image("ch0/images/headers/w7.png", width=250)
     st.subheader("Chapter 7 - Interpretability")
 
     st.markdown("""
@@ -468,7 +468,7 @@ In this chapter, you will be performing your own interpretability investigations
 
 with tabs[8]:
 
-    st.image("curriculum/headers/w8.png", width=250)
+    st.image("ch0/images/headers/w8.png", width=250)
     st.subheader("Chapter 8 - Adversarial Training")
 
     st.markdown("""
@@ -488,7 +488,7 @@ In this chapter, we will be working with the language models we've studied in pr
 
 with tabs[9]:
 
-    st.image("curriculum/headers/w9.png", width=250)
+    st.image("ch0/images/headers/w9.png", width=250)
     st.subheader("Chapter 9 - Capstone Projects")
 
     st.markdown("""
