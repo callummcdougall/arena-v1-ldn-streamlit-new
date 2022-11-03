@@ -52,6 +52,10 @@ code {
     white-space: pre-wrap !important;
 }
 a.contents-el > code {
+    color: orange;
+    background-color: rgb(26, 28, 36);
+}
+.css-ffhzg2 a.contents-el > code {
     color: black;
     background-color: rgb(248, 249, 251);
 }
