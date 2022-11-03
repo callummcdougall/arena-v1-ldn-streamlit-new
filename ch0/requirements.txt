@@ -1,2 +1,4 @@
 plotly
 numpy
+einops
+pandas

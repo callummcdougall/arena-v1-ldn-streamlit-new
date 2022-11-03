@@ -703,12 +703,11 @@ Now let's do the same for multiply, to see how to handle functions with multiple
 ```python
 def multiply_forward(a: Union[Tensor, int], b: Union[Tensor, int]) -> Tensor:
     pass
-```
 
 multiply = multiply_forward
-test_multiply(Tensor, multiply_forward)
-test_multiply_no_grad(Tensor, multiply_forward)
-test_multiply_float(Tensor, multiply_forward)
+utils.test_multiply(Tensor, multiply_forward)
+utils.test_multiply_no_grad(Tensor, multiply_forward)
+utils.test_multiply_float(Tensor, multiply_forward)
 a = Tensor([2], requires_grad=True)
 b = Tensor([3], requires_grad=True)
 grad_tracking_enabled = False
@@ -716,6 +715,7 @@ b = multiply_forward(a, b)
 grad_tracking_enabled = True
 assert not b.requires_grad, "should not require grad if grad tracking globally disabled"
 assert b.recipe is None, "should not create recipe if grad tracking globally disabled"
+```
 """)
 
     with st.expander("""Help - I get "AttributeError: 'int' object has no attribute 'array'"."""):
@@ -1681,7 +1681,7 @@ def section_bonus():
 
 <ul class="contents">
     <li><a class="contents-el" href="#in-place-operation-warnings">In-Place Operation Warnings</a></li>
-    <li><a class="contents-el" href="#in-place-relu">Backward for einsum</a></li>
+    <li><a class="contents-el" href="#in-place-relu">In-Place <code>ReLU</code></a></li>
     <li><a class="contents-el" href="#backward-for-einsum">Backward for <code>einsum</code></a></li>
     <li><a class="contents-el" href="#resnet-support">ResNet Support</a></li>
     <li><a class="contents-el" href="#central-difference-checking">Central Difference Checking</a></li>
@@ -1697,12 +1697,13 @@ def section_bonus():
 Congratulations on finishing the day's main content! 
 
 ### In-Place Operation Warnings
+
 The most severe issue with our current system is that it can silently compute the wrong gradients when in-place operations are used. Have a look at how [PyTorch handles it](https://pytorch.org/docs/stable/notes/autograd.html#in-place-operations-with-autograd) and implement a similar system yourself so that it either computes the right gradients, or raises a warning.
 
-### In-Place ReLU
+### In-Place `ReLU`
 Instead of implementing ReLU in terms of maximum, implement your own forward and backward functions that support `inplace=True`.
 
-### Backward for einsum
+### Backward for `einsum`
 Write the backward pass for your equivalent of `torch.einsum`.
 
 ### Reuse of Module during forward
