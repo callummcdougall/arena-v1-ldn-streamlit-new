@@ -1392,7 +1392,7 @@ def section_putting_together():
 </ul>
 """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(r"""
 # Putting everything together
 
 ## Build Your Own `nn.Parameter`
