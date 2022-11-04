@@ -968,6 +968,8 @@ In other words, `x.grad[i, j]` will be the rate at which `out` changes **in the 
 """)
 
     st.markdown("""
+When `end_grad` is not specified, we assume it to be a tensor of 1s with the same size as `out`. For instance, if we call `L.backward()` when `L` is a scalar-valued loss function, this is the same as calling `L.backward(end_grad=Tensor(1.))`.
+
 #### Leaf nodes
 
 The `Tensor` object has an `is_leaf` property:
@@ -1028,44 +1030,48 @@ def backprop(end_node: Tensor, end_grad: Optional[Tensor] = None) -> None:
 
 At a very high level, your code here should iterate through the sorted computational graph, and at each node it should do two things:
 
-* If the node is a leaf node, set `node.grad` from the value in the `grads` dictionary.
-* For all the node's parents, update their gradients in the `grads` dictionary using the appropriate backward function.
+1. If the node is a leaf node, set `node.grad` from the value in the `grads` dictionary.
+2. For all the node's parents, update their gradients in the `grads` dictionary using the appropriate backward function.
 
 As an example, consider this computational graph from earlier (assume for simplicity that all nodes are scalars):""")
 
     st.write("""<figure style="max-width:550px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
 
     st.markdown("""
-If we ran `L.backward()`, the process of running backprop would go as follows:
+If we ran `L.backward()`, the process of running backprop would iterate through the nodes as follows:
 
 ```
-(L) Use the backward functions for `add` to update the gradients of `d` and `e` in the `grads` dict
+(L) Update the gradients of 'd' and 'e' in the 'grads' dict
+        This requires you to use the gradient of 'L' in the 'grads' dict (which is just 1), and the backward func for 'add'
 
-(d) Update the gradients of `a` and `b` in the `grads` dict
-        This requires you to use the gradient of `d` in the `grads` dict, and the backward func for `add`
+(d) Update the gradients of 'a' and 'b' in the 'grads' dict
+        This requires you to use the gradient of 'd' in the 'grads' dict, and the backward func for 'mul'
 
-(e) Update the gradients of `b` and `c` in the `grads` dict
-        This requires you to use the backward func for `add`
+(e) Update the gradients of 'b' and 'c' in the 'grads' dict
+        This requires you to use the gradient of 'e' in the 'grads' dict, and the backward func for 'add'
 
-(a) Set `a.grad` according to its value in the `grads` dict, because `a` is a leaf node
-        This requires you to use the backward func for `mul`
+(a) Set 'a.grad' according to its value in the 'grads' dict, because 'a' is a leaf node
 
-(b) Set `b.grad` according to its value in the `grads` dict, because `b` is a leaf node
-        This requires you to use the backward func for `mul`
+(b) Set 'b.grad' according to its value in the 'grads' dict, because 'b' is a leaf node
 
-(c) Set `c.grad` according to its value in the `grads` dict, because `c` is a leaf node
-        This requires you to use the backward func for `mul`
+(c) Set 'c.grad' according to its value in the 'grads' dict, because 'c' is a leaf node
 ```
 
-Note that in the process above, we updated `b` twice in the gradients dict.
+Note that in the process above, we updated `b` twice in the gradients dict. The first time, we set its gradient from its contribution to `L` along the path `b -> d -> L`. The second time, we add its contribution along the path `b -> e -> L`. By the time we set `b.grad` from the value in the gradients dictionary, we've already added its contribution along all paths.
 """)
-    with st.expander("Help - I don't understand why we need the 'grads' dict."):
+    with st.expander("Why do we need to use the 'grads' dict at all?"):
         st.markdown("""
-We need the gradient of `d` wrt `L` in order to calculate the gradient of `a` wrt `L`. But `d` isn't a leaf node, so we don't store its gradient in the actual tensor. 
+Technically, we could implement backprop without using the `grads` dict, by just storing gradients in nodes' `.grad` attribute. We could do this by replacing the two-step process described above with a slightly different one:
+
+1. For all the node's parents, update `parent.grad` using the appropriate backward function.
+2. If the node is *not* a leaf node, set `node.grad` to None.
+
+This would work fine for our purposes, and the code would actually be slightly shorter. The reason we don't do it is that, as a general rule, we never want to have non-None values for non-leaf scalars. We only ever store the gradients of non-leaves in the `grads` dictionary, to avoid having to store the gradients in the leaves themselves. This is a bit annoying, but it follows the behaviour of PyTorch.
 """)
 
-    # Alternate backprop function doesn't use dictionary, it updates all node.parent's grad attributes, then
-    # sets node's grad attribute to zero at the end of required.
+    st.markdown("""
+Below is a list of 
+""")
 
 def section_more_fwd_bwd():
     st.sidebar.markdown("""
