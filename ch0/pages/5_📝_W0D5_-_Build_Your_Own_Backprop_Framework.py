@@ -855,8 +855,7 @@ def topological_sort(node: Node) -> list[Node]:
 
         This should update the `result` and `temp` objects (defined outside scope).
         '''
-        pass
-        # WRITE YOUR CODE HERE
+        pass # WRITE YOUR CODE HERE
 
     visit(node)
 
@@ -917,10 +916,14 @@ Now we're really ready for backprop!
 Below is an implementation of the `backprop` function. Note that in the implementation of the class `Tensor`, we had:
 
 ```python
-def backward(self, end_grad: Union[Arr, "Tensor", None] = None) -> None:
-    if isinstance(end_grad, Arr):
-        end_grad = Tensor(end_grad)
-    return backprop(self, end_grad)
+class Tensor:
+
+    ...
+
+    def backward(self, end_grad: Union[Arr, "Tensor", None] = None) -> None:
+        if isinstance(end_grad, Arr):
+            end_grad = Tensor(end_grad)
+        return backprop(self, end_grad)
 ```
 
 In other words, calling `tensor.backward()` is equivalent to `backprop(tensor)` using the function below.
