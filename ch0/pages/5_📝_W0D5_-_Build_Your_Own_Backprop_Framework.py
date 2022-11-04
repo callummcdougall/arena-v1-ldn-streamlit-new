@@ -932,7 +932,7 @@ You might be wondering what role the `end_grad` argument in `backward` plays. We
 
 The reason is that we've only ever called `tensor.backward()` on scalars (i.e. tensors with a single element). If `tensor` is multi-dimensional, then we can get a scalar from it by taking a weighted sum of all of the elements. The elements of `end_grad` are precisely the weighting coefficients that we use. In other words, calling `tensor.backward(end_grad)` implicitly does the following:
 
-* Defines the value `scalar = (tensor * end_grad).sum()` (i.e. just a single element)
+* Defines the value `scalar = (tensor * end_grad).sum()`
 * Calculates the gradient of all nodes before `tensor` in the computational graph, with respect to the value `scalar`
 
 How can we implement this? We've actually already written all the code we need, when we created our backward functions. We will simply use `tensor` and `end_grad` as the `out` and `grad_out` arguments in our backward functions, the first time we run them. For instance, consider the function `log_back` you implemented at the start, which hopefully looked something like this:
@@ -948,8 +948,24 @@ Suppose we defined `x` as a tensor with shape `(2, 3)`, then `tensor = log(x)` i
 x.grad[i, j] = end_grad[i, j] / x[i, j]
 ```
 
-Now consider `scalar = (tensor * end_grad).sum()`. Since `tensor[i, j] = log(x[i, j])`, we can see that each element of `x[i, j]` appears exactly once in the array we're taking the sum over. One can then show that the derivative of `scalar` wrt `x[i, j]` is exactly the same as the expression for `x.grad[i, j]` above.
+Now consider `scalar = (tensor * end_grad).sum()`. We can show mathematically that the derviative of `scalar` wrt `x[i, j]` is exactly equal to the expression above:""")
 
+    st.markdown(r"""
+$$
+\begin{aligned}
+\text { scalar } &=\sum_{p q} \text { tensor }_{p q} \times \text { end\_grad }_{p q} \\
+&=\sum_{p q} \log \left(x_{p q}\right) \times \text { end\_grad }_{p q} \\
+\frac{\partial(\text { scalar })}{\partial x_{i j}} &=\frac{\partial}{\partial x_{i j}}\left(\log \left(x_{p q}\right) \times \text { end\_grad }{ }_{i j}\right) \\
+&=\text { end\_grad }_{i j} / x_{i j}
+\end{aligned}
+$$
+""")
+
+    st.info("""
+Mathematically, what we are doing is calculating the [directional derivative](https://en.wikipedia.org/wiki/Directional_derivative) of `tensor` in the direction `v`. In other words, `x.grad[i, j]` will be the rate at which `tensor` changes *in the direction of `v`*, where we view `v` as a high-dimensional vector. Don't worry about this if it doesn't fully make sense though!
+""")
+
+    st.markdown("""
 #### Leaf nodes
 
 The `Tensor` object has an `is_leaf` property:
