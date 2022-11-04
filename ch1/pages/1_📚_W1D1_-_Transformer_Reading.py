@@ -235,7 +235,7 @@ def section_3():
     st.markdown(r"""
 # Attention mechanism
 
-## 1. *
+## 1.
 
 In the formula for attention:
 $$
@@ -249,7 +249,7 @@ why do we divide by $\sqrt{d_\text{head}}$?""")
     
 We can get more mathematically precise. With a few simplifying assumptions, it's possible to show that the dot product of each query and key vector has a variance of around $d_\text{head}$, so dividing by $\sqrt{d_\text{head}}$ makes the variances approximately 1.""")
 
-    st.markdown(r"""## 2. *
+    st.markdown(r"""## 2.
 
 In the formula for attention (see above), what are the dimensions for $Q$, $K$, and $V$? (you can refer to the diagram in `🏠 Home` if you're confused).
 """)
@@ -496,7 +496,7 @@ Intuition: the logits represent the "bits of evidence for a particular outcome",
 
     st.markdown(r"""
 
-## 2. *
+## 2.
 
 In the softmax function, we sometimes use a parameter $T>0$ to denote temperature. We divide the vector by $T$ before applying exp then normalising. What effect will $T$ have on the output probabilities?
 """)

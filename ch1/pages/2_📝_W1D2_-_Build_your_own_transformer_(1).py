@@ -27,9 +27,11 @@ header {
     background: rgba(255, 255, 255, 0) !important;
 }
 code {
-    font-size: 13px;
     color: red;
     white-space: pre-wrap !important;
+}
+code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
+    font-size: 13px;
 }
 a.contents-el > code {
     color: black;
@@ -273,7 +275,7 @@ def section_2():
 
     st.markdown(r"""
 
-# Putting it all together""")
+# Assembling your transformer""")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -434,7 +436,7 @@ The weights can then be accessed using `self.token_embedding.weight`.
 def section_3():
     st.markdown("""
 
-# Testing your model
+# Testing your transformer
 
 <br>
 
@@ -595,7 +597,7 @@ If you've configured your transformer correctly, then from input of shape `(batc
 
 func_list = [section_home, section_1, section_2, section_3]
 
-page_list = ["🏠 Home", "1️⃣ Multihead Attention Block", "2️⃣ Putting it all together", "3️⃣ Testing your model"]
+page_list = ["🏠 Home", "1️⃣ Attention mechanism", "2️⃣ Assembling your transformer", "3️⃣ Testing your transformer"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
