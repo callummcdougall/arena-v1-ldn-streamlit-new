@@ -322,9 +322,8 @@ We will read some papers discussing some of the mathematical justifications behi
 
 ---
     """)
-        st.markdown("""<h5><code>W2D4</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Optimisers: investigations 🔬</h5> """, unsafe_allow_html=True)
+        st.markdown("""<h5><code>W2D4</code> - <code>W2D5</code>&emsp;|&emsp; Optimisers: investigations 🔬</h5> """, unsafe_allow_html=True)
         st.markdown("""Run your own experiments on optimisation algorithms. There are several different experiments you can choose to run, based on the material provided in Jacob Hilton's curriculum.""")
-
 
 with tabs[3]:
 
@@ -346,7 +345,6 @@ with tabs[3]:
 📜 It's currently unclear exactly what this week will look like, although it will probably draw at least in part from [week 3 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/3-Training-at-Scale.md).
 """)
 
-
 with tabs[4]:
 
     st.image("ch0/images/headers/mod.png", width=250)
@@ -367,13 +365,13 @@ Here, we take a tour through various generative models. This is the name for a b
 
     ch1_columns = st.columns(1)
     with ch1_columns[0]:
-        st.markdown("""<h5><code>W3D3</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; GANs and VAEs 📝</h5>""", unsafe_allow_html=True)
+        st.markdown("""<h5><code>W4D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; GANs and VAEs 📝</h5>""", unsafe_allow_html=True)
         st.markdown("""
 Learn how **GANs** (Generative Adversarial Models) and **VAEs** (Variational Autoencoders) work, and build & train some of your own.
 
 ---
     """)
-        st.markdown("""<h5><code>W3D4</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Diffusion models 📚</h5> """, unsafe_allow_html=True)
+        st.markdown("""<h5><code>W4D2</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Diffusion models 📚</h5> """, unsafe_allow_html=True)
         st.markdown("""
 Read up on the maths behind diffusion models, and why they work so well for image generation.
 
@@ -381,11 +379,10 @@ Note - this day will be fairly math-heavy, so you might want to jump straight to
 
 ---
 """)
-        st.markdown("""<h5><code>W3D5 - W4D2</code>&emsp;&nbsp;|&emsp; Implementing diffusion models 📚</h5> """, unsafe_allow_html=True)
+        st.markdown("""<h5><code>W4D3 - W4D5</code>&emsp;&nbsp;|&emsp; Implementing diffusion models 📚</h5> """, unsafe_allow_html=True)
         st.markdown("""
 Over these two days, you'll be implementing your own diffusion models. Like during the transformer exercises, you can choose from several different degrees of difficulty.
 """)
-
 
 with tabs[5]:
 
@@ -406,7 +403,6 @@ In this chapter, you will be learning about some of the fundamentals of RL, and 
     st.info("""
 📜 This chapter is primarily based on pre-existing RL tutorials, such as OpenAI's spinning up course.
 """)
-
 
 with tabs[6]:
 
@@ -442,7 +438,6 @@ In this week, we will read foundational papers on scaling laws, and perform our 
         st.markdown("""
 
     """)
-
 
 with tabs[7]:
 
@@ -497,12 +492,6 @@ with tabs[9]:
 
     st.success("""
 💡 We will conclude this program with capstone projects, where you get to dig into something related to the course. This should draw on much of the skills and knowledge you will have accumulated over the last 9 weeks, and serves as great way to round off the program!""")
-
-
-
-
-
-
 
 
 
