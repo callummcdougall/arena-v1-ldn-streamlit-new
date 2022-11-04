@@ -32,8 +32,9 @@ def generate_fig():
     today = datetime.today().date()
     # today = datetime.strptime("28/10/2022", "%d/%m/%Y").date()
     counter = -1
+    path_list = ["pre", "trans", "opti", "scale", "mod", "rl", "laws", "int", "adv", "cap"]
     for chapter_no, days in enumerate(days_per_section):
-        path = f + f"w{chapter_no}.png"
+        path = f + f"{path_list[chapter_no]}.png"
         img_true = Image.open(path).resize((164, 164))
         img_true = np.asarray(Image.open(path).resize((164, 164)))
         img = 255 * np.ones((180, 180, 3))
@@ -485,7 +486,7 @@ In this chapter, we will be working with the language models we've studied in pr
 
 with tabs[9]:
 
-    st.image("ch0/images/headers/capstone.png", width=250)
+    st.image("ch0/images/headers/cap.png", width=250)
     st.subheader("Chapter 9 - Capstone Projects")
 
     st.markdown("""
