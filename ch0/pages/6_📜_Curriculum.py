@@ -77,7 +77,7 @@ def generate_fig():
     def style_func(s, column):
         return [f'background-color: {get_color(s.loc[column][0])[1]}' for _ in range(3)]
     link_func = lambda x: f"<a href='https://{x.replace('arena-', 'arena-ldn-')}/'>{x.replace('.streamlitapp.com', '')}</a>" if x else ""
-    df["Exercises link"] = [f"<a href='{url}'>{day}</a>" for url, day in zip(df["Exercises link"], df["Day"])]
+    df["Day"] = [f"<a href='{url}'>{day}</a>" for url, day in zip(df["Exercises link"], df["Day"])]
     df = df[["Date", "Day", "Chapter"]]
     table = (df.style
         .apply(style_func, column=["Chapter"], axis=1)
