@@ -753,6 +753,9 @@ assert b.recipe is None, "should not create recipe if grad tracking globally dis
 
     with st.expander("""Help - I get "AttributeError: 'int' object has no attribute 'array'"."""):
         st.markdown("""Remember that your multiply function should also accept integers. You need to separately deal with the cases where `a` and `b` are integers or Tensors.""")
+    
+    with st.expander("""Help - I don't know what should go into 'parents' in the recipe."""):
+        st.markdown("""Remember that `parents` is only used for inferring the structure of the computational graph. You only need to store the arguments `a` and `b` if they are tensors, *not if they are integers*.""")
 
     st.markdown("""
 ## Forward Pass - Generic Version
@@ -776,12 +779,17 @@ def wrap_forward_fn(numpy_func: Callable, is_differentiable=True) -> Callable:
 
 log = wrap_forward_fn(np.log)
 multiply = wrap_forward_fn(np.multiply)
+# need to be careful with sum, because kwargs have different names in torch and numpy
+def _sum(x: Arr, dim=None, keepdim=False) -> Arr:
+    return np.sum(x, axis=dim, keepdims=keepdim)
+sum = wrap_forward_fn(_sum)
+
 utils.test_log(Tensor, log)
 utils.test_log_no_grad(Tensor, log)
 utils.test_multiply(Tensor, multiply)
 utils.test_multiply_no_grad(Tensor, multiply)
 utils.test_multiply_float(Tensor, multiply)
-utils.test_sum(wrap_forward_fn, Tensor)
+utils.test_sum(Tensor)
 try:
     log(x=Tensor([100]))
 except Exception as e:
@@ -823,7 +831,7 @@ As part of backprop, we need to sort the nodes of our graph so we can traverse t
 
 Write a general function `topological_sort` that return a list of node's descendants in topological order (beginning with the furthest descentents, ending with the starting node) using [depth-first search](https://en.wikipedia.org/wiki/Topological_sorting).
 
-We've given you a `Node` class, and a `get_children` function which you should use in `topological sort`. 
+We've given you a `Node` class, with a `children` attribute. You shouldn't change anything else about the `Node` class, because after this you'll be writing code to perform a topological sort on your computational graph (wherein `Node` will be replaced with the `Tensor` object).
 
 If you're stuck, try looking at the pseudocode from some of [these examples](https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm). However, it's completely fine to just look at the solution (which is an implementation of DFS) if you're stuck on this problem - this is more of a fun LeetCode-style puzzle than something intrinsic to the core of conceptually understanding backpropagation.
 """)
@@ -831,18 +839,40 @@ If you're stuck, try looking at the pseudocode from some of [these examples](htt
     with st.expander("""Help - my function is hanging without returning any values."""):
         st.markdown("""This is probably because it's going around in cycles when fed a cyclic graph. You should add a way of raising an error if your function detects that the graph isn't cyclic. One way to do this is to create a set `temp`, which stores the nodes you've visited on a particular excursion into the graph, then you can raise an error if you come across an already visited node.""")
 
+    with st.expander("Help - I'm completely stuck on how to implement this, and would like the template for some code."):
+        st.markdown("""
+Here is the template for a depth-first search implementation:
+
+```python
+def topological_sort(node: Node) -> list[Node]:
+    
+    result: list[Node] = [] # stores the list of nodes to be returned (in reverse topological order)
+    temp: set[Node] = set() # keeps track of previously visited nodes (to detect cyclicity)
+
+    def visit(cur: Node):
+        '''
+        Recursive function which visits all the children of the current node.
+
+        This should update the `result` and `temp` objects (defined outside scope).
+        '''
+        pass
+        # WRITE YOUR CODE HERE
+
+    visit(node)
+
+    return result
+```
+""")
+
     st.markdown("""
 ```python
 class Node:
     def __init__(self, *children):
         self.children = list(children)
 
-def get_children(node: Node) -> list[Node]:
-    return node.children
-
-def topological_sort(node: Node, get_children_fn: Callable) -> list[Any]:
+def topological_sort(node: Node) -> list[Any]:
     '''
-    Return a list of node's descendants in reverse topological order from future to past.
+    Return a list of node's descendants in reverse topological order, from future to past.
     
     Should raise an error if the graph with `node` as root is not in fact acyclic.
     '''
@@ -854,12 +884,12 @@ utils.test_topological_sort_rejoining(topological_sort)
 utils.test_topological_sort_cyclic(topological_sort)
 ```
 
-Now using your `topological_sort` function, write `sorted_computation_graph`, which returns the nodes in your computational graph in the order you need for backprop.
+Now, you should write the function `sorted_computational_graph`. Just like `topological_sort`, this should return the nodes in your graph in order from future to past (i.e. in the order you'll need for backpropagation). So you can reuse much of your previous code.
 
-Help - I'm not sure what I should be doing here.
+Remember that the `Tensor` object stores a dictionary of its parent tensors (rather than a list of its children, like the `Node` object did).
+""")
 
-Your function `topological_sort` requires two inputs: `node` and `get_children_fn`. You already have the node, but your nodes don't store their own children, instead they store their parents (in `node.recipe.parents`). You should use this to write a `get_parents` function, and then use this to get your sorted graph.
-
+st.markdown("""
 ```python
 def sorted_computational_graph(node: Tensor) -> list[Tensor]:
     '''
