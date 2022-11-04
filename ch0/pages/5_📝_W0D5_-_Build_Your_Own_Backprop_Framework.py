@@ -1026,6 +1026,11 @@ def backprop(end_node: Tensor, end_grad: Optional[Tensor] = None) -> None:
     grads: dict[Tensor, Arr] = {end_node: end_grad_arr}
 
     # YOUR CODE GOES HERE
+
+utils.test_backprop(Tensor)
+utils.test_backprop_branching(Tensor)
+utils.test_backprop_requires_grad_false(Tensor)
+utils.test_backprop_float_arg(Tensor)
 ```
 
 At a very high level, your code here should iterate through the sorted computational graph, and at each node it should do two things:
@@ -1067,10 +1072,6 @@ Technically, we could implement backprop without using the `grads` dict, by just
 2. If the node is *not* a leaf node, set `node.grad` to None.
 
 This would work fine for our purposes, and the code would actually be slightly shorter. The reason we don't do it is that, as a general rule, we never want to have non-None values for non-leaf scalars. We only ever store the gradients of non-leaves in the `grads` dictionary, to avoid having to store the gradients in the leaves themselves. This is a bit annoying, but it follows the behaviour of PyTorch.
-""")
-
-    st.markdown("""
-Below is a list of 
 """)
 
 def section_more_fwd_bwd():
