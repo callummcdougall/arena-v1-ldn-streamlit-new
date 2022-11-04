@@ -161,7 +161,7 @@ A second obvious way is to write out the function for the entire network, and th
 
 Suppose that you have some **computational graph**, and you want to determine the derivative of the some scalar loss L with respect to NumPy arrays a, b, and c:""")
 
-    st.write("""<figure style="max-width:600px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:550px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
 
     st.markdown(r"""This graph corresponds to the following Python:
 
@@ -205,7 +205,7 @@ There are many ways of proving that a cycle-free directed graph contains a topol
     
 If $N=1$, the problem is trivial.
 
-If $N>1$, then pick any node, and follow the arrows until you reach a node with no directed arrows going out of it. Such a node must exist, or else you would be following the arrows forever, and you'd eventually return to a node you previously visited, but this would be a cycle, which is a contradiction. Once you've found this "root node", you can put it first in your topological ordering, then remove it from the graph and apply the topological sort on the subgraph created by removing this node. By induction, such an ordering exists. You can take this ordering, put the root node at the start, and you have a topological ordering for the whole graph.
+If $N>1$, then pick any node, and follow the arrows until you reach a node with no directed arrows going out of it. Such a node must exist, or else you would be following the arrows forever, and you'd eventually return to a node you previously visited, but this would be a cycle, which is a contradiction. Once you've found this "root node", you can put it first in your topological ordering, then remove it from the graph and apply the topological sort on the subgraph created by removing this node. By induction, your topological sorting algorithm on this smaller graph should return a valid ordering. If you append the root node to the start of this ordering, you have a topological ordering for the whole graph.
 
 Induction complete.""")
 
@@ -232,16 +232,16 @@ During backpropagation, for each forward function in our computational graph we 
 
 ## Backward function of log
 
-First, we'll write the backward function for $x \to \text{out} = \log{x}$. This should be a function which, when fed the values $(x, \text{out}, \frac{dL}{d\text{out}})$ returns the value of $\frac{dL}{dx}$ based on the contribution from this particular computational path.""")
+First, we'll write the backward function for `x -> out = log(x)`. This should be a function which, when fed the values `x, out, dL/d(out)` returns the value of `dL/dx` based on the contribution from this particular computational path.""")
 
     st.write("""<figure style="max-width:400px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNo1zbEOwjAMBNBfiW5ufyADE2ydYM1iNW4bqYmr4Eigqv9eg-CWu-FJt2OUyPCYK22LG-6hOMvL9f3FDTJ_W5qiQ-aaKUWz-wcF6MKZA7zNyBO1VQNCOYy2LZLyLSaVCj_R-uQO1FQe7zLCa238R9dEdp1_6jgBox4vQQ" /></figure>""", unsafe_allow_html=True)
 
 
     st.markdown(r"""
-Note - it might seem strange at first why we need $x$ and $\text{out}$ to be inputs, since $\text{out}$ can just be calculated directly from $x$. The answer is that sometimes it is computationally cheaper to express the derivative in terms of $\text{out}$ than in terms of $x$.""")
+Note - it might seem strange at first why we need `x` and `out` to be inputs, `out` can be calculated directly from `x`. The answer is that sometimes it is computationally cheaper to express the derivative in terms of `out` than in terms of `x`.""")
 
     with st.expander("""Question - can you think of an example function where it would be computationally cheaper to use 'out'?"""):
-        st.markdown("""The most obvious answer is the exponential function. Here, the gradient is equal to `out`. We'll see this when we implement a backward version of `torch.exp` later today.""")
+        st.markdown("""The most obvious answer is the exponential function, `out = e ^ x`. Here, the gradient `d(out)/dx` is equal to `out`. We'll see this when we implement a backward version of `torch.exp` later today.""")
 
     with st.expander("""Question - what should the output of this backward function for log be?"""):
         st.markdown(r"""By the chain rule, we have:
@@ -909,16 +909,14 @@ print([name_lookup[t] for t in sorted_computational_graph(g)])
 # Should get something in reverse alphabetical order (or close)
 ```
 
-### The Actual Backprop Function
+### Implementing backprop
 
 Now we're really ready for backprop!
 
-Below is an implementation of the `backprop` function. Note that in the implementation of the class `Tensor`, we had:
+Note that in the implementation of the class `Tensor`, we had:
 
 ```python
 class Tensor:
-
-    ...
 
     def backward(self, end_grad: Union[Arr, "Tensor", None] = None) -> None:
         if isinstance(end_grad, Arr):
@@ -926,7 +924,105 @@ class Tensor:
         return backprop(self, end_grad)
 ```
 
-In other words, calling `tensor.backward()` is equivalent to `backprop(tensor)` using the function below.
+In other words, calling `tensor.backward()` is equivalent to `backprop(tensor)`.
+
+#### End grad
+
+You might be wondering what role the `end_grad` argument in `backward` plays. We usually just call `tensor.backward()` when we're working with loss functions; why do we need another argument?
+
+The reason is that we've only ever called `tensor.backward()` on scalars (i.e. tensors with a single element). If `tensor` is multi-dimensional, then we can get a scalar from it by taking a weighted sum of all of the elements. The elements of `end_grad` are precisely the weighting coefficients that we use. In other words, calling `tensor.backward(end_grad)` implicitly does the following:
+
+* Defines the value `scalar = (tensor * end_grad).sum()` (i.e. just a single element)
+* Calculates the gradient of all nodes before `tensor` in the computational graph, with respect to the value `scalar`
+
+How can we implement this? We've actually already written all the code we need, when we created our backward functions. We will simply use `tensor` and `end_grad` as the `out` and `grad_out` arguments in our backward functions, the first time we run them. For instance, consider the function `log_back` you implemented at the start, which hopefully looked something like this:
+
+```python
+def log_back(grad_out: Arr, out: Arr, x: Arr) -> Arr:
+    return grad_out / x
+```
+
+Suppose we defined `x` as a tensor with shape `(2, 3)`, then `tensor = log(x)` is also a tensor of the same shape. We then run `tensor.backward(end_grad)`  where  `end_grad` has shape `(2, 3)`. To find the gradient of `x`, we use `log_back(end_grad, tensor, x)`, and so get the result:
+
+```python
+x.grad[i, j] = end_grad[i, j] / x[i, j]
+```
+
+Now consider `scalar = (tensor * end_grad).sum()`. Since `tensor[i, j] = log(x[i, j])`, we can see that each element of `x[i, j]` appears exactly once in the array we're taking the sum over. One can then show that the derivative of `scalar` wrt `x[i, j]` is exactly the same as the expression for `x.grad[i, j]` above.
+
+#### Leaf nodes
+
+The `Tensor` object has an `is_leaf` property:
+
+```python
+class Tensor:
+
+    @property
+    def is_leaf(self):
+        '''Same as https://pytorch.org/docs/stable/generated/torch.Tensor.is_leaf.html'''
+        if self.requires_grad and self.recipe and self.recipe.parents:
+            return False
+        return True
+```
+
+In other words, leaf node tensors are any with either `requires_grad=False`, or which were *not* created by some operation on other tensors. 
+
+In backprop, only the leaf nodes accumulate gradients. You can think of leaf nodes as being edges of the computational graph, i.e. nodes from which you can't move further backwards topologically. 
+
+Intuitively, we can see that leaf nodes are the only one whose gradients we actually care about. All parameters in a neural network will be leaf nodes, because they are initialised from nothing when the network is first created. In contrast, a neural network's output will not be a leaf node, because it is the result of operations on other tensors.
+
+```python
+import torch as t
+
+layer = t.nn.Linear(3, 4)
+input = t.ones(3)
+output = layer(input)
+
+print(layer.weight.is_leaf) # -> True
+print(output.is_leaf)       # -> False
+```
+
+#### The `backprop` function
+
+Now, we get to the actual backprop function! Some code is provided below, which you should complete.
+
+```python
+def backprop(end_node: Tensor, end_grad: Optional[Tensor] = None) -> None:
+    '''Accumulates gradients in the grad field of each leaf node.
+
+    tensor.backward() is equivalent to backprop(tensor).
+
+    end_node: 
+        The rightmost node in the computation graph. 
+        If it contains more than one element, end_grad must be provided.
+    end_grad: 
+        A tensor of the same shape as end_node. 
+        If not specified, this is set to an array of 1s with same shape as end_node.array.
+    '''
+    # Get value of end_grad_arr
+    end_grad_arr = np.ones_like(end_node.array) if end_grad is None else end_grad.array
+
+    # Create dict to store gradients
+    grads: dict[Tensor, Arr] = {end_node: end_grad_arr}
+
+    # YOUR CODE GOES HERE
+```
+
+At a very high level, your code here should iterate through the sorted computational graph, and at each node it should do two things:
+
+* If the node is a leaf node, set `node.grad` from the value in the `grads` dictionary.
+* For all the node's parents, update their gradients in the `grads` dictionary using the appropriate backward function.
+
+As an example, consider this computational graph from earlier:""")
+
+    st.write("""<figure style="max-width:550px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
+
+    st.markdown("""
+If we ran `L.backward()`, the process of running backprop would go as follows:
+
+* Set `L.grad`
+A few extra subtleties to consider:
+
 
 You should step through the function below line by line, until you understand roughly what is going on at each step. It might help to keep an example computational diagram in mind (e.g. the one with arrays `a`, `b`, `c`, `d`, `e` and `L` at the very start). 
 
@@ -941,7 +1037,7 @@ def backprop(end_node: Tensor, end_grad: Optional[Tensor] = None) -> None:
         If it contains more than one element, end_grad must be provided.
     end_grad: 
         A tensor of the same shape as end_node. 
-        Set to 1 if not specified and end_node has only one element.
+        If not specified, this is set to an array of 1s with same shape as end_node.array.
     '''
     
     # Get value of end_grad_arr
