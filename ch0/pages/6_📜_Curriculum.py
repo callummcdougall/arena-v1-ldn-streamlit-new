@@ -3,7 +3,6 @@ from PIL import Image
 import numpy as np
 from einops import rearrange
 import plotly.express as px
-import plotly.graph_objects as go
 import pandas as pd
 from datetime import datetime
 import re
@@ -76,7 +75,7 @@ def generate_fig():
         srch = re.search(r"\d", i)
         return (int(srch[0]), color_list[int(srch[0])]) if srch else (10, "white")
     def style_func(s, column):
-        return [f'background-color: {get_color(s.loc[column][0])[1]}' for _ in range(4)]
+        return [f'background-color: {get_color(s.loc[column][0])[1]}' for _ in range(3)]
     link_func = lambda x: f"<a href='https://{x.replace('arena-', 'arena-ldn-')}/'>{x.replace('.streamlitapp.com', '')}</a>" if x else ""
     df["Exercises link"] = [f"<a href='{url}'>{day}</a>" for url, day in zip(df["Exercises link"], df["Day"])]
     df = df[["Date", "Day", "Chapter"]]
