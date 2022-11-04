@@ -23,10 +23,6 @@ fig_dict = st.session_state["fig_dict"]
 
 st.set_page_config(layout="wide")
 
-# code > span.string {
-#     color: red !important;
-# }
-
 st.markdown("""
 <style>
 label.effi0qh3 {
@@ -1063,7 +1059,7 @@ If we ran `L.backward()`, the process of running backprop would iterate through 
 (c) Set 'c.grad' according to its value in the 'grads' dict, because 'c' is a leaf node
 ```
 
-Note that in the process above, we updated `b` twice in the gradients dict. The first time, we set its gradient from its contribution to `L` along the path `b -> d -> L`. The second time, we add its contribution along the path `b -> e -> L`. By the time we set `b.grad` from the value in the gradients dictionary, we've already added its contribution along all paths.
+Note that in the process above, we updated `b` twice in the gradients dict. The first time, we initialise the dictionary value to be its its gradient contribution along the path `b -> d -> L`. The second time, we add its contribution along the path `b -> e -> L`. By the time we set `b.grad` from the value in the gradients dictionary, we've already added its contribution along all paths.
 """)
     with st.expander("Why do we need to use the 'grads' dict at all?"):
         st.markdown("""
@@ -1898,7 +1894,7 @@ So far we've registered a separate backwards for each input argument that could 
 
 func_list = [section_home, section_intro, section_autograd, section_more_fwd_bwd, section_putting_together, section_bonus]
 
-page_list = ["🏠 Home", "1️⃣ Introduction", "2️⃣ Autograd", "3️⃣ More forward and backward functions", "4️⃣ Putting everything together", "5️⃣ Bonus"]
+page_list = ["🏠 Home", "1️⃣ Introduction", "2️⃣ Autograd", "3️⃣ More forward & backward functions", "4️⃣ Putting everything together", "5️⃣ Bonus"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:

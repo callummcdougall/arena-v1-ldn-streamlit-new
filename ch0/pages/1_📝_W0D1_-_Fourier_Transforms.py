@@ -42,6 +42,7 @@ header {
     background: rgba(255, 255, 255, 0) !important;
 }
 code {
+    font-size: 13px;
     color: red;
     white-space: pre-wrap !important;
 }
