@@ -924,45 +924,47 @@ class Tensor:
         return backprop(self, end_grad)
 ```
 
-In other words, calling `tensor.backward()` is equivalent to `backprop(tensor)`.
+In other words, for a tensor `out`, calling `out.backward()` is equivalent to `backprop(out)`.
 
 #### End grad
 
-You might be wondering what role the `end_grad` argument in `backward` plays. We usually just call `tensor.backward()` when we're working with loss functions; why do we need another argument?
+You might be wondering what role the `end_grad` argument in `backward` plays. We usually just call `out.backward()` when we're working with loss functions; why do we need another argument?
 
-The reason is that we've only ever called `tensor.backward()` on scalars (i.e. tensors with a single element). If `tensor` is multi-dimensional, then we can get a scalar from it by taking a weighted sum of all of the elements. The elements of `end_grad` are precisely the weighting coefficients that we use. In other words, calling `tensor.backward(end_grad)` implicitly does the following:
+The reason is that we've only ever called `out.backward()` on scalars (i.e. tensors with a single element). If `out` is multi-dimensional, then we can get a scalar from it by taking a weighted sum of all of the elements. The elements of `end_grad` are precisely the weighting coefficients that we use. In other words, calling `out.backward(end_grad)` implicitly does the following:
 
-* Defines the value `scalar = (tensor * end_grad).sum()`
-* Calculates the gradient of all nodes before `tensor` in the computational graph, with respect to the value `scalar`
+* Defines the value `scalar = (out * end_grad).sum()`
+* Calculates the derivative of `scalar` wrt all other nodes in the graph, and uses that as their `grad` attribute
 
-How can we implement this? We've actually already written all the code we need, when we created our backward functions. We will simply use `tensor` and `end_grad` as the `out` and `grad_out` arguments in our backward functions, the first time we run them. For instance, consider the function `log_back` you implemented at the start, which hopefully looked something like this:
+How can we implement this? We've actually already written all the code we need, when we created our backward functions. We will simply use `end_grad` as the `grad_out` argument in our backward functions, the first time we run them. For instance, consider the function `log_back` you implemented at the start, which hopefully looked something like this:
 
 ```python
 def log_back(grad_out: Arr, out: Arr, x: Arr) -> Arr:
     return grad_out / x
 ```
 
-Suppose we defined `x` as a tensor with shape `(2, 3)`, then `tensor = log(x)` is also a tensor of the same shape. We then run `tensor.backward(end_grad)`  where  `end_grad` has shape `(2, 3)`. To find the gradient of `x`, we use `log_back(end_grad, tensor, x)`, and so get the result:
+Suppose we defined `x` as a 2D tensor, then `out = log(x)` is also a tensor of the same shape. Then, we run `out.backward(end_grad)`  where  `end_grad` has shape `(2, 3)`. Under the hood, the backprop function will find `x.grad` by evaluating `log_back(end_grad, out, x)`. So we get:
 
 ```python
 x.grad[i, j] = end_grad[i, j] / x[i, j]
 ```
 
-Now consider `scalar = (tensor * end_grad).sum()`. We can show mathematically that the derviative of `scalar` wrt `x[i, j]` is exactly equal to the expression above:""")
+Now consider `scalar = (out * end_grad).sum()`. We can show mathematically that the derviative of `scalar` wrt `x[i, j]` is exactly equal to the expression above:""")
 
     st.markdown(r"""
 $$
 \begin{aligned}
-\text { scalar } &=\sum_{p q} \text { tensor }_{p q} \times \text { end\_grad }_{p q} \\
-&=\sum_{p q} \log \left(x_{p q}\right) \times \text { end\_grad }_{p q} \\
-\frac{\partial(\text { scalar })}{\partial x_{i j}} &=\frac{\partial}{\partial x_{i j}}\left(\log \left(x_{p q}\right) \times \text { end\_grad }{ }_{i j}\right) \\
-&=\text { end\_grad }_{i j} / x_{i j}
+\text{ scalar } &=\sum_{p q} \text { tensor }_{p q} \times \text { end\_grad}_{p q} \\
+&=\sum_{p q} \log{x_{p q}} \times \text { end\_grad}_{p q} \\
+\frac{\partial(\text{scalar})}{\partial x_{i j}} &=\frac{\partial}{\partial x_{i j}}\left(\,\log{x_{p q}} \times \text { end\_grad}_{i j}\right) \\
+&=\text{ end\_grad}_{i j} / x_{i j}
 \end{aligned}
 $$
 """)
 
     st.info("""
-Mathematically, what we are doing is calculating the [directional derivative](https://en.wikipedia.org/wiki/Directional_derivative) of `tensor` in the direction `v`. In other words, `x.grad[i, j]` will be the rate at which `tensor` changes *in the direction of `v`*, where we view `v` as a high-dimensional vector. Don't worry about this if it doesn't fully make sense though!
+Mathematically, what we are doing is calculating the [directional derivative](https://en.wikipedia.org/wiki/Directional_derivative) of `out` in the direction `v`.
+
+In other words, `x.grad[i, j]` will be the rate at which `out` changes **in the direction of `v`** as `x[i, j]` increases.
 """)
 
     st.markdown("""
@@ -985,13 +987,13 @@ In other words, leaf node tensors are any with either `requires_grad=False`, or 
 
 In backprop, only the leaf nodes accumulate gradients. You can think of leaf nodes as being edges of the computational graph, i.e. nodes from which you can't move further backwards topologically. 
 
-Intuitively, we can see that leaf nodes are the only one whose gradients we actually care about. All parameters in a neural network will be leaf nodes, because they are initialised from nothing when the network is first created. In contrast, a neural network's output will not be a leaf node, because it is the result of operations on other tensors.
+Intuitively, we can see that leaf nodes are the only one whose gradients we actually care about. All parameters in a neural network will be leaf nodes, because they are initialised from nothing when the network is first created. But a neural network's output will not be a leaf node, because it is the result of operations on other tensors.
+
+In the computational graph in the next section, the only leaves are `a`, `b` and `c`.
 
 ```python
-import torch as t
-
-layer = t.nn.Linear(3, 4)
-input = t.ones(3)
+layer = torch.nn.Linear(3, 4)
+input = torch.ones(3)
 output = layer(input)
 
 print(layer.weight.is_leaf) # -> True
@@ -1029,74 +1031,41 @@ At a very high level, your code here should iterate through the sorted computati
 * If the node is a leaf node, set `node.grad` from the value in the `grads` dictionary.
 * For all the node's parents, update their gradients in the `grads` dictionary using the appropriate backward function.
 
-As an example, consider this computational graph from earlier:""")
+As an example, consider this computational graph from earlier (assume for simplicity that all nodes are scalars):""")
 
     st.write("""<figure style="max-width:550px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
 
     st.markdown("""
 If we ran `L.backward()`, the process of running backprop would go as follows:
 
-* Set `L.grad`
-A few extra subtleties to consider:
+```
+(L) Use the backward functions for `add` to update the gradients of `d` and `e` in the `grads` dict
 
+(d) Update the gradients of `a` and `b` in the `grads` dict
+        This requires you to use the gradient of `d` in the `grads` dict, and the backward func for `add`
 
-You should step through the function below line by line, until you understand roughly what is going on at each step. It might help to keep an example computational diagram in mind (e.g. the one with arrays `a`, `b`, `c`, `d`, `e` and `L` at the very start). 
+(e) Update the gradients of `b` and `c` in the `grads` dict
+        This requires you to use the backward func for `add`
 
-```python
-def backprop(end_node: Tensor, end_grad: Optional[Tensor] = None) -> None:
-    '''Accumulates gradients in the grad field of each leaf node.
+(a) Set `a.grad` according to its value in the `grads` dict, because `a` is a leaf node
+        This requires you to use the backward func for `mul`
 
-    tensor.backward() is equivalent to backprop(tensor).
+(b) Set `b.grad` according to its value in the `grads` dict, because `b` is a leaf node
+        This requires you to use the backward func for `mul`
 
-    end_node: 
-        The rightmost node in the computation graph. 
-        If it contains more than one element, end_grad must be provided.
-    end_grad: 
-        A tensor of the same shape as end_node. 
-        If not specified, this is set to an array of 1s with same shape as end_node.array.
-    '''
-    
-    # Get value of end_grad_arr
-    end_grad_arr = np.ones_like(end_node.array) if end_grad is None else end_grad.array
-    
-    # Create dict to store gradients
-    grads: dict[Tensor, Arr] = {end_node: end_grad_arr}
+(c) Set `c.grad` according to its value in the `grads` dict, because `c` is a leaf node
+        This requires you to use the backward func for `mul`
+```
 
-    # Iterate through the computational graph, using your sorting function
-    for node in sorted_computational_graph(end_node):
-        
-        # Get the outgradient (recall we need it in our backward functions)
-        outgrad = grads.pop(node)
-        # We only store the gradients if this node is a leaf (see the is_leaf property of Tensor)
-        if node.is_leaf:
-            # Add the gradient to this node's grad (need to deal with special case grad=None)
-            if node.grad is None:
-                node.grad = Tensor(outgrad)
-            else:
-                node.grad.array += outgrad
-                
-        # If node has no recipe, then it has no parents, i.e. the backtracking through computational
-        # graph ends here
-        if node.recipe is None:
-            continue
-            
-        # If node has a recipe, then we iterate through parents (which is a dict of {arg_posn: tensor})
-        for argnum, parent in node.recipe.parents.items():
-            
-            # Get the backward function corresponding to the function that created this node,
-            # and the arg posn of this particular parent within that function 
-            back_fn = BACK_FUNCS.get_back_func(node.recipe.func, argnum)
-            
-            # Use this backward function to calculate the gradient
-            in_grad = back_fn(outgrad, node.array, *node.recipe.args, **node.recipe.kwargs)
-            
-            # Add the gradient to this node in the dictionary `grads`
-            # Note that we only change the grad of the node itself in the code block above
-            if grads.get(parent) is None:
-                grads[parent] = in_grad
-            else:
-                grads[parent] += in_grad
-```""")
+Note that in the process above, we updated `b` twice in the gradients dict.
+""")
+    with st.expander("Help - I don't understand why we need the 'grads' dict."):
+        st.markdown("""
+We need the gradient of `d` wrt `L` in order to calculate the gradient of `a` wrt `L`. But `d` isn't a leaf node, so we don't store its gradient in the actual tensor. 
+""")
+
+    # Alternate backprop function doesn't use dictionary, it updates all node.parent's grad attributes, then
+    # sets node's grad attribute to zero at the end of required.
 
 def section_more_fwd_bwd():
     st.sidebar.markdown("""
