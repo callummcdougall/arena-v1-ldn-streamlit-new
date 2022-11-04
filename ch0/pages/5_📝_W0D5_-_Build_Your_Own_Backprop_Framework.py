@@ -454,14 +454,16 @@ class Recipe:
     '''Extra information necessary to run backpropagation. You don't need to modify this.'''
 
     func: Callable
-    "The 'inner' NumPy function that does the actual forward computation."
-    "Note, we call it 'inner' to distinguish it from the wrapper we'll create for it later on."
+    'The "inner" NumPy function that does the actual forward computation.'
+    'Note, we call it 'inner' to distinguish it from the wrapper we'll create for it later on.'
     args: tuple
-    "The input arguments passed to func."
+    'The input arguments passed to func.'
+    'For instance, if func was np.sum then args would be a length-1 tuple containing the tensor to be summed.'
     kwargs: dict[str, Any]
-    "Keyword arguments passed to func. To keep things simple today, we aren't going to backpropagate with respect to these."
+    'Keyword arguments passed to func. To keep things simple today, we aren't going to backpropagate with respect to these.'
+    'For instance, if func was np.sum then kwargs might contain 'dim' and 'keepdims'.'
     parents: dict[int, "Tensor"]
-    "Map from positional argument index to the Tensor at that position, in order to be able to pass gradients back along the computational graph."
+    'Map from positional argument index to the Tensor at that position, in order to be able to pass gradients back along the computational graph.'
 ```
 
 ## Registering backwards functions
@@ -490,7 +492,13 @@ BACK_FUNCS.add_back_func(np.log, 0, log_back)
 BACK_FUNCS.add_back_func(np.multiply, 0, multiply_back0)
 BACK_FUNCS.add_back_func(np.multiply, 1, multiply_back1)
 ```
+""")
+    with st.expander("Help - I'm not sure how to implement BackwardFuncLookup."):
+        st.markdown(r"""
+Try defining a lookup dictionary `self.lookup = {}` in the `__init__` stage. This should map forward functions to their corresponding backward functions.
+""")
 
+    st.markdown("""
 ## Tensors
 Our Tensor object has these fields:
 - An `array` field of type `np.ndarray`.
@@ -505,6 +513,10 @@ Note that `requires_grad` does not mean that we will save the accumulated gradie
 
 There is a lot of repetitive boilerplate involved which we have done for you. You don't need to modify anything in this class: the methods here will delegate to functions that you will implement throughout the day. You should read the code for the `Tensor` class up to `__init__`, and make sure you understand it. Most of the methods beyond this are just replicating the basic functionality of PyTorch tensors.
 
+##### There's a lot of code in the block below, which is why I've put it in an expander (otherwise it's a pain to scroll past!). You should copy this code into your `answers.py` file and run it.
+""")
+    with st.expander("CODE TO RUN"):
+        st.markdown("""
 ```python
 Arr = np.ndarray
 from typing import Optional, Union
@@ -667,8 +679,9 @@ def arange(start: int, end: int, step=1) -> Tensor:
 def tensor(array: Arr, requires_grad=False) -> Tensor:
     '''Like torch.tensor.'''
     return Tensor(array, requires_grad=requires_grad)
-```
+```""")
 
+    st.markdown("""
 ## Forward Pass: Building the Computational Graph
 
 Let's start with a simple case: our `log` function. Our `log` function must do the following:

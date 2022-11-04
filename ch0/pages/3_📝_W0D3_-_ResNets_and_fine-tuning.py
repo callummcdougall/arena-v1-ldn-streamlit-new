@@ -320,9 +320,15 @@ for i in tqdm_notebook(enumerate(range(100))):
 ```
 
 You can fix this by putting the `enumerate` outside of the `tqdm_notebook` function, or by adding the argument `total=100` (this tells `tqdm_notebook` exactly how many objects there are to iterate through).
+""")
 
----
+    st.info("""
+Note - `tqdm_notebook` might not work in your environment, and you just get empty output. In that case, try installing (and possibly) downgrading the `ipywidgets` library: `ipywidgets>=7.0,<8.0`. 
 
+If this still doesn't work, then instead of `tqdm.notebook.tqdm_notebook` try using `tqdm.auto.tqdm`. This function works in exactly the same way, with all the same arguments.
+""")
+
+    st.markdown("""
 One last thing to discuss before we move onto training our model: **GPUs**. We'll discuss this in much more detail in the **training at scale** chapter. For now, [this page](https://wandb.ai/wandb/common-ml-errors/reports/How-To-Use-GPU-with-PyTorch---VmlldzozMzAxMDk) should provide a basic overview of how to use your GPU. A few things to be aware of here:
 
 * The `to` method is really useful here - it can move objects between different devices (i.e. CPU and GPU) *as well as* changing a tensor's datatype.
