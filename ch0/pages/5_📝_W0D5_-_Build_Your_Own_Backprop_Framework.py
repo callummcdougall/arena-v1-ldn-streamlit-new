@@ -889,7 +889,7 @@ Now, you should write the function `sorted_computational_graph`. Just like `topo
 Remember that the `Tensor` object stores a dictionary of its parent tensors (rather than a list of its children, like the `Node` object did).
 """)
 
-st.markdown("""
+    st.markdown("""
 ```python
 def sorted_computational_graph(node: Tensor) -> list[Tensor]:
     '''
