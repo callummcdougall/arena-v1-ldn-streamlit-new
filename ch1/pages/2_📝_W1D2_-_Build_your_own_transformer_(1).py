@@ -77,12 +77,11 @@ def section_home():
 Yesterday you should have started going through the steps of creating a decoder-only transformer. Specifically, you should have:
 
 * Implemented a positional encoding function
-* Written a single-head attention block, with masking
 
 Today, you'll take the next steps to assemble a full transformer. This includes:
 
+* Writing a single-head attention block, with masking
 * Writing a multihead attention block
-    * This should use your functions from yesterday, but you'll be creating a multi-head attention block rather than assuming the matrices $Q$, $K$ and $V$ correspond to single heads.
 * Assembling the full decoder-only transformer architecture
 
 ---
@@ -112,38 +111,90 @@ def section_1():
 ## Table of Contents
 
 <ul class="contents">
-    <li><a class="contents-el" href="#using-dataclasses">Using <code>dataclasses</code></a></li>
-    <li><a class="contents-el" href="#reviewing-positional-encoding">Reviewing Positional Encoding</a></li>
-    <li><a class="contents-el" href="#decoderblock-and-decoderonlytransformer">DecoderBlock and DecoderOnlyTransformer</a></li>
+    <li><a class="contents-el" href="#single-head-attention">Single head attention</a></li>
+    <li><a class="contents-el" href="#single-head-masked-attention">Single head masked attention</a></li>
+    <li><a class="contents-el" href="#multihead-masked-attention">Multihead masked attention</a></li>
+    <li><a class="contents-el" href="#attention-block">Attention block</a></li>
 </ul>
 """, unsafe_allow_html=True)
 
     st.markdown("""
 
-# Multihead Attention""")
+# Attention mechanism""")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown("""
-First, you should write a function `multihead_masked_attention`, which takes arguments `Q, K, V` as well as another argument `num_heads`, and performs a multihead attention calculation. This should be the same as the masked attention function you wrote yesterday, except that rather than having shape `(batch, seq_len, d_k)` (or `d_v`), the matrices will have shape `(batch, seq_len, n_heads * d_k)`, where `n_heads` is the number of heads.
+The tasks in [Jacob Hilton's suggested exercise](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/1-Transformers.md) of building a decoder-only transformer are:
 
-Note - it is common practice to assume `d_k = d_v` (we can refer to this value as `headsize`). We  can stack the matrices `W_Q`, `W_K`, `W_V` into a single linear layer, apply them all to the input tensor `x` at once, and then split `x` back into `Q`, `K`, `V` afterwards. In other words, rather than doing this:
+* Implement the positional embedding function
+* Implement the function which calculates attention, given (Q,K,V) as arguments
+* Implement the masking function
+* Put it all together to form an entire attention block
+* Finish the whole architecture
+
+You should already have done the first one. In this page of exercises, you'll do 2, 3, and 4, then move onto 5 in the next pagfe of exercises.
+
+We've provided the template for the functions and layers you'll be creating. There are no solutions or test functions uploaded for these exercises; we encourage you to get feedback either from uploading your solutions to GitHub or speaking to your fellow participants.
+
+## Single head attention
+
+First, you should just implement single-head attention, without worrying about masking or multiple heads:
+
+```python
+def single_head_attention(Q: t.Tensor, K: t.Tensor, V: t.Tensor) -> t.Tensor:
+    '''
+    Should return the results of self-attention (see the "Self-Attention in Detail" section of the Illustrated Transformer).
+
+    With this function, you can ignore masking.
+
+    Q: shape (FILL THIS IN!)
+    K: shape (FILL THIS IN!)
+    V: shape (FILL THIS IN!)
+
+    Return: shape (FILL THIS IN!)
+    '''
+    pass
+```
+
+## Single head masked attention
+
+Next, you should use masking:
+
+```python
+def single_head_masked_attention(Q: t.Tensor, K: t.Tensor, V: t.Tensor) -> t.Tensor:
+    '''
+    Should return the results of masked self-attention.
+
+    See "The Decoder Side" section of the Illustrated Transformer for an explanation of masking.
+
+    Q: shape (FILL THIS IN!)
+    K: shape (FILL THIS IN!)
+    V: shape (FILL THIS IN!)
+
+    Return: shape (FILL THIS IN!)
+    '''
+    pass
+```
 
 """)
 
-    st.image("ch1/images/computation_split.png", width=350)
+    with st.expander("Question - why do we use masking for decoder blocks?"):
+        st.markdown("""It prevents our model from 'looking into the future'. The self attention layer is only allowed to attend to earlier positions in the output sequence, and all information from future positions is blocked.""")
 
-    st.markdown("You can do this:")
+    with st.expander("Question - should we mask elements with q<k, q<=k, k<q, or k<=q (where q, k represent the query & key indices) ?"):
+        st.markdown("""We should mask elements with `q<k`.
 
-    st.image("ch1/images/computation_parallel.png", width=580)
+Intuitively, this is because the query vectors are "doing the reading", and the key vectors are "providing the information", so masking where `q<k` is equivalent to ensuring that no token can read information from future tokens in the sequence (or from itself).""")
 
-    st.markdown("""Another note - once you've computed `Q` and `K`, you will have to rerrange them into the shape `(batch, seq_len, n_heads, headsize)`, then perform the attention calculation on each head, before arranging the final output back into shape `(batch, seq_len, n_heads * headsize)`.
+    st.markdown("""
+## Multihead masked attention
 
----
+Next, you should write a function `multihead_masked_attention`, which takes arguments `Q, K, V` as well as another argument `num_heads`, and performs a multihead attention calculation. This should be the same as the masked attention function you wrote yesterday, except that rather than having shape `(batch, seq_len, d_k)` (or `d_v`), the matrices will have shape `(batch, seq_len, n_heads * d_k)`, where `n_heads` is the number of heads.
 
-### Implement multihead masked attention function
+Note - it is common practice to assume `d_k = d_v` (from now on, we will refer to this value as `headsize`).
 
-Below, you should implement your `multihead_masked_attention` function, and then a module which instantiates the relevant weight matrices and applies this function:
+Another note - once you've computed `Q` and `K`, you will have to rerrange them into the shape `(batch, seq_len, n_heads, headsize)`, then perform the attention calculation on each head, before arranging the final output back into shape `(batch, seq_len, n_heads * headsize)`.
 
 ```python
 def multihead_masked_attention(Q: t.Tensor, K: t.Tensor, V: t.Tensor, num_heads: int):
@@ -153,13 +204,15 @@ def multihead_masked_attention(Q: t.Tensor, K: t.Tensor, V: t.Tensor, num_heads:
     Q: shape (batch, seq, nheads*headsize)
     K: shape (batch, seq, nheads*headsize)
     V: shape (batch, seq, nheads*headsize)
+
+    returns: shape (batch, seq, nheads*headsize)
     '''
     pass
 ```
 """)
 
-    with st.expander("Help - I'd like some more direction for how to implement this function."):
-        st.markdown("""Try and go through the following steps sequentially:
+    with st.expander("Help - I'd like some more guidance for how to implement this function."):
+        st.markdown("""Try and go through the following steps:
 
 * Reshape `Q`, `K` and `V` into 4D tensors, as described
 * Calculate the attention scores by multplying `Q` and `K`
@@ -171,9 +224,22 @@ def multihead_masked_attention(Q: t.Tensor, K: t.Tensor, V: t.Tensor, num_heads:
     st.markdown("""
 ---
 
-### Implement attention block
+## Attention block
 
-Now, you should use this function in a `MultiheadMaskedAttention` block. This step is where you should apply the matrix stacking described above.
+Now, you should use this function in a `MultiheadMaskedAttention` block.
+
+Note - it is a common practice to stack the matrices `W_Q`, `W_K`, `W_V` into a single linear layer, apply them all to the input tensor `x` at once, and then split `x` back into `Q`, `K`, `V` afterwards. In other words, rather than doing this:
+
+""")
+
+    st.image("ch1/images/computation_split.png", width=350)
+
+    st.markdown("You can do this:")
+
+    st.image("ch1/images/computation_parallel.png", width=580)
+
+    st.markdown("""
+You should use this method in your attention block implementation.
 
 ```python
 class MultiheadMaskedAttention(nn.Module):

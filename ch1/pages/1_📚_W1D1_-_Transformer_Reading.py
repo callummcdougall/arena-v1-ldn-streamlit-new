@@ -104,8 +104,6 @@ Don't worry if you don't follow all of this yet. A lot of it is bound to still b
 
 Once you've read through these once or twice, try going through the questions in the pages on the sidebar. There are no mandatory coding exercises today (although a couple of optional ones); the focus should be on the reading.""")
 
-    st.info("""**The questions have been labelled according to their priorities. \*\* indicates recommended material, \* indicates optional (but higher priority than the rest), and no asterisks indicates lower priority. You should try and spend most of your working time today reading the two documents above, rather than just going through these questions.**""")
-
     st.markdown("""
 
 Lastly, here is a diagram explaining the attention mechanism. It should also be useful over the next few days, when you'll be writing functions to implement attention.
@@ -141,7 +139,7 @@ def section_1():
 
 # Transformers (general)
 
-## 1. \*\*
+## 1. 
 
 What differentiates transformers from RNNs and LSTMs?""")
 
@@ -171,7 +169,7 @@ They also explicitly use a **positional encoding**.""")
 
 # (Note - I'm not 100% sure about this answer, this is just my best guess)""")
 
-    st.markdown(r"""## 2. \*
+    st.markdown(r"""## 2. 
 
 Does BERT use the encoder and decoder parts of the transformer, as described in **The Illustrated Transformer**? How about GPT?
 """)
@@ -200,7 +198,7 @@ def section_2():
     st.markdown(r"""
 # Training
 
-## 1. \*\*
+## 1. 
 
 What is the difference between masked language modelling and next sentence prediction? 
 """)
@@ -214,13 +212,13 @@ What is the difference between masked language modelling and next sentence predi
 """)
 
     st.markdown(r"""
-## 2. \*
+## 2. 
 
 How might you generate text from a masked language model? Check if your procedure is related to anything in [this paper](https://arxiv.org/pdf/1902.04094.pdf).
 """)
 
     st.markdown(r"""
-## 3. \*
+## 3. 
 
 What is the difference between **supervised** and **self-supervised** learning? Give an example of both, for NLP.
 """)
@@ -237,7 +235,7 @@ def section_3():
     st.markdown(r"""
 # Attention mechanism
 
-## 1. \**
+## 1. *
 
 In the formula for attention:
 $$
@@ -251,7 +249,7 @@ why do we divide by $\sqrt{d_\text{head}}$?""")
     
 We can get more mathematically precise. With a few simplifying assumptions, it's possible to show that the dot product of each query and key vector has a variance of around $d_\text{head}$, so dividing by $\sqrt{d_\text{head}}$ makes the variances approximately 1.""")
 
-    st.markdown(r"""## 2. \**
+    st.markdown(r"""## 2. *
 
 In the formula for attention (see above), what are the dimensions for $Q$, $K$, and $V$? (you can refer to the diagram in `🏠 Home` if you're confused).
 """)
@@ -271,7 +269,7 @@ For some more intuition about tokenisation, and what the embedding dimension act
 
 It's worth noting that word2vec and your transformer's learned tokenization are two very different concepts. For instance, word2vec is the product of unsupervised learning, and is trained to identify whether a word belongs to a particular context, so it's likely to associate words like "cat" and "dog" because both are used in similar contexts (when describing pets). On the other hand, the representation learned by your transformer's embedding entirely depends on the task it's being trained on (most likely supervised or self-supervised), and if there is no gradient applied to separate the representation of two particular words during training then those words might end up having similar representations. For instance, the token embedding layer in a transformer trained on sentiment analysis might associate "cat" and "dog" for a different reason - because people often say positive things about their pets. Since there is often some overlap here, [some models](https://medium.com/@martinpella/how-to-use-pre-trained-word-embeddings-in-pytorch-71ca59249f76) will initialise their embedding layers by loading in weights from pre-learned embeddings, and then letting them be updated in accordance with the specific supervised task.
 
-## 1. \*\*
+## 1. 
 
 At the end of the transformer architecture, we perform an **unembedding** to take us from the embedding dimension back to vectors of logits over the set of tokens in our vocabulary. 
 
@@ -284,7 +282,7 @@ Sometimes we use a **tied unembedding**, which means we use the transpose of the
         st.info("""Interestingly, another much less obvious advantage is that you can probe the network by applying the unembedding matrix at earlier points in the network's computation, which gives an idea of the result so far (intuitively, because the embedding s[ace] has the "same meaning" at the start and end of the network, so it is likely to have the same meaning in the middle as well) - this is called the [logit lens](https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens).""")
 
     st.markdown(r"""
-## 2. \*
+## 2. 
 
 Try playing around with tokenizers in Python, using the `transformers` library. The following code can get you started:
 
@@ -298,7 +296,7 @@ tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2")
 
 Try running `tokenizer.encode`, `tokenizer.decode`, `tokenizer.tokenize`, and just `tokenizer` on inputs. Can you figure out what each of these functions does?
 
-## 3. \*
+## 3. 
 
 Look up PyTorch's [Embedding module](https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html). Try playing around with it, and getting a feel for how it works.
 """)
@@ -336,7 +334,7 @@ def section_5():
 
 ## 1.
 
-A recap of **sinusoidal positional encoding** - it is computed as follows:
+**Sinusoidal positional encoding** is computed as follows:
 $$
 \mathrm{PE}(i, \delta)= \begin{cases}\sin \left(\frac{i}{10000^{2 \delta^{\prime} / d}}\right) & \text { if } \delta=2 \delta^{\prime} \,\text{ for some }\delta^{\prime} \\ \cos \left(\frac{i}{10000^{2 \delta^{\prime} / d}}\right) & \text { if } \delta=2 \delta^{\prime}+1 \,\text{ for some }\delta^{\prime}\end{cases}
 $$
@@ -421,7 +419,32 @@ def get_dot_product_graph(array_2d):
 
     px.imshow(arr, color_continuous_scale="Blues").show()
 ```
+
+## 3. 
+
+You should now implement positional encoding as an `nn.Module` instance, for use in your transformer later on. The positional encoding matrix should be created in your `__init__` stage, and 
+
+```python
+class PositionalEncoding(nn.Module):
+
+    def __init__(self, max_seq_len: int, embedding_dim: int):
+        pass
+
+    def forward(self, x: Tensor) -> Tensor:
+        '''
+        x: shape (batch, seq_len, embedding_dim)
+        '''
+        pass
+```
+
+Note, we have used `max_seq_len` rather than `seq_len` in the initialisation step. When a tensor `x` gets passed through the positional encoding with shape `(batch, seq_len, embedding_dim)`, we will only use the first `seq_len` vectors from the positional encoding matrix (so we can accept any inputs of sequence length up to `max_seq_len`). This is one advantage of using sinusoidal positional encoding over a learned embedding: it has the ability to extrapolate to longer sequences than the ones it was trained on. This is described further in section 3.5 of the [Attention Is All You Need](https://arxiv.org/pdf/1706.03762.pdf) paper.
 """)
+
+    with st.expander("Why might we need to use 'register_buffer' in the positional encoding? (you might want to look at the implementation of BatchNorm last week to remind yourself what register_buffer does)"):
+        st.markdown("""
+We don't want to register the positional encoding as a parameter, because then it will be updated by gradient descent (and we want to fix it to the values given in the sinusoidal weight formula). But we do want to register it with the model, so that it goes into the model's `state_dict` and can be saved & loaded.""")
+
+    
  
 def section_6():
     st.markdown("""
@@ -429,7 +452,7 @@ def section_6():
 
 [This reading](https://stats.stackexchange.com/questions/474440/why-do-transformers-use-layer-norm-instead-of-batch-norm) provides a useful illustration of LayerNorm vs BatchNorm in NLP, and also explains some of the background as to why LayerNorm is used in NLP (and specifically transformers), whereas BatchNorm tends to be preferred for computer vision tasks.
 
-## 1. \*\*
+## 1. 
 
 If we have language data with dimension `(batch, sequence, embedding)`, which dimensions does Layer Norm normalize over? How many means and variances must be calculated?
 """)
@@ -438,7 +461,7 @@ If we have language data with dimension `(batch, sequence, embedding)`, which di
         st.markdown("Layer Norm normalizes over the `embedding` dimension (i.e. the number of means computed is `batch_size * sequence_length`).")
 
 
-    st.markdown("""## 2. \*
+    st.markdown("""## 2. 
 
 Look at the [PyTorch documentation page](https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html) for `LayerNorm`. Play around with a LayerNorm instance until you understand how it is used.
 
@@ -453,7 +476,7 @@ Dropout is the second type of layer we've found that behaves differently in trai
 def section_7():
     st.markdown("""# Softmax and Activation Functions
 
-## 1. \*
+## 1. 
 
 Prove that softmax is invariant under adding a constant scalar c to each dimension of the input.""")
 
@@ -473,7 +496,7 @@ Intuition: the logits represent the "bits of evidence for a particular outcome",
 
     st.markdown(r"""
 
-## 2. \**
+## 2. *
 
 In the softmax function, we sometimes use a parameter $T>0$ to denote temperature. We divide the vector by $T$ before applying exp then normalising. What effect will $T$ have on the output probabilities?
 """)
