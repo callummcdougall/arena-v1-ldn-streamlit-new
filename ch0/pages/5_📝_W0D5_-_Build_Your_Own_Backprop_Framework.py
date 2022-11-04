@@ -159,7 +159,7 @@ One obvious and straightforward way to do this would be just to add a small valu
 
 A second obvious way is to write out the function for the entire network, and then symbolically take the gradient to obtain a symbolic expression for the gradient. This also works and is another thing to check against, but the expression gets quite complicated.
 
-Suppose that you have some computation graph, and you want to determine the derivative of the some scalar loss L with respect to NumPy arrays a, b, and c:""")
+Suppose that you have some **computational graph**, and you want to determine the derivative of the some scalar loss L with respect to NumPy arrays a, b, and c:""")
 
     st.write("""<figure style="max-width:600px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
 
@@ -427,7 +427,7 @@ def section_autograd():
 </ul>
 """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(r"""
 # Autograd
 Now, rather than figuring out which backward functions to call, in what order, and what their inputs should be, we'll write code that takes care of that for us. We'll implement this with a few major components:
 - Tensor
@@ -454,17 +454,25 @@ class Recipe:
     '''Extra information necessary to run backpropagation. You don't need to modify this.'''
 
     func: Callable
-    'The "inner" NumPy function that does the actual forward computation.'
-    'Note, we call it 'inner' to distinguish it from the wrapper we'll create for it later on.'
+    "The 'inner' NumPy function that does the actual forward computation."
+    "Note, we call it 'inner' to distinguish it from the wrapper we'll create for it later on."
     args: tuple
-    'The input arguments passed to func.'
-    'For instance, if func was np.sum then args would be a length-1 tuple containing the tensor to be summed.'
+    "The input arguments passed to func."
+    "For instance, if func was np.sum then args would be a length-1 tuple containing the tensor to be summed."
     kwargs: dict[str, Any]
-    'Keyword arguments passed to func. To keep things simple today, we aren't going to backpropagate with respect to these.'
-    'For instance, if func was np.sum then kwargs might contain 'dim' and 'keepdims'.'
+    "Keyword arguments passed to func."
+    "For instance, if func was np.sum then kwargs might contain 'dim' and 'keepdims'."
     parents: dict[int, "Tensor"]
-    'Map from positional argument index to the Tensor at that position, in order to be able to pass gradients back along the computational graph.'
+    "Map from positional argument index to the Tensor at that position, in order to be able to pass gradients back along the computational graph."
 ```
+
+As an example, if a tensor `y` was created via `np.func(x0.array, x1.array, ..., xN.array)`, then the recipe for `y` might look like this:
+
+```python
+y.recipe = Recipe(func=np.func, args=(x0.array, x1.array, ..., xN.array), kwargs={}, parents={0: x0, 1: x1, ..., N: xN})
+```
+
+Note that `args` just stores the values of the underlying arrays, but `parents` stores the actual tensors. This is because they serve two different purposes: `args` is required for computing the value of gradients during backpropagation, and `parents` is required to infer the structure of the computational graph (i.e. which tensors were used to produce which other tensors).
 
 ## Registering backwards functions
 
@@ -684,11 +692,11 @@ def tensor(array: Arr, requires_grad=False) -> Tensor:
     st.markdown("""
 ## Forward Pass: Building the Computational Graph
 
-Let's start with a simple case: our `log` function. Our `log` function must do the following:
+Let's start with a simple case: our `log` function. `log_forward` is a wrapper, which should implement the functionality of `np.log` but work with tensors rather than arrays. Our `log` function must do the following:
 
-- Call `np.log(tensor.array)` to obtain an output array.
+- Call `np.log(x.array)` to obtain an output array.
 - Create a new `Tensor` containing the output.
-- If grad tracking is enabled globally AND (the input requires grad, OR has a recipe), then the output requires grad and we fill out the recipe of our output. Note that since log has a single argument, `recipe.parents` will be a dict with a single integer key `0`.
+- If grad tracking is enabled globally AND (the input requires grad, OR has a recipe), then the output requires grad and we fill out the recipe of our output, as a `Recipe` object.
  
 Later we'll redo this in a generic and reusable way, but for now just get it working.
 
@@ -705,8 +713,20 @@ b = log_forward(a)
 grad_tracking_enabled = True
 assert not b.requires_grad, "should not require grad if grad tracking globally disabled"
 assert b.recipe is None, "should not create recipe if grad tracking globally disabled"
+```""")
+
+    with st.expander("Help - I don't know what the recipe object should be."):
+        st.markdown("""
+Your recipe should look like this:
+
+```python
+Recipe(func=np.log, args=(x.array,), kwargs={}, parents={0: x})
 ```
 
+Explanation: you're working with the function `np.log`, which just has a single argument (the array that you're taking the log of), and has no keyword arguments.
+""")
+
+    st.markdown("""
 Now let's do the same for multiply, to see how to handle functions with multiple arguments. There are a few differences:
 - The actual function to be called is different
 - We need more than one argument in `args` and `parents`, when defining `Recipe`
@@ -779,14 +799,16 @@ else:
         st.markdown("""This is probably because you're calling `numpy_func` on the args themselves. Recall that `args` will be a list of `Tensor` objects, and that you should call `numpy_func` on the underlying arrays.""")
 
     with st.expander("""Help - I'm getting an AssertionError on "assert c.requires_grad == True", or something similar."""):
-        st.markdown("""This is probably because you're not defining `requires_grad` correctly. Remember that the output of a forward function should have `requires_grad = True` if and only if:
+        st.markdown("""This is probably because you're not defining `requires_grad` correctly. Remember that the output of a forward function should have `requires_grad = True` if and only if all of the following hold:
 
 * Grad tracking is enabled
 * The function is differentiable
 * **Any** of the inputs are tensors with `requires_grad = True`""")
 
     with st.expander("""Help - my function passes all tests up to "test_sum", but then fails here."""):
-        st.markdown("""`test_sum`, unlike the previous tests, wraps a function that uses keyword arguments. So if you're failing here, it's probably because you didn't use `**kwargs` when calling `numpy_func`. """)
+        st.markdown("""`test_sum`, unlike the previous tests, wraps a function that uses keyword arguments. So if you're failing here, it's probably because you didn't use `kwargs` correctly.
+
+`kwargs` should be used in two ways: once when actually calling the `numpy_func`, and once when defining the `Recipe` object for the output tensor.""")
 
     st.markdown("""
 ## Backpropagation
