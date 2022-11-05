@@ -32,7 +32,7 @@ def generate_fig():
     today = datetime.today().date()
     # today = datetime.strptime("28/10/2022", "%d/%m/%Y").date()
     counter = -1
-    path_list = ["pre", "trans", "opti", "scale", "mod", "rl", "laws", "int", "adv", "cap"]
+    path_list = ["pre", "trans", "scale", "opti", "mod", "rl", "laws", "int", "adv", "cap"]
     for chapter_no, days in enumerate(days_per_section):
         path = f + f"{path_list[chapter_no]}.png"
         img_true = Image.open(path).resize((164, 164))
@@ -300,8 +300,28 @@ The rest of this chapter will be spent on additional transformer exercises, incl
 
 with tabs[2]:
 
+    st.image("ch0/images/headers/scale.png", width=250)
+    st.subheader("Chapter 2 - Training at Scale")
+
+    st.markdown("""
+    <div style="color:gray; margin-top:-30px">
+    Duration: 5 days
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("This chapter is part of an optional track: you can choose to do it, or chapter 4A (modelling objectives).")
+
+    st.success("""
+💡 There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.""")
+
+    st.info("""
+📜 It's currently unclear exactly what this week will look like, although it will probably draw at least in part from [week 3 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/3-Training-at-Scale.md).
+""")
+
+with tabs[3]:
+
     st.image("ch0/images/headers/opti.png", width=250)
-    st.subheader("Chapter 2 - Optimisation")
+    st.subheader("Chapter 3 - Optimisation")
 
     st.markdown("""
     <div style="color:gray; margin-top:-30px">
@@ -319,33 +339,13 @@ We will read some papers discussing some of the mathematical justifications behi
 """)
     ch1_columns = st.columns(1)
     with ch1_columns[0]:
-        st.markdown("""<h5><code>W2D3</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Optimisers: exercises 📝</h5>""", unsafe_allow_html=True)
+        st.markdown("""<h5><code>W3D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Optimisers: exercises 📝</h5>""", unsafe_allow_html=True)
         st.markdown("""Learn about different optimisation algorithms (e.g. **RMSProp** and **Adam**), and implement them from scratch. Understand important concepts like momentum, and how they affect the performance of optimisers.
 
 ---
     """)
-        st.markdown("""<h5><code>W2D4</code> - <code>W2D5</code>&emsp;|&emsp; Optimisers: investigations 🔬</h5> """, unsafe_allow_html=True)
+        st.markdown("""<h5><code>W3D2</code> - <code>W3D3</code>&emsp;|&emsp; Optimisers: investigations 🔬</h5> """, unsafe_allow_html=True)
         st.markdown("""Run your own experiments on optimisation algorithms. There are several different experiments you can choose to run, based on the material provided in Jacob Hilton's curriculum.""")
-
-with tabs[3]:
-
-    st.image("ch0/images/headers/scale.png", width=250)
-    st.subheader("Chapter 3 - Training at Scale")
-
-    st.markdown("""
-    <div style="color:gray; margin-top:-30px">
-    Duration: 5 days
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("This chapter is part of an optional track: you can choose to do it, or chapter 4A (modelling objectives).")
-
-    st.success("""
-💡 There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.""")
-
-    st.info("""
-📜 It's currently unclear exactly what this week will look like, although it will probably draw at least in part from [week 3 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/3-Training-at-Scale.md).
-""")
 
 with tabs[4]:
 
@@ -367,13 +367,13 @@ Here, we take a tour through various generative models. This is the name for a b
 
     ch1_columns = st.columns(1)
     with ch1_columns[0]:
-        st.markdown("""<h5><code>W4D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; GANs and VAEs 📝</h5>""", unsafe_allow_html=True)
+        st.markdown("""<h5><code>W3D4</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; GANs and VAEs 📝</h5>""", unsafe_allow_html=True)
         st.markdown("""
 Learn how **GANs** (Generative Adversarial Models) and **VAEs** (Variational Autoencoders) work, and build & train some of your own.
 
 ---
     """)
-        st.markdown("""<h5><code>W4D2</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Diffusion models 📚</h5> """, unsafe_allow_html=True)
+        st.markdown("""<h5><code>W3D5</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Diffusion models 📚</h5> """, unsafe_allow_html=True)
         st.markdown("""
 Read up on the maths behind diffusion models, and why they work so well for image generation.
 
@@ -381,7 +381,7 @@ Note - this day will be fairly math-heavy, so you might want to jump straight to
 
 ---
 """)
-        st.markdown("""<h5><code>W4D3 - W4D5</code>&emsp;&nbsp;|&emsp; Implementing diffusion models 📚</h5> """, unsafe_allow_html=True)
+        st.markdown("""<h5><code>W4D1 - W4D3</code>&emsp;&nbsp;|&emsp; Implementing diffusion models 📚</h5> """, unsafe_allow_html=True)
         st.markdown("""
 Over these two days, you'll be implementing your own diffusion models. Like during the transformer exercises, you can choose from several different degrees of difficulty.
 """)

@@ -89,9 +89,11 @@ def generate_fig():
         ])).to_html(escape=False)
     return fig, table
 
-    
-
-fig, table = generate_fig()
+if "fig_table" not in st.session_state:
+    fig, table = generate_fig()
+    st.session_state["fig_table"] = (fig, table)
+else:
+    fig, table = st.session_state["fig_table"]
 
 st.markdown("""
 <style>
