@@ -95,7 +95,7 @@ This is meant to be a very challenging task (and like yesterday we haven't inclu
 If you find yourself extremely stuck at any point during today's implementation, here are some things you can do. Try and do the first ones on this list before you do the latter ones; struggling and persevering with bugs is a big part of ML engineering!
 
 * Read back over Monday's material
-    * Two important resources here are [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/) and [Language Modelling with Transformers](https://docs.google.com/document/d/1XJQT8PJYzvL0CLacctWcT0T5NfL7dwlCiIqRtdTcIqA/edit#)
+    * Two important resources here are [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/) and [Language Modelling with Transformers](https://docs.google.com/document/d/1j3EqnPnlg2g2z8fjst4arbZ_hLg_MgE0yFwdSoI237I/edit#heading=h.icw2n6iwy2of)
     * The paper [Attention Is All You Need](https://arxiv.org/pdf/1706.03762.pdf) also gives some useful information
 * Speak to your coworkers
     * You can share screen, and try and work through bugs together

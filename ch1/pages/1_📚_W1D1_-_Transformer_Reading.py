@@ -97,7 +97,7 @@ We strongly recommend you make notes on this material as you go through it. You'
 
 * [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/)
     * You might prefer watching the video (although it misses out some details). 
-* [Language Modelling with Transformers](https://docs.google.com/document/d/1XJQT8PJYzvL0CLacctWcT0T5NfL7dwlCiIqRtdTcIqA/edit#)
+* [Language Modelling with Transformers](https://docs.google.com/document/d/1j3EqnPnlg2g2z8fjst4arbZ_hLg_MgE0yFwdSoI237I/edit#heading=h.icw2n6iwy2of)
     * This google doc contains a lot of useful information about transformers, although some of the diagrams and schematics are less clear than in the Illustrated Transformer.
 
 Don't worry if you don't follow all of this yet. A lot of it is bound to still be confusing, but should become less so as you work through your own implementation of a transformer.
@@ -127,9 +127,9 @@ Lastly, here is a diagram explaining the attention mechanism. It should also be 
 
 If you've got time at the end of today, here's a few other things you might want to read. All of these provide different approaches to explaining transformers, and you might find some of them easier to understand than others.
 
+* [Attention Is All You Need](https://arxiv.org/abs/1706.03762) - Section 3 of the paper that introduced the transformer explains the architecture well. Don't worry too much about the encoder and how that fits in, as that's somewhat specific to translation – unsupervised transformer language models are generally decoder-only.
 * [Formal Algorithms for Transformers](https://arxiv.org/pdf/2207.09238.pdf) - A DeepMind paper covering what transformers are, how they are trained, what they are used for, their key architectural components, and an overview of the most prominent models.
 * [The Transformer Family](https://lilianweng.github.io/posts/2020-04-07-the-transformer-family/) - An overview of many transformer variants, including Transformer-XL, Image Transformer, Sparse Transformer, Reformer and Universal Transformer.
-* [Attention Is All You Need](https://arxiv.org/abs/1706.03762) - Section 3 of the paper that introduced the transformer explains the architecture well. Don't worry too much about the encoder and how that fits in, as that's somewhat specific to translation – unsupervised transformer language models are generally decoder-only.
 
 Another option you have is to brainstorm more [muppet-related names](https://www.theverge.com/2019/12/11/20993407/ai-language-models-muppets-sesame-street-muppetware-elmo-bert-ernie) for transformers. Bonus points go to especially creative names.
 """)

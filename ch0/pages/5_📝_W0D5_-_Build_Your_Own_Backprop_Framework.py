@@ -100,6 +100,30 @@ The main differences between the full PyTorch and our version are:
 * A real torch.Tensor has about 700 fields and methods. We will only implement a subset that are particularly instructional and/or necessary to train the MLP.
 
 Note - for today, I'd lean a lot more towards being willing to read the solutions, and even move on from some of them if you don't fully understand them. The low-level messy implementation details for today are much less important than the high-level conceptual takeaways.
+
+Also, if you don't have enough time to finish all sections (which is understandable, because there's a *lot* of content today!), I'd focus on sections **1️⃣ Introduction** and **2️⃣ Autograd**, since conceptually these are the most important. Once you've done both of these, you should have a strong working understanding of the mechanics of backpropagation.
+
+## 1️⃣ Introduction
+
+This takes you through what a **computational graph** is, and the basics of how gradients can be backpropagated through such a graph. You'll also implement the backwards versions of some basic functions: if we have tensors `output = func(input)`, then the backward function of `func` can calculate the grad of `input` as a function of the grad of `output`.
+
+## 2️⃣ Autograd
+
+This section goes into more detail on the backpropagation methodology. In order to find the `grad` of each tensor in a computational graph, we first have to perform a **topological sort** of the tensors in the graph, so that each time we try to calculate `tensor.grad`, we've already computed all the other gradients which are used in this calculation. We end this section by writing a `backprop` function, which works just like the `tensor.backward()` method you're already used to in PyTorch.
+
+## 3️⃣ More forward & backward functions
+
+Now that we've established the basics, this section allows you to add more forward and backward functions, extending the set of functions we can use in our computational graph.
+
+## 4️⃣ Putting everything together
+
+In this section, we build your own equivalents of `torch.nn` features like `nn.Parameter`, `nn.Module`, and `nn.Linear`. We can then use these to build our own neural network to classify MINST data.
+
+This completes the chain which starts at basic numpy arrays, and ends with us being able to build essentially any neural network architecture we want!
+
+## 5️⃣ Bonus
+
+A few bonus exercises are suggested, for pushing your understanding of backpropagation further.
 """)
 
 def section_intro():
@@ -419,7 +443,9 @@ def section_autograd():
     <li><a class="contents-el" href="#backpropagation">Backpropagation</a></li>
     <li><ul class="contents">
         <li><a class="contents-el" href="#topological-sort">Topological Sort</a></li>
-        <li><a class="contents-el" href="#the-actual-backprop-function">The Actual Backprop Function</a></li>
+        <li><a class="contents-el" href="#the-backward-method"></a>The <code>backward</code> method</li>
+        <li><a class="contents-el" href="#end-grad">End grad</a></li>
+        <li><a class="contents-el" href="#the-backprop-function">The <code>backprop</code> function</a></li>
     </li></ul>
 </ul>
 """, unsafe_allow_html=True)
@@ -906,7 +932,7 @@ print([name_lookup[t] for t in sorted_computational_graph(g)])
 # Should get something in reverse alphabetical order (or close)
 ```
 
-### Implementing backprop
+### The `backward` method
 
 Now we're really ready for backprop!
 
@@ -923,7 +949,7 @@ class Tensor:
 
 In other words, for a tensor `out`, calling `out.backward()` is equivalent to `backprop(out)`.
 
-#### End grad
+### End grad
 
 You might be wondering what role the `end_grad` argument in `backward` plays. We usually just call `out.backward()` when we're working with loss functions; why do we need another argument?
 
@@ -967,7 +993,7 @@ In other words, `x.grad[i, j]` will be the rate at which `out` changes **in the 
     st.markdown("""
 When `end_grad` is not specified, we assume it to be a tensor of 1s with the same size as `out`. For instance, if we call `L.backward()` when `L` is a scalar-valued loss function, this is the same as calling `L.backward(end_grad=Tensor(1.))`.
 
-#### Leaf nodes
+### Leaf nodes
 
 The `Tensor` object has an `is_leaf` property:
 
@@ -999,7 +1025,7 @@ print(layer.weight.is_leaf) # -> True
 print(output.is_leaf)       # -> False
 ```
 
-#### The `backprop` function
+### The `backprop` function
 
 Now, we get to the actual backprop function! Some code is provided below, which you should complete.
 
@@ -1070,6 +1096,32 @@ Technically, we could implement backprop without using the `grads` dict, by just
 
 This would work fine for our purposes, and the code would actually be slightly shorter. The reason we don't do it is that, as a general rule, we never want to have non-None values for non-leaf scalars. We only ever store the gradients of non-leaves in the `grads` dictionary, to avoid having to store the gradients in the leaves themselves. This is a bit annoying, but it follows the behaviour of PyTorch.
 """)
+    st.markdown("""
+Since implementing this function will likely be very challenging, we've provided a few hints below, each one corresponding to a certain type of error you might get while trying to implement `backprop`.
+""")
+
+    with st.expander("Help - I get AttributeError: 'NoneType' object has no attribute 'func'"):
+        st.markdown("""This error is probably because you're trying to access `recipe.func` from the wrong node. Possibly, you're calling your backward functions using the parents nodes' `recipe.func`, rather than the node's `recipe.func`.
+        
+To explain further, suppose your computational graph is simply:""")
+
+        st.write("""<figure style="max-width:550px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNolTjEOwjAQ-0p0czvAmIGJERZYbzmSC43UJFW4DKjp37kWT7Zly17BFc9g4V1pmcztgdkoyIzjxfTQsjv11y4Ofu7GwQCJa6LotbXucQSZODGCVeo5UJsFAfOmUWpSnt_swEptPEBbPAlfI-leAhto_qjLPkqp9_-T49D2A4txMhY" /></figure>""", unsafe_allow_html=True)
+
+        st.markdown("""When you reach `b` in your backprop iteration, you should calculate the gradient wrt `a` (the only parent of `b`) and store it in your `grads` dictionary, as `grads[a]`. In order to do this, you need the backward function for `func1`, which is stored in the node `b` (recall that the recipe of a tensor can be thought of as a set of instructions for how that tensor was created).""")
+
+    with st.expander("Help - I get AttributeError: 'numpy.ndarray' object has no attribute 'array'"):
+        st.markdown("""This might be because you've set `node.grad` to be an array, rather than a tensor. You should store gradients as tensors (think of PyTorch, where `tensor.grad` will have type `torch.Tensor`).
+        
+It's fine to store numpy arrays in the `grads` dictionary, but when it comes time to set a tensor's grad attribute, you should use a tensor.""")
+
+    with st.expander("Help - I don't know which arguments to pass to my backward functions."):
+        st.markdown("""Suppose you are at node `n` during your backprop function's iteration, and you want to use your backward functions to calculate the gradient for node `p`, which is a parent of `n`. The forward function is stored in `n.recipe`, and you can use that to find the appropriate backward function using `BACK_FUNCS`. The arguments you should pass to the backward function are:
+        
+* `grad_out`, which comes from `grads[n]`
+* `x`, which comes from `p`
+* `args` and `kwargs`, which are also stored in `n.recipe`""")
+
+    # NEED TO DO THE FOURTH ONE OF MEGS BULLET POINTS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def section_more_fwd_bwd():
     st.sidebar.markdown("""
@@ -1140,7 +1192,7 @@ Make your own version of `torch.exp`. The backward function should express the r
 
 ```python
 def exp_back(grad_out: Arr, out: Arr, x: Arr) -> Arr:
-    return out * grad_out
+    pass
 
 exp = wrap_forward_fn(np.exp)
 BACK_FUNCS.add_back_func(np.exp, 0, exp_back)
@@ -1294,7 +1346,7 @@ We only need two cases today:
 - The index is a tuple of (array or Tensor) representing coordinates. Each array is 1D and of equal length. Some coordinates may be repeated. This is [Integer array indexing](https://numpy.org/doc/stable/user/basics.indexing.html#integer-array-indexing).
     - For example, to select the five elements at (0, 0), (1,0), (0, 1), (1, 2), and (0, 0), the index would be the tuple `(np.array([0, 1, 0, 1, 0]), np.array([0, 0, 1, 2, 0]))`. 
 
-Note, in `_getitem` you'll need to deal with one special case: when `index` is of type signature `tuple[Tensor]`. If not for this case, `return x[index]` would suffice for this function. It might help to define a `coerce_index` function to deal with this particular case; we've provided a docstring for this purpose.
+Note, in `_getitem` you'll need to deal with one special case: when `index` is of type signature `tuple[Tensor]`. If not for this case, `return x[index]` would suffice for this function. You should define a `coerce_index` function to deal with this particular case; we've provided a docstring for this purpose.
 """)
 
     with st.expander("""Help - I'm confused about the implementation of getitem_back!"""):
@@ -1308,10 +1360,12 @@ Initialize an array of zeros of the same shape as x, and then write in the appro
 ```python
 Index = Union[int, tuple[int, ...], tuple[Arr], tuple[Tensor]]
 
+def coerce_index(index):
+    pass
+
 def _getitem(x: Arr, index: Index) -> Arr:
     '''Like x[index] when x is a torch.Tensor.'''
     return x[coerce_index(index)]
-
 
 def getitem_back(grad_out: Arr, out: Arr, x: Arr, index: Index):
     '''Backwards function for _getitem.
@@ -1319,13 +1373,12 @@ def getitem_back(grad_out: Arr, out: Arr, x: Arr, index: Index):
     Hint: use np.add.at(a, indices, b)
     This function works just like a[indices] += b, except that it allows for repeated indices.
     '''
-    new_grad_out = np.full_like(x, 0)
-    np.add.at(new_grad_out, coerce_index(index), grad_out)
-    return new_grad_out
+    pass
 
 getitem = wrap_forward_fn(_getitem)
 BACK_FUNCS.add_back_func(_getitem, 0, getitem_back)
 
+utils.test_coerce_index(coerce_index, Tensor)
 utils.test_getitem_int(Tensor)
 utils.test_getitem_tuple(Tensor)
 utils.test_getitem_integer_array(Tensor)
@@ -1836,6 +1889,7 @@ def section_bonus():
     <li><a class="contents-el" href="#in-place-operation-warnings">In-Place Operation Warnings</a></li>
     <li><a class="contents-el" href="#in-place-relu">In-Place <code>ReLU</code></a></li>
     <li><a class="contents-el" href="#backward-for-einsum">Backward for <code>einsum</code></a></li>
+    <li><a class="contents-el" href="#convolutional-layers">Convolutional layers</a></li>
     <li><a class="contents-el" href="#resnet-support">ResNet Support</a></li>
     <li><a class="contents-el" href="#central-difference-checking">Central Difference Checking</a></li>
     <li><a class="contents-el" href="#non-differentiable-function-support">Non-Differentiable Function Support</a></li>
@@ -1875,6 +1929,9 @@ class MyModule(Module):
         x = self.relu(self.linear2(x))
         return self.linear3(x)
 ```
+
+### Convolutional layers
+Now that you've implemented a linear layer, it should be relatively straightforward to take your convolutions code from day 2 and use it to make a convolutional layer. How much better performance do you get on the MNIST task once you replace your first two linear layers with convolutions?
 
 ### ResNet Support
 Make a list of the features that would need to be implemented to support ResNet inference, and training. It will probably take too long to do all of them, but pick some interesting features to start implementing.
