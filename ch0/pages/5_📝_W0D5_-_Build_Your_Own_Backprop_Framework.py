@@ -105,7 +105,7 @@ Also, if you don't have enough time to finish all sections (which is understanda
 
 ## 1️⃣ Introduction
 
-This takes you through what a **computational graph** is, and the basics of how gradients can be backpropagated through such a graph. You'll also implement the backwards versions of some basic functions: if we have tensors `output = func(input)`, then the backward function of `func` can calculate the grad of `input` as a function of the grad of `output`.
+This takes you through what a **computational graph** is, and the basics of how gradients can be backpropagated through such a graph. You'll also implement the backwards versions of some basic functions: if we have tensors `output = func(input)`, then the backward function of `func` can calculate the `input.grad` as a function of `(output.grad, output, input)`.
 
 ## 2️⃣ Autograd
 
