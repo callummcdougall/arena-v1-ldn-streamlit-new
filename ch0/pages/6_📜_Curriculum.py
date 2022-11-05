@@ -254,7 +254,7 @@ with tabs[1]:
 
     st.markdown("""
     <div style="color:gray; margin-top:-30px">
-    Duration: 7 days
+    Duration: 5 days
     </div>
     """, unsafe_allow_html=True)
 
@@ -392,7 +392,7 @@ with tabs[5]:
 
     st.markdown("""
     <div style="color:gray; margin-top:-30px">
-    Duration: 6 days
+    Duration: 7 days
     </div>
     """, unsafe_allow_html=True)
 
@@ -487,7 +487,7 @@ with tabs[9]:
 
     st.markdown("""
     <div style="color:gray; margin-top:-30px">
-    Duration: 5 days
+    Duration: 7 days
     </div>
     """, unsafe_allow_html=True)
 

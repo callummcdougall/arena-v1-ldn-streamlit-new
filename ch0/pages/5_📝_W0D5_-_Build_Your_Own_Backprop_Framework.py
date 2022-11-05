@@ -44,9 +44,11 @@ header {
     background: rgba(255, 255, 255, 0) !important;
 }
 code {
-    font-size: 13px;
     color: red;
     white-space: pre-wrap !important;
+}
+code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
+    font-size: 13px;
 }
 a.contents-el > code {
     color: black;
