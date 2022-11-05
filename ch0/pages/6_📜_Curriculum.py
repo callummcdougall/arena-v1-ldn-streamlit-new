@@ -184,7 +184,6 @@ You can also see a <u>calendar view</u> and a <u>daily view</u> in the dropdowns
 
 with st.expander("Calendar view"):
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-    st.markdown("""Note that week 4 is split between training at scale and modelling objectives. Participants will be able to choose either of these two tracks.""")
 
 with st.expander("Daily view"):
     st.write(table, unsafe_allow_html=True)
