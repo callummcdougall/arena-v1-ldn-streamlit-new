@@ -265,6 +265,14 @@ In the formula for attention (see above), what are the dimensions for $Q$, $K$, 
  
 def section_4():
     st.markdown(r"""
+## Imports
+
+```python
+import torch as t
+from torch import nn
+import utils
+```
+
 # Tokenisation and embedding
 
 For some more intuition about tokenisation, and what the embedding dimension actually represents geometrically, you can read [this post](https://towardsdatascience.com/word2vec-explained-49c52b4ccb71) explaining **word2vec**, one of the first and most well-known historical examples of learned word embeddings. You don't need to worry about the probabilistic model used to generate these embeddings, just the general idea of how this space can preserve semantic meaning. You might also want to try out [Semantle](https://semantle.com/), which is a game similar to Wordle except that rather than returning the number and position of correct letters, it gives you the semantic similarity of your guess to the target word (based on the word2vec embedding).
@@ -298,22 +306,7 @@ tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2")
 
 Try running `tokenizer.encode`, `tokenizer.decode`, `tokenizer.tokenize`, and just `tokenizer` on inputs. Can you figure out what each of these functions does?
 
-## 3. 
-
-Look up PyTorch's [Embedding module](https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html). Try playing around with it, and getting a feel for how it works.
-""")
-
-    with st.expander("Question - what is the difference between nn.Linear and nn.Embedding?"):
-        st.markdown("""
-`nn.Linear` is just a linear transformation, mapping `in_features` to `out_features`. It doesn't change the dimensionality of the input.
-
-`nn.Embedding` treats each number in the input as an index, and returns a corresponding vector in the embedding dimension. So it will produce output with one more dimension than the input.
-
-Crucially, the difference is **not** that `nn.Linear` is updated by gradient descent and `nn.Embedding` is static. Both layers' weights are updated by gradient descent in the same way; this is how the embedding matrix learns semantic representations for the tokens (from the initialisation values of the embdding vectors, which are randomly chosen).
-""")
-
-    st.markdown("""
-## 4.
+## 3.
 
 The [Language Modelling with Transformers](https://docs.google.com/document/d/1j3EqnPnlg2g2z8fjst4arbZ_hLg_MgE0yFwdSoI237I/edit#) document said that:
 
@@ -329,6 +322,45 @@ Make this statement more precise: how does the expected cosine similarity betwee
         st.markdown(r"""The expected square of the cosine similarity between (1, 0, 0, …) and another random unit vector $v$ is $\frac{1}{D}$ (assuming the latter unit vector had each of its elements following the same distribution). This is relatively straightforward to prove: the formula for the square of cosine similarity in this case evaluates to $v_1^2$, and the expected value of this must be $\frac{1}{D}$ because when you sum over the squared elements you get 1 (since $v$ is normalised).
 
 You can then argue that any reasonable way of choosing two random vectors has the same property, because you can choose a rotation to apply to both vectors which sends the first of your random vectors to (1, 0, 0, …); your second vector should still be a random unit vector, and rotations won't affect the cosine similarity.""")
+
+    st.markdown("""
+## 4. 
+
+Look up PyTorch's [Embedding module](https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html). Try playing around with it, and getting a feel for how it works.
+""")
+
+    with st.expander("Question - what is the difference between nn.Linear and nn.Embedding?"):
+        st.markdown("""
+`nn.Linear` is just a linear transformation, mapping `in_features` to `out_features`. It doesn't change the dimensionality of the input.
+
+`nn.Embedding` treats each number in the input as an index, and returns a corresponding vector in the embedding dimension. So it will produce output with one more dimension than the input.
+
+Crucially, the difference is **not** that `nn.Linear` is updated by gradient descent and `nn.Embedding` is static. Both layers' weights are updated by gradient descent in the same way; this is how the embedding matrix learns semantic representations for the tokens (from the initialisation values of the embdding vectors, which are randomly chosen).
+""")
+
+    st.markdown("""
+## 5. 
+
+Implement your version of PyTorch's [`nn.Embedding`](https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html) module. The PyTorch version has some extra options in the constructor, but you don't need to worry about these.
+
+```python
+class Embedding(nn.Module):
+
+    def __init__(self, num_embeddings: int, embedding_dim: int):
+        pass
+
+    def forward(self, x: t.LongTensor) -> t.Tensor:
+        '''For each integer in the input, return that row of the embedding.
+        '''
+        pass
+
+    def extra_repr(self) -> str:
+        pass
+
+assert repr(Embedding(10, 20)) == repr(t.nn.Embedding(10, 20))
+utils.test_embedding(Embedding)
+```
+""")
 
 def section_5():
     st.markdown(r"""
@@ -467,13 +499,52 @@ If we have language data with dimension `(batch, sequence, embedding)`, which di
 
 Look at the [PyTorch documentation page](https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html) for `LayerNorm`. Play around with a LayerNorm instance until you understand how it is used.
 
-## 3.
+## 3. 
+
+Use the [PyTorch docs](https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html) for Layer Normalization to implement your own version which exactly mimics the official API. Use the biased estimator for `var` as shown in the docs.
+
+```python
+class LayerNorm(nn.Module):
+
+    def __init__(self, normalized_shape: Union[int, List[int]], eps: float = 1e-05, elementwise_affine: bool = True):
+        pass
+
+    def forward(self, x: t.Tensor) -> t.Tensor:
+        pass
+
+utils.test_layernorm_mean_1d(LayerNorm)
+utils.test_layernorm_mean_2d(LayerNorm)
+utils.test_layernorm_std(LayerNorm)
+utils.test_layernorm_exact(LayerNorm)
+utils.test_layernorm_backward(LayerNorm)
+```
+
+## 4.
 
 Dropout is the second type of layer we've found that behaves differently in training and eval modes (can you remember what the first was?). Explain how dropout changes behaviour in training vs eval mode.
 """)
 
     with st.expander("Answer"):
         st.markdown("""In training mode, a dropout layer will take each scalar in the input and randomly set it to 0 with probability $p$, then divide all other scalars by $(1-p)$  (for normalisation reasons). In eval mode, a dropout layer doesn't do this; none of the scalars are set to zero.""")
+
+    st.markdown("""
+## 5.
+
+Implement Dropout in accordance with its [documentation page](https://pytorch.org/docs/stable/generated/torch.nn.Dropout.html). You will have to implement it differently depending on whether you are in training mode, just like you did for BatchNorm. Recall that you can check whether you're in training mode with `self.training`.
+
+```python
+class Dropout(nn.Module):
+
+    def __init__(self, p: float):
+        pass
+
+    def forward(self, x: t.Tensor) -> t.Tensor:
+        pass
+
+utils.test_dropout_eval(Dropout)
+utils.test_dropout_training(Dropout)
+```
+""")
 
 def section_7():
     st.markdown("""# Softmax and Activation Functions
@@ -512,6 +583,17 @@ Note - the name **temperature** comes from the fact that this parameter plays a 
 
     st.markdown("""
 ## 3.
+
+Implement `nn.GELU`. This should be very similar to your implementation of ReLU in the first week. You can use either of the two approximations recommended [here](https://paperswithcode.com/method/gelu). You can use `utils.plot_gelu` to verify your function works as expected.
+
+```python
+class GELU(nn.Module):
+
+    def forward(self, x: t.Tensor) -> t.Tensor:
+        pass
+
+utils.plot_gelu(GELU)
+```
 
 Try computing the GELU function from [this paper](https://arxiv.org/pdf/1606.08415.pdf), and plotting it. Compare it to the GELU approximation from the same paper. Where do they diverge the most, and by how much?
 

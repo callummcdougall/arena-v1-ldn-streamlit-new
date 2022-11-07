@@ -82,17 +82,13 @@ Below, you can find a description of each of the set of exercises on offer. You 
 
 ---
 
-### 1. Build and sample from GPT-2
+### 1️⃣ Build and sample from GPT-2
 
 As was mentioned in yesterday's exercises, you've already built something that was very close to GPT-2. In this task, you'll be required to implement an exact copy of GPT-2, and load in the weights just like you did last week for ResNet. Just like last week, this might get quite fiddly!
 
 We will also extend last week's work by looking at some more advanced sampling methods, such as **beam search**.
 
-### 2. Use your own modules
-
-In week 0 we built a ResNet using only our own modules, which all inherited from `nn.Module`. Here, you have a chance to take this further, and build an entire transformer using only your own modules! This starts by having you define a few new blocks (`LayerNorm`, `Embedding` and `Dropout`), and then put them all together into your own transformer, which you can train on the Shakespeare corpus as in the task from last week.
-
-### 3. Build and finetune BERT
+### 2️⃣ Build and finetune BERT
 
 BERT is an encoder-only transformer, which has a different kind of architecture (and a different purpose) than GPT-2. In this task, you'll build a copy of BERT and load in weights, then train it on 
 
@@ -235,148 +231,6 @@ If you get this working, you can try fine-tuning your GPT on text like your Shak
 """)
 
 def section2():
-    st.sidebar.markdown("""
-## Table of Contents
-
-<ul class="contents">
-    <li><a class="contents-el" href="#imports">Imports</a></li>
-    <li><a class="contents-el" href="#modules">Modules</a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#nn-embedding">nn.Embedding</a></li>
-        <li><a class="contents-el" href="#nn-gelu">nn.GELU</a></li>
-        <li><a class="contents-el" href="#nn-layernorm">nn.LayerNorm</a></li>
-        <li><a class="contents-el" href="#nn-dropout">nn.Dropout</a></li>
-    </li></ul>
-    <li><a class="contents-el" href="#putting-it-all-together">Putting it all together</a></li>
-    <li><a class="contents-el" href="#bonus">Bonus</a></li>
-</ul>
-""", unsafe_allow_html=True)
-
-    st.markdown("""
-
-## Imports
-
-```python
-import torch as t
-from torch import nn, optim
-import plotly.express as px
-from typing import Optional, Union, List
-import utils
-```
-
-## Modules
-
-Here, we'll complete the process of defining our own modules, which all inherit from `nn.Module`. By the end of this, we'll have built enough modules to be able to construct our entire transformer.
-
-The modules that we still haven't defined, which we'll need for our decoder-only transformer, are:
-```
-nn.Embedding
-nn.GELU
-nn.LayerNorm
-nn.Dropout
-```
-
-We'll go through these one by one.
-
-### `nn.Embedding`
-
-Implement your version of PyTorch's [`nn.Embedding`](https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html) module. The PyTorch version has some extra options in the constructor, but you don't need to worry about these.
-
-```python
-class Embedding(nn.Module):
-
-    def __init__(self, num_embeddings: int, embedding_dim: int):
-        pass
-
-    def forward(self, x: t.LongTensor) -> t.Tensor:
-        '''For each integer in the input, return that row of the embedding.
-        '''
-        pass
-
-    def extra_repr(self) -> str:
-        pass
-
-utils.test_embedding(Embedding)
-```
-
-### `nn.GELU`
-
-Now, you should implement GELU. This should be very similar to your implementation of ReLU in the first week. You can use either of the two approximations recommended [here](https://paperswithcode.com/method/gelu). You can use `utils.plot_gelu` to verify your function works as expected.
-
-```python
-class GELU(nn.Module):
-
-    def forward(self, x: t.Tensor) -> t.Tensor:
-        pass
-
-utils.plot_gelu(GELU)
-```
-
-### `nn.LayerNorm`
-
-Use the [PyTorch docs](https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html) for Layer Normalization to implement your own version which exactly mimics the official API. Use the biased estimator for `var` as shown in the docs.
-
-```python
-class LayerNorm(nn.Module):
-
-    def __init__(self, normalized_shape: Union[int, List[int]], eps: float = 1e-05, elementwise_affine: bool = True):
-        pass
-
-    def forward(self, x: t.Tensor) -> t.Tensor:
-        pass
-
-utils.test_layernorm_mean_1d(LayerNorm)
-utils.test_layernorm_mean_2d(LayerNorm)
-utils.test_layernorm_std(LayerNorm)
-utils.test_layernorm_exact(LayerNorm)
-utils.test_layernorm_backward(LayerNorm)
-```
-
-### `nn.Dropout`
-
-Finally, implement Dropout in accordance with its [documentation page](https://pytorch.org/docs/stable/generated/torch.nn.Dropout.html). You will have to implement it differently depending on whether you are in training mode, just like you did for BatchNorm. You can check whether you're in training mode with `self.training`.
-
-```python
-class Dropout(nn.Module):
-
-    def __init__(self, p: float):
-        pass
-
-    def forward(self, x: t.Tensor) -> t.Tensor:
-        pass
-
-utils.test_dropout_eval(Dropout)
-utils.test_dropout_training(Dropout)
-```
-
-## Putting it all together
-
-Now, you're ready to go back over your decoder-only transformer, and replace all the `nn.Module`s with your own! Try to train your model on the reversed digits task, and then on the Shakespeare corpus.
-
-## Bonus
-
-As a bonus task, you can try and implement GPT using only your own modules! Unfortunately, this isn't as simple as taking your code from the GPT implementation task (assuming you've already done this) and swapping out the `nn.Module` calls. GPT's architecture is more complicated than the ResNet that we've been working with, and will involve a lot more fussing around with messy details to get exactly right!
-
-Later this week, I'll post a longer set of instructions on how you might go about doing this. However, if you're feeling adventurous, then you might want to give this task ago before I post this! The following code might help:
-
-```python
-import transformers
-import pandas as pd
-
-gpt = transformers.AutoModelForCausalLM.from_pretrained("gpt2")
-
-with pd.option_context("display.max_rows", None):
-    display(pd.DataFrame([
-        {"name": name, "shape": param.shape, "param count": param.numel()}
-        for name, param in gpt.named_parameters()
-    ]))
-```
-
-Note that `torchinfo` unfortunately seems to break on gpt2 (if anyone finds a way to get it working, please ping me a message!).
-
-""")
-
-def section3():
     st.sidebar.markdown("""
 ## Table of Contents
 
@@ -824,9 +678,9 @@ test_bert_prediction(predict, my_bert, tokenizer)
 ```
 """)
 
-func_list = [section_home, section1, section2, section3]
+func_list = [section_home, section1, section2]
 
-page_list = ["🏠 Home", "1️⃣ Build and sample from GPT-2", "2️⃣ Use your own modules", "3️⃣ Build and finetune BERT"]
+page_list = ["🏠 Home", "1️⃣ Build and sample from GPT-2", "3️⃣ Build and finetune BERT"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:

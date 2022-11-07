@@ -86,9 +86,7 @@ Today, you'll take the next steps to assemble a full transformer. This includes:
 * Writing a multihead attention block
 * Assembling the full decoder-only transformer architecture
 
----
-
-This is meant to be a very challenging task (and like yesterday we haven't included test functions), so I'm putting in two office hour sessions tomorrow: from 8-10am and 4-5.30pm BST (these have been added to the ARENA Google Calendar).
+If possible, **you should try and implement this transformer using your own modules**. If you combine the modules you defined while building ResNet, and the modules you defined yesterday during the exercises, these should collectively give you enough to build your entire transformer. If you missed out on any of these tasks, now would be a good time to go back and do them. Alternatively, if your name is Mathieu Putz, feel free to use PyTorch's modules! (you might want to review the material from chapter 0, the end of W0D2 and start of W0D3, just to get an idea of how modules work and what it means to write your own).
 
 ---
 
@@ -98,10 +96,8 @@ If you find yourself extremely stuck at any point during today's implementation,
     * Two important resources here are [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/) and [Language Modelling with Transformers](https://docs.google.com/document/d/1j3EqnPnlg2g2z8fjst4arbZ_hLg_MgE0yFwdSoI237I/edit#heading=h.icw2n6iwy2of)
     * The paper [Attention Is All You Need](https://arxiv.org/pdf/1706.03762.pdf) also gives some useful information
 * Speak to your coworkers
-    * You can share screen, and try and work through bugs together
     * Sometimes, just [rubber duck debugging](https://en.wikipedia.org/wiki/Rubber_duck_debugging) helps!
 * Speak to me (Callum)
-    * Either during one of my two office hours today, or just by pinging me a message on Slack
     * I can look over your code, and check for any bugs
 * Read [The Annotated Transformer](https://nlp.seas.harvard.edu/2018/04/03/attention.html#positional-encoding)
     * We purposefully didn't inlude this in the recommended reading because we don't want people to just copy the implementation here, also some of it (like the encoder/decoder parts) you don't need, because you're implementing a decoder-only model
