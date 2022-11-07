@@ -491,6 +491,9 @@ class PositionalEncoding(nn.Module):
         x: shape (batch, seq_len, embedding_dim)
         '''
         pass
+
+    def extra_repr(self) -> str:
+        pass
 ```
 
 Note, we have used `max_seq_len` rather than `seq_len` in the initialisation step. When a tensor `x` gets passed through the positional encoding with shape `(batch, seq_len, embedding_dim)`, we will only use the first `seq_len` vectors from the positional encoding matrix (so we can accept any inputs of sequence length up to `max_seq_len`). This is one advantage of using sinusoidal positional encoding over a learned embedding: it has the ability to extrapolate to longer sequences than the ones it was trained on. This is described further in section 3.5 of the [Attention Is All You Need](https://arxiv.org/pdf/1706.03762.pdf) paper.
@@ -534,6 +537,9 @@ class LayerNorm(nn.Module):
     def forward(self, x: t.Tensor) -> t.Tensor:
         pass
 
+    def extra_repr(self) -> str:
+        pass
+
 utils.test_layernorm_mean_1d(LayerNorm)
 utils.test_layernorm_mean_2d(LayerNorm)
 utils.test_layernorm_std(LayerNorm)
@@ -561,6 +567,9 @@ class Dropout(nn.Module):
         pass
 
     def forward(self, x: t.Tensor) -> t.Tensor:
+        pass
+
+    def extra_repr(self) -> str:
         pass
 
 utils.test_dropout_eval(Dropout)
