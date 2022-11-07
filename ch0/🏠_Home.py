@@ -64,7 +64,7 @@ st.sidebar.markdown("""
 </ul>
 """, unsafe_allow_html=True)
 
-st.image("ch0/images/headers/pre.png")
+st.image("ch0/images/headers/pre.png", width=300)
 
 st.markdown("""
 
