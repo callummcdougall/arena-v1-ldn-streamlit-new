@@ -277,9 +277,31 @@ import utils
 
 For some more intuition about tokenisation, and what the embedding dimension actually represents geometrically, you can read [this post](https://towardsdatascience.com/word2vec-explained-49c52b4ccb71) explaining **word2vec**, one of the first and most well-known historical examples of learned word embeddings. You don't need to worry about the probabilistic model used to generate these embeddings, just the general idea of how this space can preserve semantic meaning. You might also want to try out [Semantle](https://semantle.com/), which is a game similar to Wordle except that rather than returning the number and position of correct letters, it gives you the semantic similarity of your guess to the target word (based on the word2vec embedding).
 
-It's worth noting that word2vec and your transformer's learned tokenization are two very different concepts. For instance, word2vec is the product of unsupervised learning, and is trained to identify whether a word belongs to a particular context, so it's likely to associate words like "cat" and "dog" because both are used in similar contexts (when describing pets). On the other hand, the representation learned by your transformer's embedding entirely depends on the task it's being trained on (most likely supervised or self-supervised), and if there is no gradient applied to separate the representation of two particular words during training then those words might end up having similar representations. For instance, the token embedding layer in a transformer trained on sentiment analysis might associate "cat" and "dog" for a different reason - because people often say positive things about their pets. Since there is often some overlap here, [some models](https://medium.com/@martinpella/how-to-use-pre-trained-word-embeddings-in-pytorch-71ca59249f76) will initialise their embedding layers by loading in weights from pre-learned embeddings, and then letting them be updated in accordance with the specific supervised task.
+The token embedding layer at the start of most transformer models is pretty conceptually similar to embeddings like word2vec. Both are learned via gradient descent on a self-supervised task, usually involving classification or prediction. There are a few differences though, for instance:
 
-## 1. 
+* Word2vec tokenizes by words, whereas most transformers tokenize into smaller units, e.g. [Wordpiece](https://paperswithcode.com/method/wordpiece) for BERT.
+* Exactly how embeddings are learned depends on the architecture of the neural network in which they are applied. Word2vec is learned as part of a shallow, 2-layer neural network, much simpler than the transformer architectures which it predates.
+
+However, since these two are pretty conceptually similar, [some models](https://medium.com/@martinpella/how-to-use-pre-trained-word-embeddings-in-pytorch-71ca59249f76) will initialise their embedding layers by loading in weights from pre-learned embeddings, and then letting them be updated in accordance with the specific supervised task.
+""")
+
+    st.markdown(r"""
+## 1.
+
+What is the difference between embeddings like word2vec, and the **output** of an encoder-only transformer like BERT?
+
+(Note, I'm talking about the output of a transformer, not the token embedding which makes up just a single layer of the transformer.)
+""")
+
+    with st.expander("Answer:"):
+        st.markdown("""
+Word2vec only ever ouputs the same vector for each word. 
+
+In contrast, BERT's outputs are **context-dependent**. Tt will output a vector in the embedding dimension for each word in its input, but this vector will depend on the other words in the sequence.
+""")
+
+    st.markdown("""
+## 2. 
 
 At the end of the transformer architecture, we perform an **unembedding** to take us from the embedding dimension back to vectors of logits over the set of tokens in our vocabulary. 
 
@@ -292,7 +314,7 @@ Sometimes we use a **tied unembedding**, which means we use the transpose of the
         st.info("""Interestingly, another much less obvious advantage is that you can probe the network by applying the unembedding matrix at earlier points in the network's computation, which gives an idea of the result so far (intuitively, because the embedding s[ace] has the "same meaning" at the start and end of the network, so it is likely to have the same meaning in the middle as well) - this is called the [logit lens](https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens).""")
 
     st.markdown(r"""
-## 2. 
+## 3. 
 
 Try playing around with tokenizers in Python, using the `transformers` library. The following code can get you started:
 
@@ -306,7 +328,7 @@ tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2")
 
 Try running `tokenizer.encode`, `tokenizer.decode`, `tokenizer.tokenize`, and just `tokenizer` on inputs. Can you figure out what each of these functions does?
 
-## 3.
+## 4.
 
 The [Language Modelling with Transformers](https://docs.google.com/document/d/1j3EqnPnlg2g2z8fjst4arbZ_hLg_MgE0yFwdSoI237I/edit#) document said that:
 
@@ -324,7 +346,7 @@ Make this statement more precise: how does the expected cosine similarity betwee
 You can then argue that any reasonable way of choosing two random vectors has the same property, because you can choose a rotation to apply to both vectors which sends the first of your random vectors to (1, 0, 0, …); your second vector should still be a random unit vector, and rotations won't affect the cosine similarity.""")
 
     st.markdown("""
-## 4. 
+## 5. 
 
 Look up PyTorch's [Embedding module](https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html). Try playing around with it, and getting a feel for how it works.
 """)
@@ -339,7 +361,7 @@ Crucially, the difference is **not** that `nn.Linear` is updated by gradient des
 """)
 
     st.markdown("""
-## 5. 
+## 6. 
 
 Implement your version of PyTorch's [`nn.Embedding`](https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html) module. The PyTorch version has some extra options in the constructor, but you don't need to worry about these.
 
