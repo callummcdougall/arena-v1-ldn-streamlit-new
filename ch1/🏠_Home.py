@@ -64,7 +64,10 @@ ul.contents a:hover {
 # </ul>
 # """, unsafe_allow_html=True)
 
-st.markdown("""# Transformers
+st.image("ch1/images/headers/trans.png")
+
+st.markdown("""
+# Transformers
 
 The transformer is an important neural network architecture used for language modeling.
 

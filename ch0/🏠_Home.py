@@ -64,7 +64,23 @@ st.sidebar.markdown("""
 </ul>
 """, unsafe_allow_html=True)
 
-st.markdown("""## About this page
+st.image("ch0/images/headers/pre.png")
+
+st.markdown("""
+
+# Prerequisites 
+
+Before embarking on this curriculum, it is necessary to understand the basics of deep learning, including basic machine learning terminology, what neural networks are, and how to train them.
+
+Some highlights from this chapter include:
+* Building your own 1D and 2D convolution functions
+* Building and loading weights into a Residual Neural Network, and finetuning it on a classification task
+* Working with [weights and biases](https://wandb.ai/site) to optimise hyperparameters
+* Implementing your own backpropagation mechanism
+
+---
+
+## About this page
 
 This page was made using an app called Streamlit. It's hosted from the [ARENA GitHub repo](https://github.com/callummcdougall/arena-v1-streamlit). It provides a very simple way to display markdown, as well as more advanced features like interactive plots and animations. This is how the instructions for each day will be presented. You may also want to learn Streamlit in order to have a convenient way to present the results of your personal projects at the end of each week.
 
