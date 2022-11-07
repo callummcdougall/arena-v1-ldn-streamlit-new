@@ -64,6 +64,7 @@ st.sidebar.markdown("""
 </ul>
 """, unsafe_allow_html=True)
 
+st.image("ch0/images/headers/pre.png", width=320)
 
 st.markdown("""
 
@@ -76,9 +77,7 @@ Some highlights from this chapter include:
 * Building and loading weights into a Residual Neural Network, and finetuning it on a classification task
 * Working with [weights and biases](https://wandb.ai/site) to optimise hyperparameters
 * Implementing your own backpropagation mechanism
-""")
-st.image("ch0/images/headers/pre.png", width=300)
-st.markdown("""
+
 ---
 
 ## About this page

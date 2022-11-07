@@ -64,11 +64,18 @@ ul.contents a:hover {
 # </ul>
 # """, unsafe_allow_html=True)
 
-st.image("ch1/images/headers/trans.png")
+st.image("ch1/images/headers/trans.png", width=320)
 
 st.markdown("""
 # Transformers
 
 The transformer is an important neural network architecture used for language modeling.
 
-In this chapter, you will learn all about transformers - how the attention mechanism works, how transformers are trained, and how they’ve managed to be the driving force behind language model progress of the last few years.""")
+In this chapter, you will learn all about transformers - how the attention mechanism works, how transformers are trained, and how they’ve managed to be the driving force behind language model progress of the last few years.
+
+Some highlights from this chapter include:
+
+* Building your own decoder-only transformer (which includes building a unidirectional attention block)
+* Training your transformer on the corpus of Shakespeare text, to generate realistic output
+* Assembling and loading weights into GPT-2, and sampling output from it
+* Training a transformer to solve some classic LeetCode-style problems""")
