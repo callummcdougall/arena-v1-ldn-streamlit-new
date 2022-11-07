@@ -94,6 +94,13 @@ BERT is an encoder-only transformer, which has a different kind of architecture 
 
 Once you've built BERT, you'll be able to train it to perform well on tasks like classification and sentiment analysis.
 
+---
+
+### Other ideas for exercises
+
+* Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version?
+    * Why do you expect the cosine similarity between vectors in your transformer's learned embedding to carry meaninfgul information about the word similarities, in the same way that Word2vec does? Or if not, then why not?
+
 """)
 
 def section1():
