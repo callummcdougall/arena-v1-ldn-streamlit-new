@@ -355,7 +355,7 @@ class PositionalEncoding(nn.Module):
 
 Now, you should implement `DecoderBlock` and `DecoderOnlyTransformer`. These are provided below for you, as diagrams.""")
 
-    st.write("""<figure style="max-width:700px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNqNU21rwjAQ_ishnzuHZZ9kCA7dELoXUD-lY0Rz1WB6KWky5tb996WNrVbYWGmby3NP7u65JF90owXQEd0aXuzIcpoi8U_p1gFIqX9TDGj7dN4p1KvNM6rD0nAsM21yMH3yUu8BydXVmFQSLWzBVA00y9cgWGPers31uJkLidvXhjwRIjC8EZCp0YV2trHvwNg7pTf7kh1rCDMfaTyMSByRwWAQEXT5m-IHMGUIkaFi9xK5IkmNkidfb_A4ZCuEOmGYV-96w9dvpfyE6tnZwtm-qhddSiv1hTCPhqJbN1d_aTuFBBTnTe4a3OnsZ59jcdaIBahsjgiGTawFrPPWfThJJMMu76mdj8kL898FM-6Y8Yk6sRh6wMLw-ls1fkXf5YEu3v_U-pL6ITzQJGDNPxSUSARuhrVd3XyQnRQCMGzWwyxZhU25cIQ1cav9eJrYcex68pvQpubOoBH1Bz3nUvir81U7Ump3kENKR94UkHGnbH1zvj3VFYJbmAlptaGjjKsSIsqd1YsDbujIGgctaSq570V-ZH3_AN7pIx0" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:700px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNqFU1FLwzAQ_ishz3Wy4dOQwWRThKoF51Mqki23LdheSpqI0_rfTXPdZgdqKM3lu-8u312ST74yCviYb6ystmwxy5GFUfslATkPX46E7sfBO4M22j5gsVtYifXa2BJsn7wwr4Ds7GzCGo0ONmCbCM3LJSgRzculPZ_EtdK4eY7kqVLECAYhM2sq4120r8C6q8KsXmvRaaBVyDQZJmyUsMFgkDD05Ushd2BrSrHGQlxrlAVLW5TdB73k8SieENoNad28mZVcvtT6A5oH7yrv-lVlptZOm5PCAkqi925Z_FXbMSWg-tnk0wbH4voCbrH60YtHKNa3iGDF1DnAduu2Fccq2fCw9bGjd6nKxF2anVBHB-royJ06pD4Imp5_kxMi-q4AHPL9X3GQ0w8PQEwu4p_EpBpB2mFrNxfvbKuVAqTDupmnT3QoJw6KGXWFZ91tEt28b0j2W5FRb2fwhIdrXkqtwsP5bOGcuy2UkPNxMBWspS9c-26-AtVXSjqYK-2M5WNnPSRcemced7jar4kz0zI0oSTw6xumnyG9" /></figure>""", unsafe_allow_html=True)
 
 # graph TD
 #     subgraph " "
