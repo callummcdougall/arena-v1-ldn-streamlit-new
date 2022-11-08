@@ -479,7 +479,7 @@ def get_dot_product_graph(array_2d):
     st.markdown("""
 ## 3. 
 
-You should now implement positional encoding as an `nn.Module` instance, for use in your transformer later on. The positional encoding matrix should be created in your `__init__` stage, and 
+You should now implement positional encoding as an `nn.Module` instance, for use in your transformer later on. The positional encoding matrix should be created in your `__init__` stage, and in your `forward` step you should slice the appropriate number of rows and add it to `x`.
 
 ```python
 class PositionalEncoding(nn.Module):
