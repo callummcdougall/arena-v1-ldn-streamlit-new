@@ -686,7 +686,7 @@ test_bert_prediction(predict, my_bert, tokenizer)
 def section3():
     st.markdown("""# Semantle""")
 
-    st.image("ch1/images/semantle.png", width=250)
+    st.image("ch1/images/semantle.png", width=150)
     st.markdown("""
     
 Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version? 
@@ -694,7 +694,7 @@ Design your own game of [Semantle](https://semantle.com/), using your transforme
 Why do you expect the cosine similarity between vectors in your transformer's learned embedding to carry meaninfgul information about the word similarities, in the same way that Word2vec does? Or if not, then why not?
 
 # LeetCode (hard!)""")
-    st.image("ch1/images/balanced_brackets.png", width=350)
+    st.image("ch1/images/balanced_brackets.png", width=320)
     st.markdown("""
 Pick some of your favourite easy LeetCode problems (e.g. detecting whether a bracket string is balanced), and train a transformer to solve it. Some questions you might like to think about:
 
