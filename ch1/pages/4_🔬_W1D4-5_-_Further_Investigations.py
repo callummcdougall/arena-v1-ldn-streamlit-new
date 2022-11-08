@@ -715,9 +715,9 @@ Your transformer should have bidirectional attention in this case, i.e. no maski
 As you can see, there's a lot of subtlety that goes into formulating a task like this in a way that a transformer can solve!
 """)
 
-func_list = [section_home, section1, section2]
+func_list = [section_home, section1, section2, section3]
 
-page_list = ["🏠 Home", "1️⃣ Build and sample from GPT-2", "3️⃣ Build and finetune BERT"]
+page_list = ["🏠 Home", "1️⃣ Build and sample from GPT-2", "2️⃣ Build and finetune BERT", "3️⃣ Other bonus exercises"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
