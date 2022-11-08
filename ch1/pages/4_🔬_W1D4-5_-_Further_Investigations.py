@@ -693,6 +693,8 @@ Design your own game of [Semantle](https://semantle.com/), using your transforme
     
 Why do you expect the cosine similarity between vectors in your transformer's learned embedding to carry meaninfgul information about the word similarities, in the same way that Word2vec does? Or if not, then why not?
 
+---
+
 # LeetCode (hard!)""")
     st.image("ch1/images/balanced_brackets.png", width=320)
     st.markdown("""
