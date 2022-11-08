@@ -96,25 +96,9 @@ Once you've built BERT, you'll be able to train it to perform well on tasks like
 
 ---
 
-### Other ideas for exercises
-""")
+### 3️⃣ Other bonus exercises
 
-    st.info("""Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version? 
-    
-Why do you expect the cosine similarity between vectors in your transformer's learned embedding to carry meaninfgul information about the word similarities, in the same way that Word2vec does? Or if not, then why not?""")
-
-    st.info("""**(HARD)**
-
-Pick some of your favourite simple LeetCode problems (e.g. detecting whether a bracket string is balanced), and train a transformer to solve it. Some questions you might like to think about:
-
-* How can you formulate the problem in a way that can be solved by your transformer?
-* What architectural features does your transformer need to solve this problem, at a minumum? e.g. how many layers?
-""")
-    with st.expander("Example for how you might formulate the balanced brackets problem (don't read until you've thought about this!)"):
-        st.markdown(r"""
-Earlier this week, you read about the BERT tokens `[CLS]` and `[PAD]`. You can set up something similar for this task: append a `[CLS]` token to the start of your sequence (and `[PAD]` tokens to the end to get it up to a certain length). You can then use your transformer's output at sequence position 0 (the position corresponding to the classification token) to predict whether the sequence is balanced or not. Since your transformer's output will be a set of logits over your vocabulary, the easiest way to convert this into a prediction would be to affix an extra linear layer which takes you down to 2 logits, then softmax those to get your classification probabilities (i.e. treat these two values as representing $\mathbb{P}(\text{balanced})$ and $\mathbb{P}(\text{not balanced})$ respectively).
-
-As you can see, there's a lot of subtlety that goes into formulating a task like this in a way that a transformer can solve!
+Visit this page for a series of fun exercises to attempt! These are much more open-ended than the two very well-defined, structured exercises above.
 """)
 
 def section1():
@@ -697,6 +681,38 @@ def test_bert_prediction(predict, model, tokenizer):
 
 test_bert_prediction(predict, my_bert, tokenizer)
 ```
+""")
+
+def section3():
+    st.markdown("""# Semantle""")
+
+    st.image("ch1/pages/semantle.png", width=250)
+    st.markdown("""
+    
+Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version? 
+    
+Why do you expect the cosine similarity between vectors in your transformer's learned embedding to carry meaninfgul information about the word similarities, in the same way that Word2vec does? Or if not, then why not?
+
+# LeetCode (hard!)""")
+    st.image("ch1/pages/balanced_brackets.png", width=350)
+    st.markdown("""
+Pick some of your favourite easy LeetCode problems (e.g. detecting whether a bracket string is balanced), and train a transformer to solve it. Some questions you might like to think about:
+
+* How can you formulate the problem in a way that can be solved by your transformer?
+    * What should your tokens be? 
+    * How can you construct a custom dataset for this function? (hint - you'll need to solve the LeetCode problem yourself in order to generate labels to go with your input data!)
+    * How should you interpret your output in a way that allows your transformer to train?
+* What architectural features does your transformer need to solve this problem?
+    * How many layers does it need, at minimum?
+    * Is the problem one where you can use unidirectional attention masking (or even one where unidirectional attention is more useful, because you can discard information you don't need?) 
+""")
+    with st.expander("Example for how you might formulate the balanced brackets problem (don't read until you've thought about this!)"):
+        st.markdown(r"""
+Earlier this week, you read about the BERT tokens `[CLS]` and `[PAD]`. You can set up something similar for this task: append a `[CLS]` token to the start of your sequence (and `[PAD]` tokens to the end to get it up to a certain length). You can then use your transformer's output at sequence position 0 (the position corresponding to the classification token) to predict whether the sequence is balanced or not. Since your transformer's output will be a set of logits over your vocabulary, the easiest way to convert this into a prediction would be to affix an extra linear layer which takes you down to 2 logits, then softmax those to get your classification probabilities (i.e. treat these two values as representing $\mathbb{P}(\text{balanced})$ and $\mathbb{P}(\text{not balanced})$ respectively).
+
+Your transformer should have bidirectional attention in this case, i.e. no masking. This is because the output corresponding to your `[CLS]` token needs to be able to read the brackets ahead of it in the sequence.
+
+As you can see, there's a lot of subtlety that goes into formulating a task like this in a way that a transformer can solve!
 """)
 
 func_list = [section_home, section1, section2]
