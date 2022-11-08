@@ -97,15 +97,19 @@ Once you've built BERT, you'll be able to train it to perform well on tasks like
 ---
 
 ### Other ideas for exercises
-
-* Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version?
-    * Why do you expect the cosine similarity between vectors in your transformer's learned embedding to carry meaninfgul information about the word similarities, in the same way that Word2vec does? Or if not, then why not?
-* (HARD) Pick some of your favourite simple LeetCode problems (e.g. detecting whether a bracket string is balanced), and train a transformer to solve it. Some questions you might like to think about:
-    * How can you formulate the problem in a way that can be solved by your transformer?
-    * What architectural features does your transformer need to solve this problem, at a minumum? e.g. how many layers?
-
 """)
 
+    st.info("""Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version? 
+    
+Why do you expect the cosine similarity between vectors in your transformer's learned embedding to carry meaninfgul information about the word similarities, in the same way that Word2vec does? Or if not, then why not?""")
+
+    st.info("""**(HARD)**
+
+Pick some of your favourite simple LeetCode problems (e.g. detecting whether a bracket string is balanced), and train a transformer to solve it. Some questions you might like to think about:
+
+* How can you formulate the problem in a way that can be solved by your transformer?
+* What architectural features does your transformer need to solve this problem, at a minumum? e.g. how many layers?
+""")
     with st.expander("Example for how you might formulate the balanced brackets problem (don't read until you've thought about this!)"):
         st.markdown(r"""
 Earlier this week, you read about the BERT tokens `[CLS]` and `[PAD]`. You can set up something similar for this task: append a `[CLS]` token to the start of your sequence (and `[PAD]` tokens to the end to get it up to a certain length). You can then use your transformer's output at sequence position 0 (the position corresponding to the classification token) to predict whether the sequence is balanced or not. Since your transformer's output will be a set of logits over your vocabulary, the easiest way to convert this into a prediction would be to affix an extra linear layer which takes you down to 2 logits, then softmax those to get your classification probabilities (i.e. treat these two values as representing $\mathbb{P}(\text{balanced})$ and $\mathbb{P}(\text{not balanced})$ respectively).
