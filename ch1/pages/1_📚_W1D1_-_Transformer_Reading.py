@@ -475,7 +475,8 @@ def get_dot_product_graph(array_2d):
 
     px.imshow(arr, color_continuous_scale="Blues").show()
 ```
-
+""")
+    st.markdown("""
 ## 3. 
 
 You should now implement positional encoding as an `nn.Module` instance, for use in your transformer later on. The positional encoding matrix should be created in your `__init__` stage, and 
