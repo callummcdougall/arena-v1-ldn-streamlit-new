@@ -76,7 +76,7 @@ Hopefully, last week you were able to successfully implement a transformer last 
 
 The rest of this week will involve continuing to iterate on your transformer architecture, as well as doing some more experiments with transformers. In the following pages, we'll provide a few suggested exercises. These range from highly open-ended (with no testing functions or code template provided) to highly structured (in the style of last week's exercises). 
 
-All of the material here is optional, so you can feel free to do whichever exercises you want - or just go back over the transformers material that we've covered so far. **You should only implement them once you've done last week's tasks (in particular, building a transformer and training it on the Shakespeare corpus). 
+All of the material here is optional, so you can feel free to do whichever exercises you want - or just go back over the transformers material that we've covered so far. **You should only implement them once you've done last week's tasks** (in particular, building a transformer and training it on the Shakespeare corpus). 
 
 Below, you can find a description of each of the set of exercises on offer. You can do them in any order, as long as you make sure to do exercises 1 and 2 at some point. Note that you can do e.g. 3B before 3A, but this is not advised since you'd have to import the solution from 3A and work with it, possibly without fully understanding the architecture.
 
