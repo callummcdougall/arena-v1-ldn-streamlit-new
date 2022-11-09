@@ -197,6 +197,7 @@ def sample_tokens(
         all_logits = output if isinstance(output, t.Tensor) else output.logits
         logits = all_logits[0, -1]
         new_token = apply_sampling_methods(new_input_ids, logits, **kwargs)
+        assert isinstance(new_token, int)
         generated.append(new_token)
         if new_token == getattr(tokenizer, "eos_token_id", None):
             break
