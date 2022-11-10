@@ -94,8 +94,6 @@ BERT is an encoder-only transformer, which has a different kind of architecture 
 
 Once you've built BERT, you'll be able to train it to perform well on tasks like classification and sentiment analysis.
 
----
-
 ### 3️⃣ Other bonus exercises
 
 Visit this page for a series of fun exercises to attempt! These are much more open-ended than the two very well-defined, structured exercises above.
@@ -718,7 +716,7 @@ As you can see, there's a lot of subtlety that goes into formulating a task like
         st.info("""
 Note - you might be wondering why we need the `[SEP]` token. After all, the `[CLS]` token is clearly necessary because our model uses it for training, and we need padding tokens to get it to the right length. But why do we need the `[SEP]` token, if we aren't separating two different sentences like in NSP?
 
-The best way I can explain this is by saying that it's important for the transformer to know where the start and the end of the bracket string is. One of the conditions for a bracket string to be balanced is whether its "altitude" at the end of the bracket string is zero, and the presence of the `[SEP]` token indicates to the transformer where the end of the string is, so it can check the altitude is zero at this point. Because the pad tokens are masked, this wouldn't work unless you had `[SEP]`.
+The best way I've come up with so far for explaining this is to say that it's important for the transformer to know where the start and the end of the bracket string is. One of the conditions for a bracket string to be balanced is whether its "altitude" at the end of the bracket string is zero, and the presence of the `[SEP]` token indicates to the transformer where the end of the string is, so it can check the altitude is zero at this point. Because the pad tokens are masked, this wouldn't work unless you had `[SEP]`.
 
 Hopefully, stuff like this will become clearer in the interpretability week, when we take a closer look at transformers trained on tasks like this one, and try and reverse-engineer how they're solving the problem!
 """)
