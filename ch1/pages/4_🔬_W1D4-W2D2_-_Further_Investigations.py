@@ -243,7 +243,9 @@ Proof coming soon. Basic idea: the amount by which they're translated is the log
 
     with st.expander("Why do you think we use log softmax rather than logit output?"):
         st.markdown("""
-It makes the output more meaninfgul. In particular, this allows us to compare sentences of different length. If we just took logit output, then the difference between logit sum of two sentences of equal length is uninterpretable. But if we take log softmax of the output then this difference has a precise meaning (the exponent of this difference equals the likelihood ratio between these two sentences).
+It makes the output more meaninfgul, since the sum of log probabilities is precisely the log probability of the model producing this exact sequence from scratch. If we used the raw logit output then we wouldn't get this property.
+
+Importantly, we also wouldn't be able to compare sequences of different lengths if we just used the raw logit output.
 """)
 
     st.markdown("""
@@ -262,7 +264,6 @@ A few clarifications about beam search, before you implement it below:
 * Another note on the difference between using this function on your model and on GPT - your model outputs logits, whereas HuggingFace's GPT implementation outputs an object with a logits attribute. Again, you can look at the `sample_tokens` function from yesterday to see how to handle this special case.
 * Remember that your model should be in eval mode (this affects dropout), and you should be in inference mode (this affects gradients).
 """)
-    st.info("Note - I haven't had time to check over this test, will do so this afternoon - it might be wrong.")
     st.markdown("""
 ```python
 import transformers
@@ -275,6 +276,7 @@ def beam_search(
     input_ids: (seq, ) - the prompt
     max_new_tokens: stop after this many new tokens are generated, even if no EOS is generated. In this case, the best incomplete sequences should also be returned.
     verbose: if True, print the current (unfinished) completions after each iteration for debugging purposes
+    
     Return list of length num_return_sequences. Each element is a tuple of (logprob, tokens) where the tokens include both prompt and completion, sorted by descending logprob.
     '''
 
@@ -286,13 +288,44 @@ input_ids = tokenizer(your_prompt, return_tensors="pt", return_attention_mask=Fa
 
 num_return_sequences = 3
 num_beams = 6
-max_new_tokens = 20
+max_new_tokens = 10
 
 final_logitsums_and_completions = beam_search(gpt, input_ids, num_return_sequences, num_beams, max_new_tokens, tokenizer, verbose=True)
-
-expected_best_completion = "I don't want to rule the universe. I just think there's a lot of things that need to be done to make sure that we're not going to"
-assert tokenizer.decode(final_logitsums_and_completions[0][1]) == expected_best_completion
 ```
+
+As a guide, here is some of the verbose output from the solution, using the code above:
+
+```
+Printing num_beams=6 best completions:
+
+logit sum | completion
+   -1.284 | I don't want to rule the universe. I just think it
+   -1.473 | I don't want to rule the universe. I just think that
+   -2.682 | I don't want to rule the universe. I just think we
+   -2.987 | I don't want to rule the universe. I just think I
+   -3.010 | I don't want to rule the universe. I just think there
+   -3.052 | I don't want to rule the universe. I just think the
+
+Printing num_beams=6 best completions:
+
+logit sum | completion
+   -1.687 | I don't want to rule the universe. I just think it's
+   -3.738 | I don't want to rule the universe. I just think that it
+   -3.739 | I don't want to rule the universe. I just think there's
+   -3.754 | I don't want to rule the universe. I just think that if
+   -4.030 | I don't want to rule the universe. I just think it is
+   -4.171 | I don't want to rule the universe. I just think that the
+
+...
+
+Returning best num_return_sequences=3 completions:
+
+logitsum | completion
+ -12.560 | I don't want to rule the universe. I just think there's a lot of things that need to be
+ -13.238 | I don't want to rule the universe. I just think it's too much of a stretch to say that
+ -13.411 | I don't want to rule the universe. I just think there's a lot of things we can do to
+```
+
 """)
 
 def section2():
