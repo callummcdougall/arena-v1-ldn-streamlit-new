@@ -90,7 +90,7 @@ We will also extend last week's work by looking at some more advanced sampling m
 
 ### 2️⃣ Build and finetune BERT
 
-BERT is an encoder-only transformer, which has a different kind of architecture (and a different purpose) than GPT-2. In this task, you'll build a copy of BERT and load in weights, then train it on 
+BERT is an encoder-only transformer, which has a different kind of architecture (and a different purpose) than GPT-2. In this task, you'll build a copy of BERT and load in weights, then fine-tune it on a sentiment analysis task.
 
 Once you've built BERT, you'll be able to train it to perform well on tasks like classification and sentiment analysis.
 
@@ -108,6 +108,7 @@ def section1():
     <li><a class="contents-el" href="#gpt-architecture-an-overview">GPT architecture: an overview</a></li>
     <li><a class="contents-el" href="#notes-on-copying-weights">Copying weights</a></li>
     <li><a class="contents-el" href="#testing-gpt">Testing GPT</a></li>
+    <li><a class="contents-el" href="#testing-gpt">Beam search</a></li>
 </ul>
 """, unsafe_allow_html=True)
 
