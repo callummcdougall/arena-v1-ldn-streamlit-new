@@ -71,7 +71,7 @@ def generate_fig():
     fig.update_traces(hovertemplate=None, hoverinfo="skip")
 
     df = pd.read_csv(f_table, keep_default_na=False)
-    color_list = px.colors.qualitative.Pastel1 + [px.colors.qualitative.Pastel1[0]]
+    color_list = px.colors.qualitative.Pastel1[:-1] + [px.colors.qualitative.Pastel1[:2]]
     def get_color(i):
         srch = re.search(r"\d", i)
         return (int(srch[0]), color_list[int(srch[0])]) if srch else (10, "rgba(180, 180, 180, 0.3)")
