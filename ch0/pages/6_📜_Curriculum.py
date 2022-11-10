@@ -74,7 +74,7 @@ def generate_fig():
     color_list = px.colors.qualitative.Pastel1 + [px.colors.qualitative.Pastel1[0]]
     def get_color(i):
         srch = re.search(r"\d", i)
-        return (int(srch[0]), color_list[int(srch[0])]) if srch else (10, "rgba(160, 160, 160, 0.5)")
+        return (int(srch[0]), color_list[int(srch[0])]) if srch else (10, "rgba(180, 180, 180, 0.3)")
     def style_func(s, column):
         return [f'background-color: {get_color(s.loc[column][0])[1]}' for _ in range(3)]
     link_func = lambda x: f"<a href='https://{x.replace('arena-', 'arena-ldn-')}/'>{x.replace('.streamlitapp.com', '')}</a>" if x else ""
