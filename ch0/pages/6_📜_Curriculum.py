@@ -254,7 +254,7 @@ with tabs[1]:
 
     st.markdown("""
     <div style="color:gray; margin-top:-30px">
-    Duration: 5 days
+    Duration: 7 days
     </div>
     """, unsafe_allow_html=True)
 
@@ -324,7 +324,7 @@ with tabs[3]:
 
     st.markdown("""
     <div style="color:gray; margin-top:-30px">
-    Duration: 3 days
+    Duration: 2 days
     </div>
     """, unsafe_allow_html=True)
 
@@ -338,12 +338,12 @@ We will read some papers discussing some of the mathematical justifications behi
 """)
     ch1_columns = st.columns(1)
     with ch1_columns[0]:
-        st.markdown("""<h5><code>W3D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Optimisers: exercises 📝</h5>""", unsafe_allow_html=True)
+        st.markdown("""<h5><code>W3D3</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Optimisers: exercises 📝</h5>""", unsafe_allow_html=True)
         st.markdown("""Learn about different optimisation algorithms (e.g. **RMSProp** and **Adam**), and implement them from scratch. Understand important concepts like momentum, and how they affect the performance of optimisers.
 
 ---
     """)
-        st.markdown("""<h5><code>W3D2</code> - <code>W3D3</code>&emsp;|&emsp; Optimisers: investigations 🔬</h5> """, unsafe_allow_html=True)
+        st.markdown("""<h5><code>W3D3</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Optimisers: investigations 🔬</h5> """, unsafe_allow_html=True)
         st.markdown("""Run your own experiments on optimisation algorithms. There are several different experiments you can choose to run, based on the material provided in Jacob Hilton's curriculum.""")
 
 with tabs[4]:
@@ -353,7 +353,7 @@ with tabs[4]:
 
     st.markdown("""
     <div style="color:gray; margin-top:-30px">
-    Duration: 5 days
+    Duration: 4 days
     </div>
     """, unsafe_allow_html=True)
 
@@ -366,13 +366,13 @@ Here, we take a tour through various generative models. This is the name for a b
 
     ch1_columns = st.columns(1)
     with ch1_columns[0]:
-        st.markdown("""<h5><code>W3D4</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; GANs and VAEs 📝</h5>""", unsafe_allow_html=True)
+        st.markdown("""<h5><code>W3D5</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; GANs and VAEs 📝</h5>""", unsafe_allow_html=True)
         st.markdown("""
 Learn how **GANs** (Generative Adversarial Models) and **VAEs** (Variational Autoencoders) work, and build & train some of your own.
 
 ---
     """)
-        st.markdown("""<h5><code>W3D5</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Diffusion models 📚</h5> """, unsafe_allow_html=True)
+        st.markdown("""<h5><code>W4D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Diffusion models 📚</h5> """, unsafe_allow_html=True)
         st.markdown("""
 Read up on the maths behind diffusion models, and why they work so well for image generation.
 
@@ -380,7 +380,7 @@ Note - this day will be fairly math-heavy, so you might want to jump straight to
 
 ---
 """)
-        st.markdown("""<h5><code>W4D1 - W4D3</code>&emsp;&nbsp;|&emsp; Implementing diffusion models 📚</h5> """, unsafe_allow_html=True)
+        st.markdown("""<h5><code>W4D2 - W4D3</code>&emsp;&nbsp;|&emsp; Implementing diffusion models 📚</h5> """, unsafe_allow_html=True)
         st.markdown("""
 Over these two days, you'll be implementing your own diffusion models. Like during the transformer exercises, you can choose from several different degrees of difficulty.
 """)
