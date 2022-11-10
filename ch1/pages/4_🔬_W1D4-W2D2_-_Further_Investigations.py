@@ -234,7 +234,7 @@ If you get this working, you can try fine-tuning your GPT on text like your Shak
 
 Finally, we'll implement a more advanced way of searching over output: **beam search**. You should read the [HuggingFace page](https://huggingface.co/blog/how-to-generate#beam-search) on beam search before moving on.
 
-In beam search, we maintain a list of size `num_beams` completions which are the most likely completions so far as measured by the product of their probabilities. Since this product can become very small, we use the sum of log probabilities instead. Note - log probabilities are *not* the same as your model's output. We get log probabilities by first taking softmax of our output and then taking log. You can do this with the [`log_softmax()`](https://pytorch.org/docs/stable/generated/torch.nn.functional.log_softmax.html) function (or use the tensor method).""")
+In beam search, we maintain a list of size `num_beams` completions which are the most likely completions so far as measured by the product of their probabilities. Since this product can become very small, we use the sum of log probabilities instead. Note - log probabilities are *not* the same as your model's output. We get log probabilities by first taking softmax of our output and then taking log. You can do this with the [`log_softmax`](https://pytorch.org/docs/stable/generated/torch.nn.functional.log_softmax.html) function (or use the tensor method).""")
 
     with st.expander("Log probabilities are equal to the logit output after being translated by some amount X (where X is a function of the original logit output). Can you prove this?"):
         st.markdown("""
@@ -279,6 +279,8 @@ def beam_search(
     
     Return list of length num_return_sequences. Each element is a tuple of (logprob, tokens) where the tokens include both prompt and completion, sorted by descending logprob.
     '''
+    assert num_return_sequences <= num_beams
+    pass
 
 tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2")
 gpt = transformers.AutoModelForCausalLM.from_pretrained("gpt2").to(device).train()
@@ -298,23 +300,23 @@ As a guide, here is some of the verbose output from the solution, using the code
 ```
 Printing num_beams=6 best completions:
 
-logit sum | completion
-   -1.284 | I don't want to rule the universe. I just think it
-   -1.473 | I don't want to rule the universe. I just think that
-   -2.682 | I don't want to rule the universe. I just think we
-   -2.987 | I don't want to rule the universe. I just think I
-   -3.010 | I don't want to rule the universe. I just think there
-   -3.052 | I don't want to rule the universe. I just think the
+logitsum | completion
+  -1.284 | I don't want to rule the universe. I just think it
+  -1.473 | I don't want to rule the universe. I just think that
+  -2.682 | I don't want to rule the universe. I just think we
+  -2.987 | I don't want to rule the universe. I just think I
+  -3.010 | I don't want to rule the universe. I just think there
+  -3.052 | I don't want to rule the universe. I just think the
 
 Printing num_beams=6 best completions:
 
-logit sum | completion
-   -1.687 | I don't want to rule the universe. I just think it's
-   -3.738 | I don't want to rule the universe. I just think that it
-   -3.739 | I don't want to rule the universe. I just think there's
-   -3.754 | I don't want to rule the universe. I just think that if
-   -4.030 | I don't want to rule the universe. I just think it is
-   -4.171 | I don't want to rule the universe. I just think that the
+logitsum | completion
+  -1.687 | I don't want to rule the universe. I just think it's
+  -3.738 | I don't want to rule the universe. I just think that it
+  -3.739 | I don't want to rule the universe. I just think there's
+  -3.754 | I don't want to rule the universe. I just think that if
+  -4.030 | I don't want to rule the universe. I just think it is
+  -4.171 | I don't want to rule the universe. I just think that the
 
 ...
 
