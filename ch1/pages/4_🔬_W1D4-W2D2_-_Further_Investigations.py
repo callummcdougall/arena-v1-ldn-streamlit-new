@@ -2,6 +2,28 @@ import streamlit as st
 
 st.set_page_config(layout="wide")
 
+import plotly.io as pio
+import re
+import json
+
+def read_from_html(filename):
+    filename = f"./w0d2/images/{filename}.html"
+    with open(filename) as f:
+        html = f.read()
+    call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
+    call_args = json.loads(f'[{call_arg_str}]')
+    plotly_json = {'data': call_args[1], 'layout': call_args[2]}    
+    return pio.from_json(json.dumps(plotly_json))
+
+def get_fig_dict():
+    return {str(i): read_from_html(f"fig{i}") for i in range(1, 4)}
+
+if "fig_dict" not in st.session_state:
+    fig_dict = get_fig_dict()
+    st.session_state["fig_dict"] = fig_dict
+else:
+    fig_dict = st.session_state["fig_dict"]
+
 st.markdown("""
 <style>
 label.effi0qh3 {
@@ -780,17 +802,380 @@ test_bert_prediction(predict, my_bert, tokenizer)
 """)
 
 def section3():
-    st.markdown("""# Semantle""")
+    st.sidebar.markdown("""
+## Table of Contents
 
-    st.image("ch1/images/semantle.png", width=150)
+<ul class="contents">
+   <li><a class="contents-el" href="#fine-tuning-bert">Fine-Tuning BERT</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#imdb-dataset">IMDB Dataset</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#data-visualization">Data Visualization</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#basic-inspection">Basic Inspection</a></li>
+       <li><a class="contents-el" href="#detailed-inspection">Detailed Inspection</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#training-loop">Training Loop</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#training-all-parameters">Training All Parameters</a></li>
+       <li><a class="contents-el" href="#learning-rate">Learning Rate</a></li>
+       <li><a class="contents-el" href="#loss-functions">Loss Functions</a></li>
+       <li><a class="contents-el" href="#gradient-clipping">Gradient Clipping</a></li>
+       <li><a class="contents-el" href="#batch-size">Batch Size</a></li>
+       <li><a class="contents-el" href="#optimizer">Optimizer</a></li>
+       <li><a class="contents-el" href="#when-all-else-fails">When all else fails...</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#inspecting-the-errors">Inspecting the Errors</a></li>
+</ul>
+""", unsafe_allow_html=True)
     st.markdown("""
-    
-Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version? 
-    
-Why do you expect the cosine similarity between vectors in your transformer's learned embedding to carry meaninfgul information about the word similarities, in the same way that Word2vec does? Or if not, then why not?
+```python
+import os
+import re
+import tarfile
+from dataclasses import dataclass
+import requests
+import torch as t
+import transformers
+from torch.utils.data import TensorDataset
+from tqdm.auto import tqdm
+import plotly.express as px
+import pandas as pd
+from typing import Callable, Optional, List
+import time
+
+IMDB_URL = "https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz"
+DATA_FOLDER = "./data/bert-imdb/"
+IMDB_PATH = os.path.join(DATA_FOLDER, "acllmdb_v1.tar.gz")
+SAVED_TOKENS_PATH = os.path.join(DATA_FOLDER, "tokens.pt")
+
+device = t.device("cuda" if t.cuda.is_available() else "cpu")
+```
+
+## Fine-Tuning BERT
+
+Fine-tuning a pretrained model is awesome - it typically is much faster and more accurate than directly training on the task you care about, especially if your task has relatively few labels available. In our case we will be using the [IMDB Sentiment Classification Dataset](https://ai.stanford.edu/~amaas/data/sentiment/).
+
+It's traditional to treat this as a binary classification task where each review is positive or negative. Today we're also going to predict the star rating review from 1 to 10, inclusive.
+
+It's a bit redundant to train with both the star rating and the positive/negative labels as targets (you could just use the star rating), but we'll do it anyway to practice having multiple terms in the loss function.
+
+There are a few ways to treat the star rating. One way is to have each rating be a category and use the regular cross entropy loss.
+""")
+
+    with st.expander("Question - what are the disadvantages of doing this?"):
+        st.markdown("Cross entropy doesn't capture the intuition that the classes are ordered. Intuitively, we should penalize our model more for predicting 10 stars for a 1-star movie than predicting 2 stars.")
+
+    st.markdown("""
+Another way would be to treat the star rating as a continuous value, and use mean squared or mean absolute error. We'll do this today because it's simple and works well, but note that a more sophisticated approach like [ordinal regression](https://en.wikipedia.org/wiki/Ordinal_regression) could also be used.
+
+### IMDB Dataset
+
+Previously, we've used the `torchvision` package to download CIFAR10 for us. Today we'll load and process the training data ourselves to get an idea of what's involved.
+
+Use [`requests.get`](https://requests.readthedocs.io/en/latest/user/quickstart/) to fetch the data and then write the `content` field of the response to disk. It's 82MB, so may take a few seconds depending on your connection. On future calls to the function, if the file already exists, your function should just read the local file instead of downloading the data again.
+
+```python
+def maybe_download(url: str, path: str) -> None:
+    '''
+    Download the file from url and save it to path. 
+    If path already exists, do nothing.
+    '''
+    pass
+
+os.makedirs(DATA_FOLDER, exist_ok=True)
+maybe_download(IMDB_URL, IMDB_PATH)
+```
+
+Now we have a tar archive, which we can read using the standard library module [tarfile](https://docs.python.org/3/library/tarfile.html). You'll need to refer to this page as you write the function below. (Note, this is quite hard to do if you're not used to using `tarfile`, so if you're struggling then you can look at the solutions.)
+
+Your code below should:
+* Open the archive with `tarfile.open`
+    * You should open in reading mode. The filename of `IMDB_URL` and the table at the top of the tarfile documentation page should tell you what `mode` argument to use in this function.
+* Use `tar.getmembers()` to loop through the members of the tarfile, in order to get all the data you need to construct your dataset. 
+    * The `member.name` method will return the filename.
+        * A filename like `aclImdb/test/neg/127_3.txt` means it belongs to the test set, has a negative sentiment, has an id of 127 (we will ignore this), and was rated 3/10 stars.
+    * The object returned from `tarfile.open` has an `extractfile` method which takes `member` as input and returns the file object.
+        * You can then read the text using the `read()` file method.
+
+Your final output should be a list of `Review` objects. This is a dataclass we've given you, which contains all the information about a particular imdb review, and which we'll use to construct our dataset. 
+
+You should have 25000 train and 25000 test entries.
+
+This should take less than 10 seconds, but it's good practice to use `tqdm` to monitor your progress as most datasets will be much larger than this one.
+
+```python
+@dataclass(frozen=True)
+class Review:
+    split: str          # "train" or "test"
+    is_positive: bool   # sentiment classification
+    stars: int          # num stars classification
+    text: str           # text content of review
+
+def load_reviews(path: str) -> list[Review]:
+    pass
+
+reviews = load_reviews(IMDB_PATH)
+assert sum((r.split == "train" for r in reviews)) == 25000
+assert sum((r.split == "test" for r in reviews)) == 25000
+```
+
+## Data Visualization
+
+Charles Babbage, the inventor of the first mechanical computer, was famously asked "Pray, Mr. Babbage, if you put into the machine wrong figures, will the right answers come out?"
+
+200 years later, if you put wrong figures into the machine, the right answers still do not come out.
+
+Inspecting the data before training can be tedious, but will catch many errors, either in your code or upstream, and allow you to validate or refute assumptions you've made about the data. Remember: "Garbage In, Garbage Out".
+
+### Basic Inspection
+
+Take some time now to do a basic inspection of your data. This should at minimum include:
+
+- Plot the distribution of review lengths in characters.
+    - Our BERT was only trained to handle 512 tokens maximum, so if we assume that a token is roughly 4 characters, we will have to truncate reviews that are longer than around 2048 characters.
+    - Are positive and negative reviews different in length on average? If so, truncating would differentially affect the longer reviews.
+- Plot the distribution of star ratings. Is it what you expected?
+
+You might find the following useful - you can call `pd.DataFrame(reviews)` to generate a dataframe where the columns are the attributes of the `Review` dataclass.
+
+### Detailed Inspection
+
+Either now, or later while your model is training, it's a worthwhile and underrated activity to do a more in-depth inspection. For a language dataset, some things I would want to know are:
+
+- What is the distribution over languages? Many purportedly English datasets in fact have some of the data in other natural languages like Spanish, and computer languages like HTML tags.
+    - This can cause bias in the results. Suppose that a small fraction of reviews were in Spanish, and purely by chance they have more positive/negative sentiment than the base rate. Our classifier would then incorrectly learn that Spanish words inherently have positive/negative sentiment.
+    - Libraries like [Lingua](https://github.com/pemistahl/lingua-py) can (imperfectly) check for this.
+- How are non-ASCII characters handled?
+    - The answer is often "poorly". A large number of things can go wrong around quoting, escaping, and various text encodings. Spending a lot of time trying to figure out why there are way too many backslashes in front of your quotation marks is an Authentic ML Experience. Libraries like [`ftfy`](https://pypi.org/project/ftfy/) can be useful here.
+- What data can you imagine existing that is NOT part of the dataset? Your neural network is not likely to generalize outside the specific distribution it was trained on. You need to understand the limitations of your trained classifier, and notice if you in fact need to collect different data to do the job properly:
+    - What specific geographical area, time period, and demographic was the data sampled from? How does this compare to the deployment use case?
+    - What filters were applied upstream that could leave "holes" in the distribution?
+- What fraction of labels are objectively wrong?
+    - Creating accurate labels is a laborious process and humans inevitably make mistakes. It's expensive to check and re-check labels, so most published datasets do contain incorrect labels.
+    - Errors in training set labels can be mitigated through stronger regularization to prevent the model from memorizing the errors, or other techniques.
+    - Most pernicious are errors in **test set** labels. Even a small percentage of these can cause us to select a model that outputs the (objectively mistaken) label over one that does the objectively right thing. The paper [Pervasive Label Errors in Test Sets
+Destabilize Machine Learning Benchmarks](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/f2217062e9a397a1dca429e7d70bc6ca-Paper-round1.pdf) shows that these are more common than you might expect, and describes implications of this in more detail.
+
+```python
+"TODO: YOUR CODE HERE, TO VISUALISE DATASET"
+```
+""")
+
+    with st.expander("Click to see a few example visualisations and observations:"):
+        st.markdown("""
+```python
+df = pd.DataFrame(reviews)
+df["length"] = [len(text) for text in df["text"]]
+
+px.histogram(x=df["stars"]).update_layout(bargap=0.1)
+```""")
+        st.plotly_chart(fig_dict["1"], use_container_width=True)
+        st.markdown("""
+There are no five or six star reviews.
 
 ---
 
+```python
+px.histogram(x=df["length"])
+```
+""")
+
+        st.plotly_chart(fig_dict["2"], use_container_width=True)
+        st.markdown("""
+The distribution is very heavy-tailed, peaks around 100 characters.
+
+---
+
+```python
+fig = px.histogram(df, x="length", color="is_positive", barmode="overlay")
+```
+""")
+        st.plotly_chart(fig_dict["3"], use_container_width=True)
+        st.markdown("""
+Slightly more of the shirt 200-500 word reviews for positive reviews, but apart from that the distributions are very similar.
+
+---
+
+Now we'll look at some languages.
+
+```python
+# !pip install lingua-language-detector
+
+from lingua import Language, LanguageDetectorBuilder
+detector = LanguageDetectorBuilder.from_languages(*Language).build()
+# Note, detector takes much longer to run when it is detecting all languages
+
+# Sample 500 datapoints, because it takes a while to run
+languages_detected = df.sample(200)["text"].apply(detector.detect_language_of).value_counts()
+display(languages_detected)
+```
+
+Result:
+
+```
+Language.ENGLISH    500
+Name: text, dtype: int64
+```
+
+We can guess that all, or virtually all, of the reviews are in English.
+""")
+
+    st.markdown("""
+Now, you should implement `to_dataset`. Calling this function could take a minute, as tokenization requires a lot of CPU even with the efficient Rust implementation provided by HuggingFace. We aren't writing our own tokenizer because it would be extremely slow to do it in pure Python.
+
+Note that you really don't want to have to do long-running tasks like this repeatedly. It's always a good idea to store the preprocessed data on disk and load that on future runs. Then you only have to re-run it if you want to preprocess the data in some different way.
+
+Previously, you created custom datasets which inherited from `torch.utils.data.Dataset`. Now, you'll do it in a different way: by creating a `TensorDataset`. This is an object which takes in a series of tensors, and constructs a dataset by interpreting the 0th dimension of each tensor as its batch dimension. From the `TensorDataset` docstring:
+
+```
+Init signature: TensorDataset(*tensors: torch.Tensor) -> None
+Docstring:     
+Dataset wrapping tensors.
+
+Each sample will be retrieved by indexing tensors along the first dimension.
+```
+
+There are times when this will be a more efficient way to create datasets then inheriting from `Dataset`.
+
+One last note - there are 25000 reviews in each of the test and train datasets, and so you might want to only measure a subset of them (e.g. the first 1000) if you want training to be relatively quick. You can still get decent results from this many.
+
+```python
+def to_dataset(tokenizer, reviews: list[Review]) -> TensorDataset:
+    '''Tokenize the reviews (which should all belong to the same split) and bundle into a TensorDataset.
+
+    The tensors in the TensorDataset should be (in this exact order):
+
+    input_ids: shape (batch, sequence length), dtype int64
+    attention_mask: shape (batch, sequence_length), dtype int
+    sentiment_labels: shape (batch, ), dtype int
+    star_labels: shape (batch, ), dtype int
+    '''
+    pass
+
+tokenizer = transformers.AutoTokenizer.from_pretrained("bert-base-cased")
+train_data = to_dataset(tokenizer, [r for r in reviews if r.split == "train"])
+test_data = to_dataset(tokenizer, [r for r in reviews if r.split == "test"])
+t.save((train_data, test_data), SAVED_TOKENS_PATH)
+
+## Bonus (optional)
+
+You can go on to Step 2, but if you have time at the end, you can come back and try the bonus exercise for this part.
+
+### Better Truncation
+
+We arbitrarily kept the first `max_length` tokens and truncated the rest. Is this strategy optimal? If you read some of the reviews, a common pattern is to sum up and conclude the review in the final 1-2 sentences.
+
+This suggests that we might do better by keeping some number of tokens at the end and truncating the middle instead. Implement this strategy and see if you can measure a difference in accuracy.
+
+### Better Data Cleaning
+
+You may have noticed that paragraph breaks are denoted by the string "< br / > < br / >". We might suppose that these are not very informative, and it would be better to strip them out. Particularly, if we are truncating our reviews then we would rather have 10 tokens of text than this in the truncated sequence. Replace these with the empty string (in all splits of the data) and see if you can measure a difference in accuracy.
+
+## BertClassifier
+
+Now we'll set up our BERT to do classification, starting with the `BertCommon` from before and adding a few layers on the end:
+
+- Use only the output logits at the first sequence position (index 0).
+- Add a dropout layer with the same dropout probability as before.
+- Add a `Linear` layer from `hidden_size` to `2` for the classification as positive/negative.
+- Add a `Linear` layer from `hidden_size` to `1` for the star rating.
+- By default, our star rating Linear layer is initialized to give inputs of roughly mean 0 and std 1. Multiply the output of this layer by 5 and add 5 to bring these closer to the 1-10 output we want; this isn't strictly necessary but helps speed training.
+
+You may find it helpful to refer back to this diagram, comparing BertLanguageModel and BertClassifier:
+""")
+
+    st.write("""<figure style="max-width:500px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNqVUktvwjAM_itRznDpsZo4AGOaVOikwandwW1MsdQkVR6TGPDfl6RMiAObZkWy4_dnfSfeaoE8552B4cC2y1qxINY3o6Pm4dVq9N5F5mhcAarz0OE69OhvOVEEGWwdacW28_vIqxq8W1VJfbDpdJZaLbSUWs2rmz3GzigbFIJUxyx94bmpClII5qkxs5fnYhd1AUc0bKONjL8toWA7lequPT51C81YX1aF7six0rs4_7YaKvEQ56IHa2lPaP4HMnuAMvsbZlatyFjH3rSlNKFU_THCWxo9aO8S7nSJawPlJWvjnmjPZVb9rNzCWP0L3GDyCZdoJJAIVDhFd83dASXWPA-mwD343kUmXEIqeKffj6rluTMeJ9wPAhwuCcLFJM_30NvgRUFOm_VIr8SyyzcIHsrZ" /></figure>""", unsafe_allow_html=True)
+
+    # graph TD
+    # subgraph " "
+
+    #     subgraph BertLanguageModel
+    #         direction TB
+    #         InputF[Input] --> BertCommonB[BertCommon] --> |embedding size|b[Linear<br>GELU<br>Layer Norm<br>Tied Unembed] --> |vocab size|O[Logit Output]
+    #     end
+
+    #     subgraph BertClassifier
+    #         direction TB
+    #         InputF2[Input] --> BertCommonB2[BertCommon] --> |embedding size|b2[First Position Only<br>Dropout<br>Linear] --> |num classes|O2[Classification Output]
+    #     end
+
+    # end
+
+    st.markdown("You should spend some time thinking about the easiest way to copy over pretrained weights from BERT. Hint - you shouldn't need to use a new BERT implementation; the one you used with your BertLanguageModel should suffice.")
+
+    st.markdown("Help - I'm not sure how to copy over my weights.")
+
+    st.markdown("""
+Although your `BertClassifier` now has some extra layers that you'll have to train from scratch, remember that the core of it is a `BertCommon` object. The BertLanguageModel implementation by HuggingFace (which you used when copying over the weights in the last exercise) also has a subnetwork with the same architecture as `BertCommon` (you can inspect HuggingFace's implementation to check what it calls its equivalent of `BertCommon`). 
+
+You could rewrite your `copy_weights_from_bert` function to copy directly between the `BertCommon` modules (this copying function won't work immediately because of the problem of offset layers). You'll probably need to rewrite it because you no longer have a parameter for the unembedding bias, so no messy reordering step will be needed like last time! Once you've done this, you can write your `BertClassifier` by having it define `self.bert_common = BertCommon(config)` *and* copying over weights.
+
+Alternatively, you have a BertCommon module inside your BertLanguageModel, so you can just strip that out and use it in the intialisation of your BertClassifier.
+""")
+
+    st.markdown("""
+Now, you should implement your BERT Classifier, with pretrained weights loaded in:
+
+```python
+class BertClassifier(nn.Module):
+    pass
+```
+
+## Training Loop
+
+You should copy over a training loop from before and modify it. In particular, you'll need to modify your loss function calculation (see below).
+
+### Training All Parameters
+
+When fine-tuning a language model, ensure all the parameters have `requires_grad=True`. This is different from fine-tuning an image model, where you typically "freeze" (`requires_grad=False`) the existing layers and just train your new layers.
+
+### Learning Rate
+
+The learning rate for fine-tuning should be much lower than when training from scratch. In Appendix A.3 of the [BERT Paper](https://arxiv.org/pdf/1810.04805.pdf), they suggest a learning rate for Adam between 2e-5 and 5e-5.
+
+### Loss Functions
+
+Use `torch.nn.CrossEntropyLoss` for the classification loss. For the star loss, empirically `F.l1_loss` works well. When you have multiple loss terms, you usually take a weighted sum of them, with weights chosen so that their scales aren't too different. Empirically, 0.02 seems to work well here, but you could also try something cleverer (e.g. a moving weight which adjusts based on the sizes of the respective loss functions).
+
+### Gradient Clipping
+
+Especially early in training, some batches can have very large gradients, like more than 1.0. The resulting large parameter updates can break training. To work around this, you can manually limit the size of gradients using `t.nn.utils.clip_grad_norm_`. Generally, a limit of 1.0 works decently.
+
+### Batch Size
+
+For a model the size of BERT, you typically want the largest batch size that fits in GPU memory. The BERT paper suggests a batch size of 16, so if your GPU doesn't have enough memory you could use a smaller size, accumulate your gradients, and call `optimizer.step` every second batch. Next week, we'll learn how to use multiple GPUs instead.
+
+### Optimizer
+
+`t.optim.AdamW` works well here. Empirically it seems to outperform `t.optim.Adam` often (although the two are the same unless you use non-zero weight decay - here we recommend a weight decay of 0.01).
+
+### When all else fails...
+
+If your loss is behaving strangely and you don't seem to be getting convergence, here are a few things it might be worth taking a look at:
+
+- Double check that your BertClassifier is actually using the pretrained weights and not random ones.
+- The classification loss for positive/negative should be around `log(2)` before any optimizer steps are taken, because the model is predicting randomly. If this isn't the case, there might be a bug in your loss calculation.
+- Try decoding a batch from your DataLoader and verify that the labels match up and the tokens and padding are right. It should be [CLS], the review, [SEP], and then [PAD] up to the end of the sequence.
+- Try using an even smaller learning rate to see if this affects the loss curve. It's usually better to have a learning rate that is too low and spend more iterations reaching a good solution than to use one that is too high, which can cause training to not converge at all.
+- If your model is predicting all 1 or all 0, this can be a helpful thing to investigate.
+- It may just be a bad seed. The paper [On the Stability of Fine-Tuning BERT: Misconceptions, Explanations, and Strong Baselines](https://arxiv.org/pdf/2006.04884.pdf) notes that random seed can make a large difference to the results.
+
+```python
+"TODO: YOUR TRAINING LOOP GOES HERE"
+```
+
+## Inspecting the Errors
+
+Print out an example that your model got egregiously wrong - for example, the predicted star rating is very different from the actual, or the model placed a very high probability on the incorrect class.
+
+Decode the text and make your own prediction, then check the true label. How good was your own prediction? Do you agree more with the "true" label or with your model?
+
+If the model was in fact wrong, speculate on why it got that example wrong.
+""")
+
+def section4():
+    st.markdown("""
 # LeetCode (hard!)""")
     st.image("ch1/images/balanced_brackets.png", width=320)
     st.markdown("""
@@ -819,9 +1204,21 @@ The best way I've come up with so far for explaining this is to say that it's im
 Hopefully, stuff like this will become clearer in the interpretability week, when we take a closer look at transformers trained on tasks like this one, and try and reverse-engineer how they're solving the problem!
 """)
 
-func_list = [section_home, section1, section2, section3]
+    st.markdown("""
+---
 
-page_list = ["🏠 Home", "1️⃣ Build and sample from GPT-2", "2️⃣ Build and finetune BERT", "3️⃣ Other bonus exercises"]
+# Semantle""")
+
+    st.image("ch1/images/semantle.png", width=150)
+    st.markdown("""
+    
+Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version? 
+    
+Why do you expect the cosine similarity between vectors in your transformer's learned embedding to carry meaninfgul information about the word similarities, in the same way that Word2vec does? Or if not, then why not?""")
+
+func_list = [section_home, section1, section2, section3, section4]
+
+page_list = ["🏠 Home", "1️⃣ Build and sample from GPT-2", "2️⃣ Build BERT", "3️⃣ Finetune BERT" "4️⃣ Other bonus exercises"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
