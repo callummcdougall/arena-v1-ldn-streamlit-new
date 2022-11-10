@@ -109,12 +109,13 @@ table {
 [data-testid="stDecoration"] {
     background-image: none;
 }
-[data-testid="column"] {
+div.css-fg4pbf [data-testid="column"] {
     box-shadow: 4px 4px 10px #ccc;
     padding: 15px;
 }
 div.css-ffhzg2 [data-testid="column"] {
     background: #333;
+    padding: 15px;
 }
 [data-testid="column"] a {
     text-decoration: none;
