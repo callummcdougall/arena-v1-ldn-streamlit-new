@@ -990,7 +990,7 @@ The distribution is very heavy-tailed, peaks around 100 characters.
 ---
 
 ```python
-fig = px.histogram(df, x="length", color="is_positive", barmode="overlay")
+px.histogram(df, x="length", color="is_positive", barmode="overlay")
 ```
 """)
         st.plotly_chart(fig_dict["3"], use_container_width=True)
@@ -1009,7 +1009,7 @@ detector = LanguageDetectorBuilder.from_languages(*Language).build()
 # Note, detector takes much longer to run when it is detecting all languages
 
 # Sample 500 datapoints, because it takes a while to run
-languages_detected = df.sample(200)["text"].apply(detector.detect_language_of).value_counts()
+languages_detected = df.sample(500)["text"].apply(detector.detect_language_of).value_counts()
 display(languages_detected)
 ```
 
@@ -1059,6 +1059,7 @@ tokenizer = transformers.AutoTokenizer.from_pretrained("bert-base-cased")
 train_data = to_dataset(tokenizer, [r for r in reviews if r.split == "train"])
 test_data = to_dataset(tokenizer, [r for r in reviews if r.split == "test"])
 t.save((train_data, test_data), SAVED_TOKENS_PATH)
+```
 
 ## Bonus (optional)
 
@@ -1106,9 +1107,9 @@ You may find it helpful to refer back to this diagram, comparing BertLanguageMod
 
     st.markdown("You should spend some time thinking about the easiest way to copy over pretrained weights from BERT. Hint - you shouldn't need to use a new BERT implementation; the one you used with your BertLanguageModel should suffice.")
 
-    st.markdown("Help - I'm not sure how to copy over my weights.")
+    with st.expander("Help - I'm not sure how to copy over my weights."):
 
-    st.markdown("""
+        st.markdown("""
 Although your `BertClassifier` now has some extra layers that you'll have to train from scratch, remember that the core of it is a `BertCommon` object. The BertLanguageModel implementation by HuggingFace (which you used when copying over the weights in the last exercise) also has a subnetwork with the same architecture as `BertCommon` (you can inspect HuggingFace's implementation to check what it calls its equivalent of `BertCommon`). 
 
 You could rewrite your `copy_weights_from_bert` function to copy directly between the `BertCommon` modules (this copying function won't work immediately because of the problem of offset layers). You'll probably need to rewrite it because you no longer have a parameter for the unembedding bias, so no messy reordering step will be needed like last time! Once you've done this, you can write your `BertClassifier` by having it define `self.bert_common = BertCommon(config)` *and* copying over weights.
@@ -1126,7 +1127,11 @@ class BertClassifier(nn.Module):
 
 ## Training Loop
 
-You should copy over a training loop from before and modify it. In particular, you'll need to modify your loss function calculation (see below).
+You should copy over a training loop from before, and modify it in the ways described below.
+
+```python
+"TODO: YOUR TRAINING LOOP GOES HERE"
+```
 
 ### Training All Parameters
 
@@ -1158,14 +1163,10 @@ If your loss is behaving strangely and you don't seem to be getting convergence,
 
 - Double check that your BertClassifier is actually using the pretrained weights and not random ones.
 - The classification loss for positive/negative should be around `log(2)` before any optimizer steps are taken, because the model is predicting randomly. If this isn't the case, there might be a bug in your loss calculation.
-- Try decoding a batch from your DataLoader and verify that the labels match up and the tokens and padding are right. It should be [CLS], the review, [SEP], and then [PAD] up to the end of the sequence.
+- Try decoding a batch from your DataLoader and verify that the labels match up and the tokens and padding are right. It should be `[CLS]`, the review, `[SEP]`, and then `[PAD]` up to the end of the sequence.
 - Try using an even smaller learning rate to see if this affects the loss curve. It's usually better to have a learning rate that is too low and spend more iterations reaching a good solution than to use one that is too high, which can cause training to not converge at all.
 - If your model is predicting all 1 or all 0, this can be a helpful thing to investigate.
 - It may just be a bad seed. The paper [On the Stability of Fine-Tuning BERT: Misconceptions, Explanations, and Strong Baselines](https://arxiv.org/pdf/2006.04884.pdf) notes that random seed can make a large difference to the results.
-
-```python
-"TODO: YOUR TRAINING LOOP GOES HERE"
-```
 
 ## Inspecting the Errors
 
@@ -1178,7 +1179,7 @@ If the model was in fact wrong, speculate on why it got that example wrong.
 
 def section4():
     st.markdown("""
-# LeetCode (hard!)""")
+# LeetCode""")
     st.image("ch1/images/balanced_brackets.png", width=320)
     st.markdown("""
 Pick some of your favourite easy LeetCode problems (e.g. detecting whether a bracket string is balanced), and train a transformer to solve it. Some questions you might like to think about:
@@ -1201,7 +1202,9 @@ As you can see, there's a lot of subtlety that goes into formulating a task like
         st.info("""
 Note - you might be wondering why we need the `[SEP]` token. After all, the `[CLS]` token is clearly necessary because our model uses it for training, and we need padding tokens to get it to the right length. But why do we need the `[SEP]` token, if we aren't separating two different sentences like in NSP?
 
-The best way I've come up with so far for explaining this is to say that it's important for the transformer to know where the start and the end of the bracket string is. One of the conditions for a bracket string to be balanced is whether its "altitude" at the end of the bracket string is zero, and the presence of the `[SEP]` token indicates to the transformer where the end of the string is, so it can check the altitude is zero at this point. Because the pad tokens are masked, this wouldn't work unless you had `[SEP]`.
+I'm not actually certain what the answer is. At best guess, it's something to do with the transformer needing to know where the start and the end of the bracket string is. One of the conditions for a bracket string to be balanced is whether its "altitude" at the end of the bracket string is zero. The presence of the `[SEP]` token indicates to the transformer where the end of the string is, so it can check the altitude is zero at this point. Having a `[PAD]` token at the end of the string instead wouldn't work, because these sequence positions are masked so can't store information.
+
+(This could be wrong though - it might be possible to train without `[SEQ]` tokens and I just didn't find the right hyperparameters!)
 
 Hopefully, stuff like this will become clearer in the interpretability week, when we take a closer look at transformers trained on tasks like this one, and try and reverse-engineer how they're solving the problem!
 """)
