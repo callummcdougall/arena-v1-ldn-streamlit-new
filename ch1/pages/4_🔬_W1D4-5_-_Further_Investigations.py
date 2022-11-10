@@ -710,11 +710,17 @@ Pick some of your favourite easy LeetCode problems (e.g. detecting whether a bra
 """)
     with st.expander("Example for how you might formulate the balanced brackets problem (don't read until you've thought about this!)"):
         st.markdown(r"""
-Earlier this week, you read about the BERT tokens `[CLS]` and `[PAD]`. You can set up something similar for this task: append a `[CLS]` token to the start of your sequence (and `[PAD]` tokens to the end to get it up to a certain length). You can then use your transformer's output at sequence position 0 (the position corresponding to the classification token) to predict whether the sequence is balanced or not. Since your transformer's output will be a set of logits over your vocabulary, the easiest way to convert this into a prediction would be to affix an extra linear layer which takes you down to 2 logits, then softmax those to get your classification probabilities (i.e. treat these two values as representing $\mathbb{P}(\text{balanced})$ and $\mathbb{P}(\text{not balanced})$ respectively).
+Earlier this week, you read about the BERT tokens `[CLS]`, `[SEP]` and `[PAD]`. You can set up something similar for this task: append a `[CLS]` token to the start of your sequence, `[SEP]` to the end, andthen  `[PAD]` tokens to the end to get it up to a certain length. You can then use your transformer's output at sequence position 0 (the position corresponding to the classification token) to predict whether the sequence is balanced or not. Since your transformer's output will be a set of logits over your vocabulary, the easiest way to convert this into a prediction would be to affix an extra linear layer which takes you down to 2 logits, then softmax those to get your classification probabilities (i.e. treat these two values as representing $\mathbb{P}(\text{balanced})$ and $\mathbb{P}(\text{not balanced})$ respectively).
 
 Your transformer should have bidirectional attention in this case, i.e. no masking. This is because the output corresponding to your `[CLS]` token needs to be able to read the brackets ahead of it in the sequence.
 
-As you can see, there's a lot of subtlety that goes into formulating a task like this in a way that a transformer can solve!
+As you can see, there's a lot of subtlety that goes into formulating a task like this in a way that a transformer can solve!""")
+        st.info("""
+Note - you might be wondering why we need the `[SEP]` token. After all, the `[CLS]` token is clearly necessary because our model uses it for training, and we need padding tokens to get it to the right length. But why do we need the `[SEP]` token, if we aren't separating two different sentences like in NSP?
+
+The best way I can explain this is by saying that it's important for the transformer to know where the start and the end of the bracket string is. One of the conditions for a bracket string to be balanced is whether its "altitude" at the end of the bracket string is zero, and the presence of the `[SEP]` token indicates to the transformer where the end of the string is, so it can check the altitude is zero at this point. Because the pad tokens are masked, this wouldn't work unless you had `[SEP]`.
+
+Hopefully, stuff like this will become clearer in the interpretability week, when we take a closer look at transformers trained on tasks like this one, and try and reverse-engineer how they're solving the problem!
 """)
 
 func_list = [section_home, section1, section2, section3]
