@@ -228,9 +228,68 @@ utils.test_load_pretrained_weights(my_gpt, tokenizer)
 
 The testing function above gives your GPT the prompt `"Former President of the United States of America, George"`, and tests whether the next predicted tokens contain `" Washington"` and `" Bush"` (as they are expected to). You are encouraged to look at this function in `utils`, and understand how it works.
 
----
+If you get this working, you can try fine-tuning your GPT on text like your Shakespeare corpus. See if you can use this to produce better output than your original train-from-scratch, tokenize-by-words model. However, if you want to get the best possible output, you might want to try the following task first...
 
-If you get this working, you can try fine-tuning your GPT on text like your Shakespeare corpus. See if you can use this to produce better results than your original train-from-scratch, tokenize-by-words model.
+## Beam search
+
+Finally, we'll implement a more advanced way of searching over output: **beam search**. You should read the [HuggingFace page](https://huggingface.co/blog/how-to-generate#beam-search) on beam search before moving on.
+
+In beam search, we maintain a list of size `num_beams` completions which are the most likely completions so far as measured by the product of their probabilities. Since this product can become very small, we use the sum of log probabilities instead. Note - log probabilities are *not* the same as your model's output. We get log probabilities by first taking softmax of our output and then taking log. You can do this with the [`log_softmax()`](https://pytorch.org/docs/stable/generated/torch.nn.functional.log_softmax.html) function (or use the tensor method).""")
+
+    with st.expander("Log probabilities are equal to the logit output after being translated by some amount X (where X is a function of the original logit output). Can you prove this?"):
+        st.markdown("""
+Proof coming soon. Basic idea: the amount by which they're translated is the log of the denominator expression in softmax.
+""")
+
+    with st.expander("Why do you think we use log softmax rather than logit output?"):
+        st.markdown("""
+It makes the output more meaninfgul. In particular, this allows us to compare sentences of different length. If we just took logit output, then the difference between logit sum of two sentences of equal length is uninterpretable. But if we take log softmax of the output then this difference has a precise meaning (the exponent of this difference equals the likelihood ratio between these two sentences).
+""")
+
+    st.markdown("""
+At each iteration, we run the batch of completions through the model and take the log-softmax to obtain `vocab_size` log-probs for each completion, or `num_beams * vocab_size` possible next completions in total.
+
+If we kept all of these, then we would have `num_beams * vocab_size * vocab_size` completions after the next iteration which is way too many, so instead we sort them by their score and loop through from best (highest) log probability to worst (lowest).
+
+For each next completion, if it ends in the end of sequence (EOS) token then we add it to a list of finished completions along with its score. Otherwise, we add it to the list of "to be continued" completions. The iteration is complete when the "to be continued" list has `num_beams` entries in it.""")
+
+    st.markdown("""
+If our finished list now contains at least `num_return_sequences` completions, then we are done. If the length of the completion is now `len(prompt) + max_new_tokens`, then we are also done. Otherwise, we go to the next iteration.
+
+A few clarifications about beam search, before you implement it below:
+
+* GPT's tokenizer stores its EOS token in `tokenizer.eos_token_id`. You'll have to either define this attribute in your own tokenizer (you can set it to `None` if you never want to terminate early), or handle this case in the beam search function (e.g. by using `getattr(tokenizer, "eos_token_id", None)`, which returns `tokenizer.eos_token_id` if it exists and None if not, without returning an error).
+* Another note on the difference between using this function on your model and on GPT - your model outputs logits, whereas HuggingFace's GPT implementation outputs an object with a logits attribute. Again, you can look at the `sample_tokens` function from yesterday to see how to handle this special case.
+* Remember that your model should be in eval mode (this affects dropout), and you should be in inference mode (this affects gradients).
+
+```python
+def beam_search(
+    model, input_ids: t.Tensor, num_return_sequences: int, num_beams: int, max_new_tokens: int, tokenizer, verbose=False
+) -> list[tuple[float, t.Tensor]]:
+    '''
+    input_ids: (seq, ) - the prompt
+    max_new_tokens: stop after this many new tokens are generated, even if no EOS is generated. In this case, the best incomplete sequences should also be returned.
+    verbose: if True, print the current (unfinished) completions after each iteration for debugging purposes
+    Return list of length num_return_sequences. Each element is a tuple of (logprob, tokens) where the tokens include both prompt and completion, sorted by descending logprob.
+    '''
+
+# I'll check over and improve this test function later this afternoon!
+
+tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2")
+gpt = transformers.AutoModelForCausalLM.from_pretrained("gpt2").to(device).train()
+
+your_prompt = "I don't want to rule the universe. I just think"
+input_ids = tokenizer(your_prompt, return_tensors="pt", return_attention_mask=False)["input_ids"][0]
+
+num_return_sequences = 3
+num_beams = 6
+max_new_tokens = 20
+
+final_logitsums_and_completions = beam_search(gpt, input_ids, num_return_sequences, num_beams, max_new_tokens, tokenizer, verbose=True)
+
+expected_best_completion = "I don't want to rule the universe. I just think there's a lot of things that need to be done to make sure that we're not going to"
+assert tokenizer.decode(final_logitsums_and_completions[0][1]) == expected_best_completion
+```
 """)
 
 def section2():
