@@ -261,8 +261,13 @@ A few clarifications about beam search, before you implement it below:
 * GPT's tokenizer stores its EOS token in `tokenizer.eos_token_id`. You'll have to either define this attribute in your own tokenizer (you can set it to `None` if you never want to terminate early), or handle this case in the beam search function (e.g. by using `getattr(tokenizer, "eos_token_id", None)`, which returns `tokenizer.eos_token_id` if it exists and None if not, without returning an error).
 * Another note on the difference between using this function on your model and on GPT - your model outputs logits, whereas HuggingFace's GPT implementation outputs an object with a logits attribute. Again, you can look at the `sample_tokens` function from yesterday to see how to handle this special case.
 * Remember that your model should be in eval mode (this affects dropout), and you should be in inference mode (this affects gradients).
-
+""")
+    st.info("Note - I haven't had time to check over this test, will do so this afternoon - it might be wrong.")
+    st.markdown("""
 ```python
+import transformers
+import torch as t
+
 def beam_search(
     model, input_ids: t.Tensor, num_return_sequences: int, num_beams: int, max_new_tokens: int, tokenizer, verbose=False
 ) -> list[tuple[float, t.Tensor]]:
@@ -272,8 +277,6 @@ def beam_search(
     verbose: if True, print the current (unfinished) completions after each iteration for debugging purposes
     Return list of length num_return_sequences. Each element is a tuple of (logprob, tokens) where the tokens include both prompt and completion, sorted by descending logprob.
     '''
-
-# I'll check over and improve this test function later this afternoon!
 
 tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2")
 gpt = transformers.AutoModelForCausalLM.from_pretrained("gpt2").to(device).train()
