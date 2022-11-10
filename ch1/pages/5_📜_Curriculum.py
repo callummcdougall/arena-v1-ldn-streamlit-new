@@ -71,10 +71,10 @@ def generate_fig():
     fig.update_traces(hovertemplate=None, hoverinfo="skip")
 
     df = pd.read_csv(f_table, keep_default_na=False)
-    color_list = px.colors.qualitative.Pastel1 + [px.colors.qualitative.Pastel1[0]]
+    color_list = px.colors.qualitative.Pastel1[:-1] + px.colors.qualitative.Pastel1[:2]
     def get_color(i):
         srch = re.search(r"\d", i)
-        return (int(srch[0]), color_list[int(srch[0])]) if srch else (10, "white")
+        return (int(srch[0]), color_list[int(srch[0])]) if srch else (10, "rgba(180, 180, 180, 0.25)")
     def style_func(s, column):
         return [f'background-color: {get_color(s.loc[column][0])[1]}' for _ in range(3)]
     link_func = lambda x: f"<a href='https://{x.replace('arena-', 'arena-ldn-')}/'>{x.replace('.streamlitapp.com', '')}</a>" if x else ""
@@ -99,6 +99,9 @@ st.markdown("""
 <style>
 .row_heading.level0 {display:none}
 .blank {display:none}
+td {
+    color: black !important;
+}
 table {
     width: calc(100% - 30px);
     margin: 15px
@@ -106,12 +109,13 @@ table {
 [data-testid="stDecoration"] {
     background-image: none;
 }
-[data-testid="column"] {
+div.css-fg4pbf [data-testid="column"] {
     box-shadow: 4px 4px 10px #ccc;
     padding: 15px;
 }
 div.css-ffhzg2 [data-testid="column"] {
     background: #333;
+    padding: 15px;
 }
 [data-testid="column"] a {
     text-decoration: none;
