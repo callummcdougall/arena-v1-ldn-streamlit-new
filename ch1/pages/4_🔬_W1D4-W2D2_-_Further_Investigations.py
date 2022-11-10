@@ -110,15 +110,17 @@ As was mentioned in yesterday's exercises, you've already built something that w
 
 We will also extend last week's work by looking at some more advanced sampling methods, such as **beam search**.
 
-### 2️⃣ Build and finetune BERT
+### 2️⃣ Build BERT
 
 BERT is an encoder-only transformer, which has a different kind of architecture (and a different purpose) than GPT-2. In this task, you'll build a copy of BERT and load in weights, then fine-tune it on a sentiment analysis task.
 
-Once you've built BERT, you'll be able to train it to perform well on tasks like classification and sentiment analysis.
+### 3️⃣ Finetune BERT
 
-### 3️⃣ Other bonus exercises
+Once you've built BERT, you'll be able to train it to perform well on tasks like classification and sentiment analysis. This finetuning task requires you to get hands-on with a bit of data cleaning and wrangling!
 
-Visit this page for a series of fun exercises to attempt! These are much more open-ended than the two very well-defined, structured exercises above.
+### 4️⃣ Other bonus exercises
+
+Visit this page for a series of fun exercises to attempt! These are much more open-ended than the relatively well-defined, structured exercises above.
 """)
 
 def section1():
@@ -1218,7 +1220,7 @@ Why do you expect the cosine similarity between vectors in your transformer's le
 
 func_list = [section_home, section1, section2, section3, section4]
 
-page_list = ["🏠 Home", "1️⃣ Build and sample from GPT-2", "2️⃣ Build BERT", "3️⃣ Finetune BERT" "4️⃣ Other bonus exercises"]
+page_list = ["🏠 Home", "1️⃣ Build and sample from GPT-2", "2️⃣ Build BERT", "3️⃣ Finetune BERT", "4️⃣ Other bonus exercises"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 with st.sidebar:
