@@ -99,6 +99,9 @@ st.markdown("""
 <style>
 .row_heading.level0 {display:none}
 .blank {display:none}
+td {
+    color: black !important;
+}
 table {
     width: calc(100% - 30px);
     margin: 15px
