@@ -5,27 +5,19 @@ rootdir = "" if is_local else "ch1/"
 
 st.set_page_config(layout="wide")
 
-import plotly.io as pio
-import re
-import json
+import pandas as pd
+import plotly.express as px
 
-def read_from_html(filename):
-    filename = rootdir + f"images/{filename}.html"
-    with open(filename) as f:
-        html = f.read()
-    call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
-    call_args = json.loads(f'[{call_arg_str}]')
-    plotly_json = {'data': call_args[1], 'layout': call_args[2]}    
-    return pio.from_json(json.dumps(plotly_json))
-
-def get_fig_dict():
-    return {str(i): read_from_html(f"fig{i}") for i in range(1, 4)}
-
-if "fig_dict" not in st.session_state:
-    fig_dict = get_fig_dict()
-    st.session_state["fig_dict"] = fig_dict
-else:
-    fig_dict = st.session_state["fig_dict"]
+if "df" not in st.session_state:
+    df = pd.read_pickle(rootdir + f"images/df.pkl")
+    st.session_state["df"] = df
+    st.session_state["fig_dict"] = {
+        "1": px.histogram(x=df["stars"]).update_layout(bargap=0.1),
+        "2": px.histogram(x=df["length"]),
+        "3": px.histogram(df, x="length", color="is_positive", barmode="overlay")
+    }
+df = st.session_state["df"]
+fig_dict = st.session_state["fig_dict"]
 
 st.markdown("""
 <style>
