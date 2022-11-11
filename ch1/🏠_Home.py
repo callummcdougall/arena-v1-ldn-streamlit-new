@@ -4,7 +4,7 @@ st.set_page_config(layout="wide")
 
 import platform
 is_local = (platform.processor() is not None)
-rootdir = "" if is_local else "ch1/"
+rootdir = "" if is_local else ""
 
 st.markdown("""
 <style>
