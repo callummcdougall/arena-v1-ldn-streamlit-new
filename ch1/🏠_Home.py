@@ -3,10 +3,8 @@ import streamlit as st
 st.set_page_config(layout="wide")
 
 import platform
-is_local = (platform.processor() is not None)
+is_local = (platform.processor() != "")
 rootdir = "" if is_local else "ch1/"
-st.write(platform.processor())
-st.write(platform.processor() == "")
 
 st.markdown("""
 <style>
@@ -70,7 +68,7 @@ ul.contents a:hover {
 # </ul>
 # """, unsafe_allow_html=True)
 
-# st.image(rootdir + "images/headers/trans.png", width=320)
+st.image(rootdir + "images/headers/trans.png", width=320)
 
 st.markdown("""
 # Transformers
