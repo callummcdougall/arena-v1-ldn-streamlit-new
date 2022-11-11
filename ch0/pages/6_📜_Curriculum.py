@@ -38,8 +38,7 @@ def generate_fig():
     path_list = ["pre", "trans", "scale", "opti", "mod", "rl", "laws", "int", "adv", "cap"]
     for chapter_no, days in enumerate(days_per_section):
         path = f + f"{path_list[chapter_no]}.png"
-        img_true = Image.open(path).resize((164, 164))
-        img_true = np.asarray(Image.open(path).resize((164, 164)))
+        img_true = np.asarray(Image.open(path).convert('RGB').resize((164, 164)))
         img = 255 * np.ones((180, 180, 3))
         img[8:-8, 8:-8, :] = img_true
         for d in range(days):
@@ -58,7 +57,12 @@ def generate_fig():
     for i in range(50 - len(arr_list)):
         arr_list.append(255 * np.ones((180, 180, 3)))
     arr = np.stack(arr_list).astype(int)
-    arr = rearrange(arr, "(b1 b2) h w c -> (b2 h) (b1 w) c", b2=5)
+    b1b2, h_, w_, c_ = arr.shape
+    b2 = 5
+    b1 = b1b2 // b2
+    arr = arr.reshape((b1, b2, h_, w_, c_))
+    arr = np.moveaxis(arr, [0, 1, 2, 3, 4], [2, 0, 1, 3, 4])
+    arr = arr.reshape((b2*h_, b1*w_, c_))
     fig = px.imshow(arr, zmin=0, zmax=255)
     fig.update_layout(
         xaxis = dict(
@@ -80,7 +84,6 @@ def generate_fig():
         return (int(srch[0]), color_list[int(srch[0])]) if srch else (10, "rgba(180, 180, 180, 0.25)")
     def style_func(s, column):
         return [f'background-color: {get_color(s.loc[column][0])[1]}' for _ in range(3)]
-    link_func = lambda x: f"<a href='https://{x.replace('arena-', 'arena-ldn-')}/'>{x.replace('.streamlitapp.com', '')}</a>" if x else ""
     df["Day"] = [f"<a href='{url}'>{day}</a>" for url, day in zip(df["Exercises link"], df["Day"])]
     df = df[["Date", "Day", "Chapter"]]
     table = (df.style
