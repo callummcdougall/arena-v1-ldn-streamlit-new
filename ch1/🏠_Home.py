@@ -4,7 +4,7 @@ st.set_page_config(layout="wide")
 
 import platform
 rootdir = "" if (platform.processor() is not None) else "ch1/"
-st.write(rootdir)
+st.write(str(platform.processor()))
 
 st.markdown("""
 <style>
