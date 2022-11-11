@@ -1,6 +1,7 @@
 import streamlit as st
 import platform
 rootdir = "" if (platform.processor() is not None) else "ch1/"
+st.write(rootdir)
 
 st.set_page_config(layout="wide")
 
