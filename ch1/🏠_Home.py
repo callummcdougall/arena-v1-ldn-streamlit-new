@@ -6,6 +6,7 @@ import platform
 is_local = (platform.processor() is not None)
 rootdir = "" if is_local else "ch1/"
 st.write(platform.processor())
+st.write(platform.processor() == "")
 
 st.markdown("""
 <style>
