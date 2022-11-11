@@ -8,17 +8,6 @@ st.set_page_config(layout="wide")
 import pandas as pd
 import plotly.express as px
 
-if "df" not in st.session_state:
-    df = pd.read_pickle(rootdir + f"images/df.pkl")
-    st.session_state["df"] = df
-    st.session_state["fig_dict"] = {
-        "1": px.histogram(x=df["stars"]).update_layout(bargap=0.1),
-        "2": px.histogram(x=df["length"]),
-        "3": px.histogram(df, x="length", color="is_positive", barmode="overlay")
-    }
-df = st.session_state["df"]
-fig_dict = st.session_state["fig_dict"]
-
 st.markdown("""
 <style>
 label.effi0qh3 {
@@ -967,7 +956,7 @@ df["length"] = [len(text) for text in df["text"]]
 
 px.histogram(x=df["stars"]).update_layout(bargap=0.1)
 ```""")
-        st.plotly_chart(fig_dict["1"], use_container_width=True)
+        st.image(rootdir + "images/data_pic_1.png")
         st.markdown("""
 There are no five or six star reviews.
 
@@ -978,7 +967,7 @@ px.histogram(x=df["length"])
 ```
 """)
 
-        st.plotly_chart(fig_dict["2"], use_container_width=True)
+        st.image(rootdir + "images/data_pic_2.png")
         st.markdown("""
 The distribution is very heavy-tailed, peaks around 100 characters.
 
@@ -988,6 +977,7 @@ The distribution is very heavy-tailed, peaks around 100 characters.
 px.histogram(df, x="length", color="is_positive", barmode="overlay")
 ```
 """)
+        st.image(rootdir + "images/data_pic_3.png")
         st.plotly_chart(fig_dict["3"], use_container_width=True)
         st.markdown("""
 Slightly more of the shirt 200-500 word reviews for positive reviews, but apart from that the distributions are very similar.
