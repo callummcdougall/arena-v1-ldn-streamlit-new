@@ -3,11 +3,13 @@ import streamlit as st
 import plotly.io as pio
 import re
 import json
+import platform
+rootdir = "" if (platform.processor() is not None) else "ch1/"
 
 st.set_page_config(layout="wide")
 
 def read_from_html(filename):
-    filename = f"ch1/images/{filename}.html"
+    filename = rootdir + f"images/{filename}.html"
     with open(filename) as f:
         html = f.read()
     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
@@ -113,7 +115,7 @@ Lastly, here is a diagram explaining the attention mechanism. It should also be 
 """)
 
     with st.expander("View diagram"):
-        st.image("ch1/images/attention_diagram.png")
+        st.image(rootdir + "images/attention_diagram.png")
         st.markdown(r"""
 1. The query is a feature vector that describes what we're looking for in the sequence, i.e. what we might want to pay attention to
 2. The key is a feature vector describing what each element might be “offering”, or why it is important

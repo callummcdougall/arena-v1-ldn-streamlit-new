@@ -1,4 +1,6 @@
 import streamlit as st
+import platform
+rootdir = "" if (platform.processor() is not None) else "ch1/"
 
 st.set_page_config(layout="wide")
 
@@ -230,11 +232,11 @@ Note - it is a common practice to stack the matrices `W_Q`, `W_K`, `W_V` into a 
 
 """)
 
-    st.image("ch1/images/computation_split.png", width=350)
+    st.image(rootdir + "images/computation_split.png", width=350)
 
     st.markdown("You can do this:")
 
-    st.image("ch1/images/computation_parallel.png", width=580)
+    st.image(rootdir + "images/computation_parallel.png", width=580)
 
     st.markdown("""
 You should use this method in your attention block implementation.
@@ -462,7 +464,7 @@ device = t.device("cuda:0" if t.cuda.is_available() else "cpu")
 You should now get `"cuda:0"` when you print your device. If you still get `cpu`, then you should examine your installation of PyTorch. The easiest way to install the right version of PyTorch is directly from the [PyTorch website](https://pytorch.org/). They give you a useful grid, and by selecting the right boxes you can get a command which you can run to install PyTorch with full GPU faculties:
 """)
 
-    st.image("ch1/images/install_pytorch.png")
+    st.image(rootdir + "images/install_pytorch.png")
 
     st.markdown("""
 

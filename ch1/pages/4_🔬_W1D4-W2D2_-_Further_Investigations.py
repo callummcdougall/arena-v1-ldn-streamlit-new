@@ -1,4 +1,6 @@
 import streamlit as st
+import platform
+rootdir = "" if (platform.processor() is not None) else "ch1/"
 
 st.set_page_config(layout="wide")
 
@@ -7,7 +9,7 @@ import re
 import json
 
 def read_from_html(filename):
-    filename = f"./ch1/images/{filename}.html"
+    filename = rootdir + f"images/{filename}.html"
     with open(filename) as f:
         html = f.read()
     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
@@ -183,7 +185,7 @@ Ideally, this will produce output that looks something like this (up to possibly
     # st.image("ch1/images/gpt-compared.png")
     col1, col2, col3 = st.columns([1, 10, 1])
     with col2:
-        st.image("ch1/images/gpt-compared.png")
+        st.image(rootdir + "images/gpt-compared.png")
 
     st.markdown("""
 
@@ -650,7 +652,7 @@ Rather than simply ending with `LayerNorm -> Tied Unembed`, the Bert Language Mo
 
     cols = st.columns([1, 10, 1])
     with cols[1]:
-        st.image("ch1/images/bert-compared.png")
+        st.image(rootdir + "images/bert-compared.png")
 
     # with st.expander("""Question - how does HuggingFace's BERT model implement the tied encoding? You will have to inspect their BERT model in order to find the answer."""):
     #     st.markdown("""
@@ -1180,7 +1182,7 @@ If the model was in fact wrong, speculate on why it got that example wrong.
 def section4():
     st.markdown("""
 # LeetCode""")
-    st.image("ch1/images/balanced_brackets.png", width=320)
+    st.image(rootdir + "images/balanced_brackets.png", width=320)
     st.markdown("""
 Pick some of your favourite easy LeetCode problems (e.g. detecting whether a bracket string is balanced), and train a transformer to solve it. Some questions you might like to think about:
 
@@ -1214,7 +1216,7 @@ Hopefully, stuff like this will become clearer in the interpretability week, whe
 
 # Semantle""")
 
-    st.image("ch1/images/semantle.png", width=150)
+    st.image(rootdir + "images/semantle.png", width=150)
     st.markdown("""
     
 Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version? 

@@ -1,4 +1,6 @@
 import streamlit as st
+import platform
+rootdir = "" if (platform.processor() is not None) else "ch1/"
 
 st.set_page_config(layout="wide")
 
@@ -64,7 +66,7 @@ ul.contents a:hover {
 # </ul>
 # """, unsafe_allow_html=True)
 
-st.image("ch1/images/headers/trans.png", width=320)
+st.image(rootdir + "images/headers/trans.png", width=320)
 
 st.markdown("""
 # Transformers

@@ -7,6 +7,8 @@ import pandas as pd
 from datetime import datetime
 import re
 import pandas as pd
+import platform
+rootdir = "" if (platform.processor() is not None) else "ch1/"
 
 st.set_page_config(
     # initial_sidebar_state="expanded",
@@ -14,8 +16,8 @@ st.set_page_config(
 )
 
 def generate_fig():
-    f = "ch1/images/headers/"
-    f_table = "ch1/images/table.csv"
+    f = rootdir + "images/headers/"
+    f_table = rootdir + "images/table.csv"
     datetime_index = pd.date_range(start="2022-10-31", periods=7*10)
     datetime_index = datetime_index[datetime_index.dayofweek <= 4]
     df = pd.read_csv(f_table, keep_default_na=False)
@@ -197,7 +199,7 @@ tabs = st.tabs([f"CH {i}" for i in range(10)])
 
 with tabs[0]:
 
-    st.image("ch1/images/headers/pre.png", width=250)
+    st.image(rootdir + "images/headers/pre.png", width=250)
     st.subheader("Chapter 0 - Prerequisites")
 
     st.markdown("""
@@ -253,7 +255,7 @@ This is bonus content, and won't be essential for any other parts of the course.
 
 with tabs[1]:
 
-    st.image("ch1/images/headers/trans.png", width=250)
+    st.image(rootdir + "images/headers/trans.png", width=250)
     st.subheader("Chapter 1 - Transformers")
 
     st.markdown("""
@@ -303,7 +305,7 @@ The rest of this chapter will be spent on additional transformer exercises, incl
 
 with tabs[2]:
 
-    st.image("ch1/images/headers/scale.png", width=250)
+    st.image(rootdir + "images/headers/scale.png", width=250)
     st.subheader("Chapter 2 - Training at Scale")
 
     st.markdown("""
@@ -323,7 +325,7 @@ with tabs[2]:
 
 with tabs[3]:
 
-    st.image("ch1/images/headers/opti.png", width=250)
+    st.image(rootdir + "images/headers/opti.png", width=250)
     st.subheader("Chapter 3 - Optimisation")
 
     st.markdown("""
@@ -352,7 +354,7 @@ We will read some papers discussing some of the mathematical justifications behi
 
 with tabs[4]:
 
-    st.image("ch1/images/headers/mod.png", width=250)
+    st.image(rootdir + "images/headers/mod.png", width=250)
     st.subheader("Chapter 4 - Modelling Objectives")
 
     st.markdown("""
@@ -391,7 +393,7 @@ Over these two days, you'll be implementing your own diffusion models. Like duri
 
 with tabs[5]:
 
-    st.image("ch1/images/headers/rl.png", width=250)
+    st.image(rootdir + "images/headers/rl.png", width=250)
     st.subheader("Chapter 5 - RL")
 
     st.markdown("""
@@ -411,7 +413,7 @@ In this chapter, you will be learning about some of the fundamentals of RL, and 
 
 with tabs[6]:
 
-    st.image("ch1/images/headers/laws.png", width=250)
+    st.image(rootdir + "images/headers/laws.png", width=250)
     st.subheader("Chapter 6 - Scaling Laws")
 
     st.markdown("""
@@ -446,7 +448,7 @@ In this week, we will read foundational papers on scaling laws, and perform our 
 
 with tabs[7]:
 
-    st.image("ch1/images/headers/int.png", width=250)
+    st.image(rootdir + "images/headers/int.png", width=250)
     st.subheader("Chapter 7 - Interpretability")
 
     st.markdown("""
@@ -466,7 +468,7 @@ In this chapter, you will be performing your own interpretability investigations
 
 with tabs[8]:
 
-    st.image("ch1/images/headers/adv.png", width=250)
+    st.image(rootdir + "images/headers/adv.png", width=250)
     st.subheader("Chapter 8 - Adversarial Training")
 
     st.markdown("""
@@ -486,7 +488,7 @@ In this chapter, we will be working with the language models we've studied in pr
 
 with tabs[9]:
 
-    st.image("ch1/images/headers/cap.png", width=250)
+    st.image(rootdir + "images/headers/cap.png", width=250)
     st.subheader("Chapter 9 - Capstone Projects")
 
     st.markdown("""
