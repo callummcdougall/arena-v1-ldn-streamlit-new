@@ -4,7 +4,8 @@ import plotly.io as pio
 import re
 import json
 import platform
-rootdir = "" if (platform.processor() is not None) else "ch1/"
+# rootdir = "" if (platform.processor() is not None) else "ch1/"
+rootdir = ""
 
 st.set_page_config(layout="wide")
 
