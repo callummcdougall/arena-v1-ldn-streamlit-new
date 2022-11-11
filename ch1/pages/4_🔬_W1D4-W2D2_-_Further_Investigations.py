@@ -389,7 +389,7 @@ Note, there might be some error warnings that appear when you import `bert`, don
 The diagram below shows an overview of BERT's architecture. This differs from the [W1D3](https://arena-w1d3.streamlitapp.com/Putting_it_all_together#decoderblock-and-decoderonlytransformer) architecture in quite a few ways, which we will discuss below.
 """)
 
-    st.write("""<figure style="max-width:1000px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNqNVNlq4zAU_RWhZzclYZ7CEGgmaQm400LTJ3kocnTjiFiSkaWhadN_rxbbqRPPUGPQ1d10ztHyjjeKAZ7iQtNqh9aLTCL31TaPjgy7P5PR24vMQZuUysLSAu5dj_KU47-VrKy5JWH4g66uZqHglxJCyTk52TF2BJEDY1wWqOZvcMxJyiVQ_TPXs7tl-uzHlB5Ao99KCz9bc2DoWYa6psdftaF5rH8gqSq4QQ_W-PVP0ECyr2wuGEVQ_YS12oOMS3BpoAB9DK6lX5sE0yG6ni1bDhHPDWMxwxl9_DG-0KpS1nTazEu12dfkZPqicYImCRqNRgmSVryUvkc9wDfw7MN-VDU3XJ0hd96Iqg3T8n_gB5RYHyoYUMO7XUnUA_nZ9_qe7UhvN4IOA-eq0-wJyu1KStDkxhiQnk-3zqXuaByD9-ljmzQZyJo0LYyMspKLU9QH4jp07b7HywHoN3OO0O_rfYk3YOzt449XtOOMOWHDdvsrEbfgLBBrJi3L5oiRZuzY_4tXwNwYOMECtKCcudfh3bszbHYgIMNTZzLYUlsa_zh8uFRbMWpgybhRGk-3tKwhwdQa9XSQGzw12kKbtODUKSGarI9PG9Julw" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:1000px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNqNVNlq4zAU_RWhZzclYZ7CEGgmaQm400LTJ3kocnTjiFiSkaWhadN_rxbbqRPPUGPQ1d10ztHyjjeKAZ7iQtNqh9aLTCL31TaPjgy7P5PR24vMQZuUysLSAu5dj_KU47-VrKy5JWH4g66uZqHglxJCyTk52TF2BJEDY1wWqOZvcMxJyiVQ_TPXs7tl-uzHlB5Ao99KCz9bc2DoWYa6psdftaF5rH8gqSq4QQ_W-PVP0ECyr2wuGEVQ_YS12oOMS3BpoAB9DK6lX5sE0yG6ni1bDhHPDWMxwxl9_DG-0KpS1nTazEu12dfkZPqicYImCRqNRgmSVryUvkc9rFnk2of-qGpuuDpD77wRWRum5f8IDKixPlQwoIh3u5KoCfKz7_U925XejgQtBs5Wp9sTlNuVlKDJjTEgPZ9unUvt0TgG79PHNmkykDVpWhgZZSUXJ6kPxHXo2n2PlwPQb-Ycod_XOxNvwdjbxx-vaMcZc8KG7fbXIm7BWSDWTFqWzTEjzdix_xevgLkxcIIFaEE5cy_Eu3dn2OxAQIanzmSwpbY0_oH4cKm2YtTAknGjNJ5uaVlDgqk16ukgN3hqtIU2acGpU0I0WR-fvPhwKw" /></figure>""", unsafe_allow_html=True)
 
     # graph TD
     #     subgraph " "
@@ -399,7 +399,7 @@ The diagram below shows an overview of BERT's architecture. This differs from th
     #         end
 
     #             subgraph BertCommon
-    #             Token --> |integer|TokenEmbed[Token<br/>Embedding] --> AddEmbed[Add<br>Layer Norm] --> Dropout --> BertBlocks[BertBlocks<br>1, 2, ..., num_layers] --> |vocab size|Output
+    #             Token --> |integer|TokenEmbed[Token<br/>Embedding] --> AddEmbed[Add<br>Layer Norm] --> Dropout --> BertBlocks[BertBlocks<br>1, 2, ..., num_layers] --> |embedding size|Output
     #             Position --> |integer|PosEmbed[Positional<br/>Embedding] --> AddEmbed
     #             TokenType --> |integer|TokenTypeEmb[Token Type<br/>Embedding] --> AddEmbed
     #         end
