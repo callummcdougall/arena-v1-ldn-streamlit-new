@@ -978,7 +978,6 @@ px.histogram(df, x="length", color="is_positive", barmode="overlay")
 ```
 """)
         st.image(rootdir + "images/data_pic_3.png")
-        st.plotly_chart(fig_dict["3"], use_container_width=True)
         st.markdown("""
 Slightly more of the shirt 200-500 word reviews for positive reviews, but apart from that the distributions are very similar.
 
