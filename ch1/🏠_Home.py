@@ -3,7 +3,8 @@ import streamlit as st
 st.set_page_config(layout="wide")
 
 import platform
-rootdir = "" if (platform.processor() is None) else "ch1/"
+is_local = (platform.processor() is not None)
+rootdir = "" if is_local else "ch1/"
 
 st.markdown("""
 <style>
