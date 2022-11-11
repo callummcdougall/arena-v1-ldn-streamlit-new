@@ -3,7 +3,7 @@ import streamlit as st
 st.set_page_config(layout="wide")
 
 import platform
-rootdir = "" if (platform.processor() is None) else ""
+rootdir = "" if (platform.processor() is None) else "ch1/"
 
 st.markdown("""
 <style>
