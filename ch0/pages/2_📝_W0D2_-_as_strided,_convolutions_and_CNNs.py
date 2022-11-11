@@ -4,8 +4,12 @@ import plotly.io as pio
 import re
 import json
 
+import platform
+is_local = (platform.processor() != "")
+rootdir = "" if is_local else "ch0/"
+
 def read_from_html(filename):
-    filename = f"./ch0/images/{filename}.html"
+    filename = rootdir + f"images/{filename}.html"
     with open(filename) as f:
         html = f.read()
     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
@@ -531,7 +535,7 @@ A typical convolution operation is illustrated in the sketch below. Some notes o
 * The sketch assumes a batch size of 1. To generalise to a larger batch number, we can just imagine this operation being repeated identically on every input.
 """)
 
-    st.image("ch0/images/conv1d_illustration.png")
+    st.image(rootdir + "images/conv1d_illustration.png")
 
     st.markdown("""
 Below, you should implement `conv1d_minimal`. This is a function which works just like `conv1d`, but takes the default stride and padding values (these will be added back in later). You are allowed to use `as_strided` and `einsum`.
@@ -580,7 +584,7 @@ utils.test_conv1d_minimal(conv1d_minimal)
 
 2D convolutions are conceptually similar to 1D. The only difference is in how you move the kernel across the tensor as you take your convolution. In this case, you will be moving the tensor across two dimensions:
 """)
-    st.image("ch0/images/conv2d_illustration.png", width=600)
+    st.image(rootdir + "images/conv2d_illustration.png", width=600)
 
     st.markdown("""
 For this reason, 1D convolutions tend to be used for signals (e.g. audio), 2D convolutions are used for images, and 3D convolutions are used for 3D scans (e.g. in medical applications). 

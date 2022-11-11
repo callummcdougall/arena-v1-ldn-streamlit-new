@@ -4,8 +4,12 @@ import plotly.io as pio
 import re
 import json
 
+import platform
+is_local = (platform.processor() != "")
+rootdir = "" if is_local else "ch0/"
+
 def read_from_html(filename):
-    filename = f"./ch0/images/{filename}.html"
+    filename = rootdir + f"images/{filename}.html"
     with open(filename) as f:
         html = f.read()
     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]

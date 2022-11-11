@@ -1,28 +1,22 @@
 import streamlit as st
 
-import plotly.io as pio
-import re
-import json
+import numpy as np
+import plotly.express as px
 import platform
 is_local = (platform.processor() != "")
 rootdir = "" if is_local else "ch1/"
 
 st.set_page_config(layout="wide")
 
-def read_from_html(filename):
-    filename = rootdir + f"images/{filename}.html"
-    with open(filename) as f:
-        html = f.read()
-    call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
-    call_args = json.loads(f'[{call_arg_str}]')
-    plotly_json = {'data': call_args[1], 'layout': call_args[2]}    
-    return pio.from_json(json.dumps(plotly_json))
-
-@st.cache
-def get_two_figs():
-    return [read_from_html("sinusoidal_embedding"), read_from_html("dot_product_of_positional_embeddings")]
-
-fig_viz, fig_dot_product = get_two_figs()
+if "pe" not in st.session_state:
+    pe = np.load(rootdir + "images/pe.npy")
+    pe_sim = np.einsum("ab,cb->ac", pe, pe) / np.outer(np.linalg.norm(pe, axis=-1), np.linalg.norm(pe, axis=-1))
+    st.session_state["pe"] = pe
+    st.session_state["pe_sim"] = pe_sim
+    st.session_state["fig_viz"] = px.imshow(pe, color_continuous_scale="RdBu")
+    st.session_state["fig_dot_product"] = px.imshow(pe_sim, color_continuous_scale="Blues")
+fig_viz = st.session_state["fig_viz"]
+fig_dot_product = st.session_state["fig_dot_product"]
 
 st.markdown("""
 <style>
@@ -430,7 +424,7 @@ array_2d = np.zeros((L, d))
 for k in range(L):
     array_2d[k] = PE(k)
     
-px.imshow(array_2d, color_continuous_scale="Gray")
+px.imshow(array_2d, color_continuous_scale="RdBu")
 
 
 # or more efficiently:
@@ -441,7 +435,7 @@ array_2d = np.zeros((L, d))
 array_2d[:, ::2] = np.sin(angles)
 array_2d[:, 1::2] = np.cos(angles)
 
-px.imshow(array_2d, color_continuous_scale="Gray")
+px.imshow(array_2d, color_continuous_scale="RdBu")
 ```    
 """)
 
@@ -477,6 +471,12 @@ def get_dot_product_graph(array_2d):
             arr[i, j] = cosine_similarity(array_2d[i], array_2d[j])
 
     px.imshow(arr, color_continuous_scale="Blues").show()
+
+# Or without a for loop:
+
+pe_sim = np.einsum("ab,cb->ac", pe, pe) / np.outer(np.linalg.norm(pe, axis=-1), np.linalg.norm(pe, axis=-1))
+
+px.imshow(pe_sim, color_continuous_scale="Blues").show()
 ```
 """)
     st.markdown("""

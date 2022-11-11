@@ -1,23 +1,8 @@
 import streamlit as st
 
-# import plotly.io as pio
-# import re
-# import json
-
-# def read_from_html(filename):
-#     filename = f"./w0d2/images/{filename}.html"
-#     with open(filename) as f:
-#         html = f.read()
-#     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
-#     call_args = json.loads(f'[{call_arg_str}]')
-#     plotly_json = {'data': call_args[1], 'layout': call_args[2]}    
-#     return pio.from_json(json.dumps(plotly_json))
-
-# # @st.cache
-# def get_fig_dict():
-#     return {str(i): read_from_html(f"fig{i}") for i in range(1, 16)}
-    
-# fig_dict = get_fig_dict()
+import platform
+is_local = (platform.processor() != "")
+rootdir = "" if is_local else "ch0/"
 
 st.set_page_config(layout="wide")
 
@@ -355,7 +340,7 @@ create_interactive_fourier_graph(calculate_fourier_series, func = step_func)''')
 If this code has been written correctly, then when run it should produce interactive output that looks like this:
     """)
 
-    st.image("ch0/images/ani1.png")
+    st.image(rootdir + "images/ani1.png")
 
     st.markdown(r"""
 You should be able to move the slider to see how the Fourier series converges to the true function over time.
@@ -369,9 +354,9 @@ You can change the `func` parameter in `create_interactive_fourier_graph`, and i
 
     with st.expander("Explanation for sin(3x) + cos(17x)"):
         st.markdown("""You should see something like this:""")
-        st.image("ch0/images/ani1a.png")
-        st.image("ch0/images/ani1b.png")
-        st.image("ch0/images/ani1c.png")
+        st.image(rootdir + "images/ani1a.png")
+        st.image(rootdir + "images/ani1b.png")
+        st.image(rootdir + "images/ani1c.png")
         st.markdown(r"""This is because the Fourier series are orthogonal in the range $[-\pi, \pi]$.""")
         st.markdown("""The only non-zero coefficients are the ones that exactly match the frequencies already present in the data, so we only get changes in the reconstructed function once we add the 3rd and 17th frequencies.""")
 
@@ -413,7 +398,7 @@ We will start by using only NumPy, working from first principles, and slowly add
 
 This is the simplest possible neural network architecture - it only has a single layer, and only uses linear functions. All we are doing is learning the coefficients of a Fourier series. The inputs to our network are the frequencies, and the weights are the coefficients, so our output is the same as the truncated Fourier series expression we saw in the previous section:""")
 
-    st.image("ch0/images/diagram.png")
+    st.image(rootdir + "images/diagram.png")
 
     st.markdown("""
 How can we learn these weights? Well, it turns out that the Fourier series coefficients are also minimisers of the **Mean Squared Error** (MSE) between the Fourier series and the original function. The mathematical reason for this is that taking a finite Fourier series actually orthogonally projects our function onto a different basis, which also minimises the MSE. So if we calculate the MSE, and differentiate it with respect to our coefficients, this will tell us how to adjust the coefficients in a way which makes the error smaller, thus moving our coefficients closer to the true Fourier series.
@@ -522,7 +507,7 @@ You may find it helpful to first define `grad_y_pred` as the derivative of $L$ w
 If this works, then you should see a graph with a slider, that you can move to see the convergence of your function to the target one over time (along with a changing title to represent the coefficients):
 """)
 
-    st.image("ch0/images/ani2.png")
+    st.image(rootdir + "images/ani2.png")
 
     st.markdown("""## (II) PyTorch & Tensors
 

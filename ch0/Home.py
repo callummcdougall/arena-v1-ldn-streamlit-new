@@ -2,6 +2,10 @@ import streamlit as st
 
 st.set_page_config(layout="wide")
 
+import platform
+is_local = (platform.processor() != "")
+rootdir = "" if is_local else "ch0/"
+
 st.markdown("""
 <style>
 p {
@@ -64,7 +68,7 @@ st.sidebar.markdown("""
 </ul>
 """, unsafe_allow_html=True)
 
-st.image("ch0/images/headers/pre.png", width=320)
+st.image(rootdir + "images/headers/pre.png", width=320)
 
 st.markdown("""
 
