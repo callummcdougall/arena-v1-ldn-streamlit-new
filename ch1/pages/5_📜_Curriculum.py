@@ -1,7 +1,6 @@
 import streamlit as st
 from PIL import Image
 import numpy as np
-from einops import rearrange
 import plotly.express as px
 import pandas as pd
 from datetime import datetime
