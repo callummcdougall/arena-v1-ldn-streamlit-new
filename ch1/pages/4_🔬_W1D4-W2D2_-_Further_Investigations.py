@@ -216,11 +216,13 @@ print(len(param_names))                 # 148
 print(param_names < state_dict_names)   # True
 ```
 
-So `state_dict` is a superset of `parameters`, and it contains a lot more objects. What are these objects? When we print out the elements of the set difference, we see that they are all biases or masked biases of the transformer layer. If we inspect the corresponding objects in `gpt.state_dict().values()`, we see that these are nothing more than the objects we've been using as attention masks (i.e. a triangular array of 1s and 0s, with 1s in the positions which aren't masked). We clearly don't need to copy these over into our model!
+So `state_dict` is a superset of `parameters`, and it contains a lot more objects. What are these objects? When we print out the elements of the set difference, we see that they are all biases or masked biases of the transformer layer. If we inspect the corresponding objects in `gpt.state_dict().values()`, we see that most of these are nothing more than the objects we've been using as attention masks (i.e. a triangular array of 1s and 0s, with 1s in the positions which aren't masked). We clearly don't need to copy these over into our model!
 
-The moral of the story - `state_dict` sometimes contains things which we don't need, and it depends heavily on the exact implementation details of the model's architecture.
+The only exception is `lm_head` at the end of the model, and upon inspection we see that the weights of this bias-free linear layer match up exactly with the token embedding matrix. Clearly we only need to copy in the token embedding values once!
 
-Note that we're in the fortunate position of not having any batch norm layers in this architecture, because if we did then we couldn't get away with using `parameters` (they are buffers, not parameters).
+The moral of the story - `state_dict` sometimes contains things which we don't need, or duplicates of paramters which are used twice, and it depends heavily on the exact implementation details of the model's architecture.
+
+Note that we're in the fortunate position of not having any batch norm layers in this architecture, because if we did then we couldn't get away with using `parameters` (batch norm layers contain objects like moving averages, which are buffers, not parameters).
 """)
 
     st.markdown("""
