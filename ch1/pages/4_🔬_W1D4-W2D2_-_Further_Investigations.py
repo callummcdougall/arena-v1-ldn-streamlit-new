@@ -971,7 +971,7 @@ px.histogram(x=df["length"])
 
         st.image(rootdir + "images/data_pic_2.png")
         st.markdown("""
-The distribution is very heavy-tailed, peaks around 100 characters.
+The distribution is very heavy-tailed, peaks around 1000 characters.
 
 ---
 
