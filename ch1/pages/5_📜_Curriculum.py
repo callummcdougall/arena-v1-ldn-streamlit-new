@@ -6,9 +6,12 @@ import pandas as pd
 from datetime import datetime
 import re
 import pandas as pd
-import platform
-is_local = (platform.processor() != "")
-rootdir = "" if is_local else "ch1/"
+
+import os
+if os.path.exists(os.getcwd() + "/images"):
+    rootdir = ""
+else:
+    rootdir = "ch1/"
 
 st.set_page_config(
     # initial_sidebar_state="expanded",

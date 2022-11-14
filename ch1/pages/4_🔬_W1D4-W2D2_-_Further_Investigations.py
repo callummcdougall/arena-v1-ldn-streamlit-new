@@ -1,12 +1,12 @@
 import streamlit as st
-import platform
-is_local = (platform.processor() != "")
-rootdir = "" if is_local else "ch1/"
 
 st.set_page_config(layout="wide")
 
-import pandas as pd
-import plotly.express as px
+import os
+if os.path.exists(os.getcwd() + "/images"):
+    rootdir = ""
+else:
+    rootdir = "ch1/"
 
 st.markdown("""
 <style>

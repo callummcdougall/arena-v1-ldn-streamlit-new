@@ -3,9 +3,11 @@ import streamlit as st
 import plotly.io as pio
 import re
 import json
-import platform
-is_local = (platform.processor() != "")
-rootdir = "" if is_local else "ch0/"
+import os
+if os.path.exists(os.getcwd() + "/images"):
+    rootdir = ""
+else:
+    rootdir = "ch0/"
 
 def read_from_html(filename):
     filename = rootdir + f"images/{filename}.html"
