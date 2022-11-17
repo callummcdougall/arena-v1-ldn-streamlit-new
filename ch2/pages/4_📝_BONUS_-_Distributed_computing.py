@@ -10,6 +10,11 @@ else:
 
 st.markdown("""
 <style>
+label.effi0qh3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 15px;
+}
 p {
     line-height:1.48em;
 }
@@ -24,8 +29,19 @@ header {
     background: rgba(255, 255, 255, 0) !important;
 }
 code {
-    color:red;
+    color: red;
     white-space: pre-wrap !important;
+}
+code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
+    font-size: 13px;
+}
+a.contents-el > code {
+    color: black;
+    background-color: rgb(248, 249, 251);
+}
+.css-ffhzg2 a.contents-el > code {
+    color: orange;
+    background-color: rgb(26, 28, 36);
 }
 .css-ffhzg2 code:not(pre code) {
     color: orange;
@@ -58,27 +74,21 @@ ul.contents a:hover {
 }
 </style>""", unsafe_allow_html=True)
 
-# st.sidebar.markdown("""
-# ## Table of Contents
+def section_home():
 
-# <ul class="contents">
-#     <li><a class="contents-el" href="#about-this-page">About this page</a></li>
-#     <li><a class="contents-el" href="#hints">Hints</a></li>
-#     <li><a class="contents-el" href="#test-functions">Test functions</a></li>
-#     <li><a class="contents-el" href="#tips">Tips</a></li>
-#     <li><a class="contents-el" href="#support">Support</a></li>
-# </ul>
-# """, unsafe_allow_html=True)
-
-st.image(rootdir + "images/headers/scale.png", width=320)
-
-st.markdown("""# Training at scale
-
-There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.
-
-Some highlights from this chapter include:
-
-* Building docker containers to house the models you've built
-* Using Lambda Labs to access cloud compute
-* Learning about & using tools from distributed computing
+    st.markdown("""
+We may return to this topic later in the course.
 """)
+
+func_list = [section_home]
+
+page_list = ["🏠 Home"]
+page_dict = {name: idx for idx, name in enumerate(page_list)}
+
+with st.sidebar:
+
+    radio = st.radio("Section", page_list)
+
+    st.markdown("---")
+
+func_list[page_dict[radio]]()

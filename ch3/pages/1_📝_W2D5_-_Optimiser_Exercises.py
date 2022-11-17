@@ -99,7 +99,7 @@ ul.contents a:hover {
 
 def section_home():
     st.markdown("""
-## 1️⃣ Optimizers \*\*
+## 1️⃣ Optimizers
 
 Today's exercises will take you through how different optimisation algorithms work (specifically SGD, RMSprop and Adam). You'll write your own optimisers, and use plotting functions to visualise gradient descent on loss landscapes.
 
@@ -151,18 +151,22 @@ import utils
 Some of these are strongly recommended, while others are optional. If you like, you can jump back to some of these videos while you're going through the material, if you feel like you need to.
 
 * Andrew Ng's video series on gradient descent variants:
-    * [Gradient Descent With Momentum](https://www.youtube.com/watch?v=k8fTYJPd3_I)\*\* (9 mins)
-    * [RMSProp](https://www.youtube.com/watch?v=_e-LFe_igno)\*\* (7 mins)
+    * [Gradient Descent With Momentum](https://www.youtube.com/watch?v=k8fTYJPd3_I) (9 mins)
+    * [RMSProp](https://www.youtube.com/watch?v=_e-LFe_igno) (7 mins)
     * [Adam](https://www.youtube.com/watch?v=JXQT_vxqwIs&list=PLkDaE6sCZn6Hn0vK8co82zjQtt3T2Nkqc&index=23) (7 mins)
-* [A Visual Explanation of Gradient Descent Methods](https://towardsdatascience.com/a-visual-explanation-of-gradient-descent-methods-momentum-adagrad-rmsprop-adam-f898b102325c)\*
+* [A Visual Explanation of Gradient Descent Methods](https://towardsdatascience.com/a-visual-explanation-of-gradient-descent-methods-momentum-adagrad-rmsprop-adam-f898b102325c)
 * [Why Momentum Really Works (distill.pub)](https://distill.pub/2017/momentum/)
 """)
 
     st.markdown(r"""
 ## Gradient Descent
 
-Yesterday, you implemented backpropagation. Today, we're going to use the gradients produced by backpropagation for optimizing a loss function using gradient descent.
+Yesterday, you implemented backpropagation. Today, we're going to use the gradients produced by backpropagation for optimizing a loss function using gradient descent.""")
 
+    st.info("""
+Note the conceptual shift here - we're not optimising the parameters of a neural network; we're optimising parameters `(x, y)` which represent coordinates at which we evaluate a function. We're doing this because the image of "loss landscapes" can be very helpful when thinking about the behaviour of different gradient descent algorithms.""")
+
+    st.markdown("""
 A loss function can be any differentiable function such that we prefer a lower value. To apply gradient descent, we start by initializing the parameters to random values (the details of this are subtle), and then repeatedly compute the gradient of the loss with respect to the model parameters. It [can be proven](https://tutorial.math.lamar.edu/Classes/CalcIII/DirectionalDeriv.aspx) that for an infinitesimal step, moving in the direction of the gradient would increase the loss by the largest amount out of all possible directions.
 
 We actually want to decrease the loss, so we subtract the gradient to go in the opposite direction. Taking infinitesimal steps is no good, so we pick some learning rate $\lambda$ (also called the step size) and scale our step by that amount to obtain the update rule for gradient descent:
