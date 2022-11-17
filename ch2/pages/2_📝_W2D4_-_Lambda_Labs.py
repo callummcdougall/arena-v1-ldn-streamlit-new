@@ -9,7 +9,7 @@ import os
 if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
-    rootdir = "ch4B/"
+    rootdir = "ch2/"
 
 def read_from_html(filename):
     filename = rootdir + f"images/{filename}.html"

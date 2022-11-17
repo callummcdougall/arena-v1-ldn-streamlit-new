@@ -4,7 +4,7 @@ import os
 if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
-    rootdir = "ch1/"
+    rootdir = "ch2/"
 
 st.set_page_config(layout="wide")
 
