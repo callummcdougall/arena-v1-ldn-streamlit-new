@@ -6,7 +6,7 @@ import os
 if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
-    rootdir = "ch2/"
+    rootdir = "ch3/"
 
 st.markdown("""
 <style>
