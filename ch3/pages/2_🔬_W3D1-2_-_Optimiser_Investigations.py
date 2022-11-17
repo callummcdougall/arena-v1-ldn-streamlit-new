@@ -177,8 +177,9 @@ Note - if you're confused by the concepts of **preconditioned gradient descent**
 ## 4. Shampoo
 
 We briefly mentioned Shampoo yesterday, a special type of structure-aware preconditioning algorithm. Try to implement it, based on algorithm 1 from [this paper](https://arxiv.org/pdf/1802.09568.pdf).""")
-
-    st.image(rootdir + "images/shampoo.png")
+    cols = st.columns([5, 1])
+    with cols[0]:
+        st.image(rootdir + "images/shampoo.png")
 
     st.markdown("""
 You can do this by defining an optimizer just like your `SGD`, `RMSprop` and `Adam` implementations yesterday. Try using your optimizer on Rosenbrock's banana, and on some of the neural networks you've made so far like your ConvNet or ResNet. How does it do compared to the other algorithms?
