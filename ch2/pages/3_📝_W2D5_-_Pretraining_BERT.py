@@ -190,6 +190,7 @@ def decompress(*splits: str) -> str:
     ]
 
 train_text, val_text, test_text = decompress("train", "valid", "test")
+```
 
 ### Preprocessing
 
