@@ -96,6 +96,20 @@ To conclude, we've suggested a few bonus exercises if you've managed to get thro
 """)
  
 def section_1():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#introduction">Introduction</a></li>
+   <li><a class="contents-el" href="#reading">Reading</a></li>
+   <li><a class="contents-el" href="#data-preparation">Data Preparation</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#vocab-size">Vocab Size</a></li>
+       <li><a class="contents-el" href="#context-length">Context Length</a></li>
+       <li><a class="contents-el" href="#data-inspection">Data Inspection</a></li>
+       <li><a class="contents-el" href="#use-of-zipfile-library">Use of zipfile library</a></li>
+</ul>
+""", unsafe_allow_html=True)
     st.markdown("""
 ```python
 import hashlib
@@ -351,6 +365,18 @@ if MAIN:
 """)
 
 def section_2():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#introduction">Introduction</a></li>
+   <li><a class="contents-el" href="#data-&-configs">Data & configs</a></li>
+   <li><a class="contents-el" href="#learning-rate-schedule">Learning Rate Schedule</a></li>
+   <li><a class="contents-el" href="#weight-decay">Weight Decay</a></li>
+   <li><a class="contents-el" href="#training-loop">Training Loop</a></li>
+   <li><a class="contents-el" href="#model-evaluation">Model Evaluation</a></li>
+</ul>
+""", unsafe_allow_html=True)
     st.markdown("""
 ## Introduction
 
@@ -520,6 +546,17 @@ if MAIN:
 """)
 
 def section_3():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#context-length-experimentation">Context Length Experimentation</a></li>
+   <li><a class="contents-el" href="#whole-word-masking">Whole Word Masking</a></li>
+   <li><a class="contents-el" href="#improved-versions-of-bert">Improved Versions of BERT</a></li>
+   <li><a class="contents-el" href="#next-sentence-prediction">Next Sentence Prediction</a></li>
+   <li><a class="contents-el" href="#applying-scaling-laws">Applying Scaling Laws</a></li>
+</ul>
+""", unsafe_allow_html=True)
     st.markdown(r"""
 ## Context Length Experimentation
 
@@ -549,7 +586,7 @@ while keeping the total proportions of masked tokens the same.
 
 Try implementing this masking method, and see if you get any benefit. Why do you think you might expect to see benefit from this?
 
-### Improved Versions of BERT
+## Improved Versions of BERT
 
 Read about one of the improved versions of BERT and try to replicate it.
 
@@ -563,13 +600,13 @@ If you're feeling especially ambitious, two other models you could try are:
 - [ELECTRA](https://arxiv.org/pdf/2003.10555.pdf%27)
 - [DEBERTA](https://arxiv.org/pdf/2006.03654.pdf)
 
-### Next Sentence Prediction
+## Next Sentence Prediction
 
 Try to pretrain on the next sentence prediction task.
 
 You can see [this blog post](https://towardsdatascience.com/bert-for-next-sentence-prediction-466b67f8226f) for an idea of how NSP works in practice, when you're performing inference with BERT.
 
-### Applying Scaling Laws
+## Applying Scaling Laws
 
 The paper [Training Compute-Optimal Large Language Models](https://arxiv.org/pdf/2203.15556.pdf) attempts to find the optimal model and dataset sizes for a given amount of compute. If you were to extrapolate their curves down to our very limited amount of compute, what does the paper suggest would be the ideal model and dataset size?
 
