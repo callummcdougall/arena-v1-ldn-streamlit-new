@@ -82,15 +82,15 @@ def section_home():
     st.markdown("""
 Today, we'll apply what we learned about BERT at the end of the transformers chapter, and the training at scale material from the current chapter, and train BERT from scratch on a GPU.
 
-# 1️⃣ Wikitext
+## 1️⃣ Wikitext
 
 In this section, you'll load in your data for finetuning, and also run some of your own experiments.
 
-# 2️⃣ Pretraining
+## 2️⃣ Pretraining
 
 In this section, you'll actually pretrain your BERT transformer.
 
-# 3️⃣ Bonus exercises
+## 3️⃣ Bonus exercises
 
 To conclude, we've suggested a few bonus exercises if you've managed to get through the first two sections.
 """)
