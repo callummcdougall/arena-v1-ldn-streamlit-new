@@ -11,24 +11,6 @@ if os.path.exists(os.getcwd() + "/images"):
 else:
     rootdir = "ch2/"
 
-def read_from_html(filename):
-    filename = rootdir + f"images/{filename}.html"
-    with open(filename) as f:
-        html = f.read()
-    call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
-    call_args = json.loads(f'[{call_arg_str}]')
-    plotly_json = {'data': call_args[1], 'layout': call_args[2]}    
-    return pio.from_json(json.dumps(plotly_json))
-
-def get_fig_dict():
-    return {name: read_from_html(name) for name in ["autoencoder_interpolation", "vae_interp"]}
-
-if "fig_dict" not in st.session_state:
-    fig_dict = get_fig_dict()
-    st.session_state["fig_dict"] = fig_dict
-else:
-    fig_dict = st.session_state["fig_dict"]
-
 st.markdown("""
 <style>
 label.effi0qh3 {
