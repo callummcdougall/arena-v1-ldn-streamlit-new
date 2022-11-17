@@ -177,7 +177,7 @@ Note - if you're confused by the concepts of **preconditioned gradient descent**
 ## 4. Shampoo
 
 We briefly mentioned Shampoo yesterday, a special type of structure-aware preconditioning algorithm. Try to implement it, based on algorithm 1 from [this paper](https://arxiv.org/pdf/1802.09568.pdf).""")
-    cols = st.columns([5, 1])
+    cols = st.columns([3, 1])
     with cols[0]:
         st.image(rootdir + "images/shampoo.png")
 
