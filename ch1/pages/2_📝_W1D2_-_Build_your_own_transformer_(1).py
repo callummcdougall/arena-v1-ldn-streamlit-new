@@ -6,7 +6,12 @@ if os.path.exists(os.getcwd() + "/images"):
 else:
     rootdir = "ch1/"
 is_local = (rootdir == "")
-
+import base64
+def img_to_html(img_path, width):
+    with open(rootdir + "images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
 st.set_page_config(layout="wide")
 
 # code > span.string {
@@ -237,11 +242,11 @@ Note - it is a common practice to stack the matrices `W_Q`, `W_K`, `W_V` into a 
 
 """)
 
-    st.image(rootdir + "images/computation_split.png", width=350)
+    st.markdown(img_to_html('computation_split.png', width=350), unsafe_allow_html=True)
 
     st.markdown("You can do this:")
 
-    st.image(rootdir + "images/computation_parallel.png", width=580)
+    st.markdown(img_to_html('computation_parallel.png', width=580), unsafe_allow_html=True)
 
     st.markdown("""
 You should use this method in your attention block implementation.
@@ -469,7 +474,7 @@ device = t.device("cuda:0" if t.cuda.is_available() else "cpu")
 You should now get `"cuda:0"` when you print your device. If you still get `cpu`, then you should examine your installation of PyTorch. The easiest way to install the right version of PyTorch is directly from the [PyTorch website](https://pytorch.org/). They give you a useful grid, and by selecting the right boxes you can get a command which you can run to install PyTorch with full GPU faculties:
 """)
 
-    st.image(rootdir + "images/install_pytorch.png")
+    st.markdown(img_to_html('install_pytorch.png', width=750), unsafe_allow_html=True)
 
     st.markdown("""
 

@@ -1,11 +1,16 @@
 import streamlit as st
-
+import base64
 import os
 if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
     rootdir = "ch0/"
 is_local = (rootdir == "")
+def img_to_html(img_path, width):
+    with open("images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
 
 st.markdown("""
 <style>
@@ -138,7 +143,7 @@ import utils
 We'll be attempting to build the following neural network architecture:
 """)
 
-    st.image(rootdir + "images/mnist_diagram.png")
+    st.markdown(img_to_html('mnist_diagram.png', width=900), unsafe_allow_html=True)
 
     st.markdown("""
 Let's briefly discuss this architecture. We see that it starts with two consecutive stacks of:
@@ -778,9 +783,7 @@ In order to make sure there is a 1-1 correspondence between your model and PyTor
         ```
 """)
 
-    cols1, cols2, cols3 = st.columns([1, 15, 1])
-    with cols2:
-        st.image(rootdir + "images/resnet-compared.png")
+    st.markdown(img_to_html('resnet-compared.png', width=900), unsafe_allow_html=True)
 
     st.info("""
 I just want to emphasise that this task is meant to be really difficult! If you're able to implement this then that's amazing, but if you've been trying for a while without making much progress you should definitely move on. Alternatively, you can ping me (Callum) on Slack with screenshots of your model and I can help with troubleshooting. In the meantime, you can proceed with the rest of the exercises using PyTorch's implementation.
@@ -844,7 +847,7 @@ Our `images` are of type `PIL.Image.Image`, so we can just call them in a cell t
 images[0]
 ```""")
 
-    st.image(rootdir + "images/chimpanzee.jpg", width=600)
+    st.markdown(img_to_html('chimpanzee.png', width=600), unsafe_allow_html=True)
 
     st.markdown("""We now need to define a `transform` object like we did for MNIST. We will use the same transforms to convert the PIL image to a tensor, and to normalize it. But we also want to resize the images to `height=224, width=224`, because not all of them start out with this size and we need them to be consistent before passing them through our model. You should use `transforms.Resize` for this. Note that you should apply this resize to a tensor, not to the PIL image.
 

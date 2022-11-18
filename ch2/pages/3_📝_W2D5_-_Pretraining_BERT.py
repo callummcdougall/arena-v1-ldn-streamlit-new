@@ -1,13 +1,19 @@
 import streamlit as st
-import platform
+import base64
+st.set_page_config(layout="wide")
 import os
 if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
     rootdir = "ch2/"
 is_local = (rootdir == "")
-
-st.set_page_config(layout="wide")
+def img_to_html(img_path, width):
+    with open(rootdir + "images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
+def st_image(name, width):
+    st.markdown(img_to_html(name, width=width), unsafe_allow_html=True)
 
 # code > span.string {
 #     color: red !important;
@@ -106,7 +112,7 @@ def section_1():
    <li><a class="contents-el" href="#data-preparation">Data Preparation</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#vocab-size">Vocab Size</a></li>
-       <li><a class="contents-el" href="#context-length">Context Length</a></li>
+       <li><a class="contents-el" href="#context-length-experimentation">Context Length Experimentation</a></li>
        <li><a class="contents-el" href="#data-inspection">Data Inspection</a></li>
        <li><a class="contents-el" href="#use-of-zipfile-library">Use of zipfile library</a></li>
 </ul>
@@ -391,7 +397,7 @@ For comparison, the [Induction Heads paper](https://transformer-circuits.pub/202
 
 Today, if your model can beat the baseline of just predicting the token frequencies, you can consider it a success. Training the model to do better than predicting token frequencies may take longer than you have available. For reference, to see whether your training run is off-track, here is a plot of the loss for a successful training run:
 """)
-    st.image(rootdir + "images/trainloss.png")
+    st_image("trainloss.png", 600)
     st.markdown("""
 ## Data & configs
 
@@ -444,7 +450,7 @@ Assume that the initial learning rate and the final learning rate are both 1/10t
 """)
 
     with st.expander("Click to see the expected LR Schedule."):
-        st.image(rootdir + "images/lr_schedule.png")
+        st_image("lr_schedule.png", 700)
 
     st.markdown(r"""
 ```python
@@ -592,9 +598,7 @@ Try implementing this masking method, and see if you get any benefit. Why do you
 Read about one of the improved versions of BERT and try to replicate it.
 
 [DistilBERT](https://arxiv.org/abs/1910.01108v4) would be a good one to try. It is 40% smaller than the original BERT-base model, is 60% faster than it, and retains 97% of its functionality. It is trained using a teacher-student model called **knowledge distillation**, It also uses a more complicated loss function combining language modeling, distillation and cosine-distance losses.""")
-    cols = st.columns([5, 1])
-    with cols[0]:
-        st.image(rootdir + "images/distilbert.png")
+    st_image("distilbert.png", 600)
     st.markdown("""
 If you're feeling especially ambitious, two other models you could try are:
 

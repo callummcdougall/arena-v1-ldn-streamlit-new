@@ -1,5 +1,5 @@
 import streamlit as st
-
+import base64
 import plotly.io as pio
 import re
 import json
@@ -9,6 +9,11 @@ if os.path.exists(os.getcwd() + "/images"):
 else:
     rootdir = "ch0/"
 is_local = (rootdir == "")
+def img_to_html(img_path, width):
+    with open("images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
 
 def read_from_html(filename):
     filename = rootdir + f"images/{filename}.html"
@@ -364,7 +369,7 @@ One way to do hyperparameter search is to choose a set of values for each hyperp
 A much better idea is for each hyperparameter, decide on a sampling distribution and then on each trial just sample a random value from that distribution. This is called **random search** and back in 2012, you could get a [publication](https://www.jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf) for this. The diagram below shows the main reason that random search outperforms grid search. Empirically, some hyperparameters matter more than others, and random search benefits from having tried more distinct values in the important dimensions, increasing the chances of finding a "peak" between the grid points.
 """)
 
-    st.image(rootdir + "images/grid_vs_random.png")
+    st.markdown(img_to_html('grid_vs_random.png', width=550), unsafe_allow_html=True)
 
     st.markdown("""
 It's worth noting that both of these searches are vastly less efficient than gradient descent at finding optima - imagine if you could only train neural networks by randomly initializing them and checking the loss! Either of these search methods without a dose of human (or eventually AI) judgement is just a great way to turn electricity into a bunch of models that don't perform very well.

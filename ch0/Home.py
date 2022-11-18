@@ -1,4 +1,10 @@
 import streamlit as st
+import base64
+def img_to_html(img_path, width):
+    with open("images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%' src='data:image/png;base64,{encoded}' class='img-fluid'>"
 
 st.set_page_config(layout="wide")
 
@@ -73,7 +79,7 @@ def page():
 </ul>
 """, unsafe_allow_html=True)
 
-    st.image(rootdir + "images/headers/pre.png", width=320)
+    st.markdown(img_to_html('headers/pre.png', width=320), unsafe_allow_html=True)
 
     st.markdown("""
 

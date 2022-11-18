@@ -1,5 +1,5 @@
 import streamlit as st
-
+import base64
 import plotly.io as pio
 import re
 import json
@@ -10,6 +10,14 @@ if os.path.exists(os.getcwd() + "/images"):
 else:
     rootdir = "ch3/"
 is_local = (rootdir == "")
+
+def img_to_html(img_path, width):
+    with open(rootdir + "images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%;st-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
+def st_image(name, width):
+    st.markdown(img_to_html(name, width=width), unsafe_allow_html=True)
 
 def read_from_html(filename):
     filename = rootdir + f"images/{filename}.html"
@@ -726,7 +734,7 @@ utils.test_MultiStepLR(MultiStepLR, SGD)
 
 There are more advanced learning rate schedulers available in PyTorch. For example, there are [cyclic learning rates](https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.CyclicLR.html#torch.optim.lr_scheduler.CyclicLR), which are based on the core intuition that an optimal learning rate range exists, and we should vary the learning rate in a disciplined way in order to make sure you spend time in that range.""")
 
-    st.image(rootdir + "images/lr.png")
+    st_image("lr.png", 300)
 
     st.markdown("""
 There are also more complicated dependencies you can use - for instance, [`ReduceLROnPlateau`](https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html#torch.optim.lr_scheduler.ReduceLROnPlateau) will reduce the learning rate once a metric has stopped improving. 

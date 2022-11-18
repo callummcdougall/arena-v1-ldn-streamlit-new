@@ -1,5 +1,5 @@
 import streamlit as st
-
+import base64
 import plotly.io as pio
 import re
 import json
@@ -10,6 +10,11 @@ if os.path.exists(os.getcwd() + "/images"):
 else:
     rootdir = "ch0/"
 is_local = (rootdir == "")
+def img_to_html(img_path, width):
+    with open(rootdir + "images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%' src='data:image/png;base64,{encoded}' class='img-fluid'>"
 
 def read_from_html(filename):
     filename = rootdir + f"images/{filename}.html"
@@ -538,7 +543,8 @@ A typical convolution operation is illustrated in the sketch below. Some notes o
 * The sketch assumes a batch size of 1. To generalise to a larger batch number, we can just imagine this operation being repeated identically on every input.
 """)
 
-    st.image(rootdir + "images/conv1d_illustration.png")
+    st.markdown(img_to_html('conv1d_illustration.png', width=900), unsafe_allow_html=True)
+    st.markdown("")
 
     st.markdown("""
 Below, you should implement `conv1d_minimal`. This is a function which works just like `conv1d`, but takes the default stride and padding values (these will be added back in later). You are allowed to use `as_strided` and `einsum`.
@@ -587,8 +593,8 @@ utils.test_conv1d_minimal(conv1d_minimal)
 
 2D convolutions are conceptually similar to 1D. The only difference is in how you move the kernel across the tensor as you take your convolution. In this case, you will be moving the tensor across two dimensions:
 """)
-    st.image(rootdir + "images/conv2d_illustration.png", width=600)
-
+    st.markdown(img_to_html('conv2d_illustration.png', width=540), unsafe_allow_html=True)
+    st.markdown("")
     st.markdown("""
 For this reason, 1D convolutions tend to be used for signals (e.g. audio), 2D convolutions are used for images, and 3D convolutions are used for 3D scans (e.g. in medical applications). 
 

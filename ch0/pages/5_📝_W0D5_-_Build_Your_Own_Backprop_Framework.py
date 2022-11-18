@@ -1,15 +1,19 @@
 import streamlit as st
-
 import plotly.io as pio
 import re
 import json
-
 import os
+import base64
 if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
     rootdir = "ch0/"
 is_local = (rootdir == "")
+def img_to_html(img_path, width):
+    with open("images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
 
 def read_from_html(filename):
     filename = rootdir + f"images/{filename}.html"

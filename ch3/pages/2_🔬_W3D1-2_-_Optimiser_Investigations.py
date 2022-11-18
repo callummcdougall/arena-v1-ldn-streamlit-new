@@ -1,13 +1,21 @@
 import streamlit as st
 
 st.set_page_config(layout="wide")
-
+import base64
 import os
 if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
     rootdir = "ch3/"
 is_local = (rootdir == "")
+
+def img_to_html(img_path, width):
+    with open(rootdir + "images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%;st-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
+def st_image(name, width):
+    st.markdown(img_to_html(name, width=width), unsafe_allow_html=True)
 
 st.markdown("""
 <style>
@@ -89,7 +97,6 @@ def section1():
 ## Table of Contents
 
 <ul class="contents">
-    <li><a class="contents-el" href="#1-parameter-groups">1. Parameter groups</a></li>
     <li><a class="contents-el" href="#1-benchmark-different-optimizers-and-learning-rates">1. Benchmark different optimizers and learning rates</a></li>
     <li><a class="contents-el" href="#2-noisy-quadratic-model">2. Noisy Quadratic Model</a></li>
     <li><a class="contents-el" href="#3-shampoo">3. Shampoo</a></li>
@@ -98,7 +105,7 @@ def section1():
 </ul>
 """, unsafe_allow_html=True)
     st.markdown("""
-## 2. Benchmark different optimizers and learning rates
+## 1. Benchmark different optimizers and learning rates
 
 Now that you've learned about different optimizers and learning rates, and you've used `wandb` to run hyperparameter sweeps, you now have the opportunity to combine the two and run your own experiments. A few things which might be interesting to investigate:
 
@@ -106,7 +113,7 @@ Now that you've learned about different optimizers and learning rates, and you'v
 * It was mentioned yesterday that PyTorch applies weight decay to all parameters equally, rather than only to weights and not to biases. What happens when you run experiments on your ConvNet or ResNet with weight decay varying across weights and biases?
     * Note - you'll need to use **parameter groups** for this task; see exercise 1 above. You can find all the biases by iterating through `model.named_parameters()`, and checking whether the name contains the string `"bias"`.
 
-## 3. Noisy Quadratic Model
+## 2. Noisy Quadratic Model
 
 As we discussed yesterday, a large bach generall means that the estimate of the gradient is closer to that of the true gradient over the entire dataset (because it is an aggregate of many different datapoints). But empirically, we tend to observe a [**critical batch size**](https://arxiv.org/pdf/1812.06162.pdf), above which training becomes less-data efficient.
 
@@ -125,21 +132,20 @@ Note - if you're confused by the concepts of **preconditioned gradient descent**
 """)
 
     st.markdown("""
-## 4. Shampoo
+## 3. Shampoo
 
 We briefly mentioned Shampoo yesterday, a special type of structure-aware preconditioning algorithm. Try to implement it, based on algorithm 1 from [this paper](https://arxiv.org/pdf/1802.09568.pdf).""")
-    cols = st.columns([3, 1])
-    with cols[0]:
-        st.image(rootdir + "images/shampoo.png")
+    st_image("shampoo.png", 540)
+    st.markdown("")
 
     st.markdown("""
 You can do this by defining an optimizer just like your `SGD`, `RMSprop` and `Adam` implementations yesterday. Try using your optimizer on Rosenbrock's banana, and on some of the neural networks you've made so far like your ConvNet or ResNet. How does it do compared to the other algorithms?
 
-## 5. The Colorization Problem
+## 4. The Colorization Problem
 
 This problem was described in the [Distill blog post on momentum](https://distill.pub/2017/momentum/#:~:text=Example%3A%20The%20Colorization%20Problem). Can you implement this problem, and test it out with different optimizers and hyperparameters? What kinds of results do you get?
 
-## 6. Extra reading
+## 5. Extra reading
 
 If none of the experiments above seem all that exciting to you, then you can read some more about optimisation instead. As well as yesterday's resources, a few you might enjoy are:
 

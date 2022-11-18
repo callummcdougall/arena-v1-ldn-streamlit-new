@@ -1,5 +1,5 @@
 import streamlit as st
-
+import base64
 st.set_page_config(layout="wide")
 
 import os
@@ -8,6 +8,11 @@ if os.path.exists(os.getcwd() + "/images"):
 else:
     rootdir = "ch1/"
 is_local = (rootdir == "")
+def img_to_html(img_path, width):
+    with open(rootdir + "images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
 
 st.markdown("""
 <style>
@@ -89,21 +94,21 @@ Below, you can find a description of each of the set of exercises on offer. You 
 
 ---
 
-### 1️⃣ Build and sample from GPT-2
+## 1️⃣ Build and sample from GPT-2
 
 As was mentioned in yesterday's exercises, you've already built something that was very close to GPT-2. In this task, you'll be required to implement an exact copy of GPT-2, and load in the weights just like you did last week for ResNet. Just like last week, this might get quite fiddly!
 
 We will also extend last week's work by looking at some more advanced sampling methods, such as **beam search**.
 
-### 2️⃣ Build BERT
+## 2️⃣ Build BERT
 
 BERT is an encoder-only transformer, which has a different kind of architecture (and a different purpose) than GPT-2. In this task, you'll build a copy of BERT and load in weights, then fine-tune it on a sentiment analysis task.
 
-### 3️⃣ Finetune BERT
+## 3️⃣ Finetune BERT
 
 Once you've built BERT, you'll be able to train it to perform well on tasks like classification and sentiment analysis. This finetuning task requires you to get hands-on with a bit of data cleaning and wrangling!
 
-### 4️⃣ Other bonus exercises
+## 4️⃣ Other bonus exercises
 
 Visit this page for a series of fun exercises to attempt! These are much more open-ended than the relatively well-defined, structured exercises above.
 """)
@@ -165,10 +170,7 @@ utils.print_param_count(my_gpt, gpt)
 Ideally, this will produce output that looks something like this (up to possibly having different layer names):
 """)
 
-    # st.image("ch1/images/gpt-compared.png")
-    col1, col2, col3 = st.columns([1, 10, 1])
-    with col2:
-        st.image(rootdir + "images/gpt-compared.png")
+    st.markdown(img_to_html('gpt-compared.png', width=770), unsafe_allow_html=True)
 
     st.markdown("""
 
@@ -635,48 +637,7 @@ You can see how this is applied in the diagram in the [BERT paper](https://arxiv
 
 Rather than simply ending with `LayerNorm -> Tied Unembed`, the Bert Language Model ends with a sequence of `Linear -> GELU -> LayerNorm -> Tied Unembed`. Additionally, the tied unembedding in BERT has a bias (which isn't tied to anything, i.e. it's just another learned parameter). The best way to handle this is to define the bias as an `nn.Parameter` object with size `(vocab_size,)`. Unfortunately, this seems to make copying weights a bit messier. I think `nn.Parameter` objects are registered first even if they're defined last, so you might find the output of `utils.print_param_count(my_bert, bert)` is shifted by 1 (see image below for what my output looked like), and you'll need to slightly rewrite the function you used to copy weights from GPT (more on this below).""")
 
-    cols = st.columns([1, 10, 1])
-    with cols[1]:
-        st.image(rootdir + "images/bert-compared.png")
-
-    # with st.expander("""Question - how does HuggingFace's BERT model implement the tied encoding? You will have to inspect their BERT model in order to find the answer."""):
-    #     st.markdown("""
-    # If you print out BERT, then at the start you can see:
-
-    # ```
-    # BertForMaskedLM(
-    #   (bert): BertModel(
-    #     (embeddings): BertEmbeddings(
-    #       (word_embeddings): Embedding(28996, 768, padding_idx=0)
-    #       ...
-    # ```
-
-    # and at the end you can see:
-
-    # ```
-    #   ...
-    #   (cls): BertOnlyMLMHead(
-    #     (predictions): BertLMPredictionHead(
-    #       ...
-    #       (decoder): Linear(in_features=768, out_features=28996, bias=True)
-    #     )
-    #   )
-    # )
-    # ```
-
-    # If you compare the weights of these layers (using `bert.bert.embeddings.word_embeddings` and `bert.cls.predictions.decoder`), you can see that the weights are exactly the same:
-
-    # ```python
-    # unembed_weight = bert.cls.predictions.decoder.weight
-    # embed_weight = bert.bert.embeddings.word_embeddings.weight
-
-    # t.testing.assert_close(unembed_weight, embed_weight.T)
-    # ```
-
-    # We can conclude that this BERT model implements the unembedding as a linear layer with bias.
-
-
-    # """)
+    st.markdown(img_to_html('bert-compared.png', width=770), unsafe_allow_html=True)
 
     st.markdown(r"""
 ## BERT config
@@ -795,6 +756,7 @@ def section3():
 ## Table of Contents
 
 <ul class="contents">
+   <li><a class="contents-el" href="#imports">Imports</a></li>
    <li><a class="contents-el" href="#fine-tuning-bert">Fine-Tuning BERT</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#imdb-dataset">IMDB Dataset</a></li>
@@ -818,6 +780,8 @@ def section3():
 </ul>
 """, unsafe_allow_html=True)
     st.markdown("""
+## Imports
+
 ```python
 import os
 import re
@@ -959,7 +923,7 @@ df["length"] = [len(text) for text in df["text"]]
 
 px.histogram(x=df["stars"]).update_layout(bargap=0.1)
 ```""")
-        st.image(rootdir + "images/data_pic_1.png")
+        st.markdown(img_to_html('data_pic_1.png', width=650), unsafe_allow_html=True)
         st.markdown("""
 There are no five or six star reviews.
 
@@ -970,7 +934,7 @@ px.histogram(x=df["length"])
 ```
 """)
 
-        st.image(rootdir + "images/data_pic_2.png")
+        st.markdown(img_to_html('data_pic_2.png', width=650), unsafe_allow_html=True)
         st.markdown("""
 The distribution is very heavy-tailed, peaks around 1000 characters.
 
@@ -980,7 +944,7 @@ The distribution is very heavy-tailed, peaks around 1000 characters.
 px.histogram(df, x="length", color="is_positive", barmode="overlay")
 ```
 """)
-        st.image(rootdir + "images/data_pic_3.png")
+        st.markdown(img_to_html('data_pic_3.png', width=650), unsafe_allow_html=True)
         st.markdown("""
 Slightly more of the shirt 200-500 word reviews for positive reviews, but apart from that the distributions are very similar.
 
@@ -1165,9 +1129,9 @@ If the model was in fact wrong, speculate on why it got that example wrong.
 """)
 
 def section4():
-    st.markdown("""
-# LeetCode""")
-    st.image(rootdir + "images/balanced_brackets.png", width=320)
+    st.markdown("""# LeetCode""")
+    st.markdown("")
+    st.markdown(img_to_html('balanced_brackets.png', width=400), unsafe_allow_html=True)
     st.markdown("""
 Pick some of your favourite easy LeetCode problems (e.g. detecting whether a bracket string is balanced), and train a transformer to solve it. Some questions you might like to think about:
 
@@ -1201,7 +1165,7 @@ Hopefully, stuff like this will become clearer in the interpretability week, whe
 
 # Semantle""")
 
-    st.image(rootdir + "images/semantle.png", width=150)
+    st.markdown(img_to_html('semantle.png', width=150), unsafe_allow_html=True)
     st.markdown("""
     
 Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version? 

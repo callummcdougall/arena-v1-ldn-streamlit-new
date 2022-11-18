@@ -1,13 +1,19 @@
 import streamlit as st
-
+import base64
 st.set_page_config(layout="wide")
-
 import os
 if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
     rootdir = "ch3/"
 is_local = (rootdir == "")
+def img_to_html(img_path, width):
+    with open(rootdir + "images/" + img_path, "rb") as file:
+        img_bytes = file.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
+def st_image(name, width):
+    st.markdown(img_to_html(name, width=width), unsafe_allow_html=True)
 
 st.markdown("""
 <style>
@@ -72,7 +78,7 @@ ul.contents a:hover {
 # """, unsafe_allow_html=True)
 
 def page():
-    st.image("ch1/images/headers/opti.png", width=320)
+    st_image("headers/opti.png", width=320)
 
     st.markdown("""# Optimisers
 
