@@ -185,14 +185,14 @@ ul.contents a:hover {
 
 def page():
     st.markdown("""
-# Curriculum
+    # Curriculum
 
-The symbol at the end of each line links to the material for that day, but it also indicates what type of day it will be: 📝 for **exercises**, 📚 for **reading**, and 🔬 for **open-ended projects/investigations**.
+    The symbol at the end of each line links to the material for that day, but it also indicates what type of day it will be: 📝 for **exercises**, 📚 for **reading**, and 🔬 for **open-ended projects/investigations**.
 
-You can click on the tab headers below to navigate through the chapters, and click on the title of each day to be redirected to that day's material.
+    You can click on the tab headers below to navigate through the chapters, and click on the title of each day to be redirected to that day's material.
 
-You can also see a <u>calendar view</u> and a <u>daily view</u> in the dropdowns immediately below. The calendar view provides a nice visualisation of the whole programme, and the daily view should help you quickly find the exercises for a certain day.
-""", unsafe_allow_html=True)
+    You can also see a <u>calendar view</u> and a <u>daily view</u> in the dropdowns immediately below. The calendar view provides a nice visualisation of the whole programme, and the daily view should help you quickly find the exercises for a certain day.
+    """, unsafe_allow_html=True)
 
     with st.expander("Calendar view"):
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
@@ -209,55 +209,55 @@ You can also see a <u>calendar view</u> and a <u>daily view</u> in the dropdowns
         st.subheader("Chapter 0 - Prerequisites")
 
         st.markdown("""
-<div style="color:gray; margin-top:-30px">
-Duration: 5 days
-</div>
+        <div style="color:gray; margin-top:-30px">
+        Duration: 5 days
+        </div>
         """, unsafe_allow_html=True)
 
         st.success("""
-💡 Before embarking on this curriculum, it is necessary to understand the basics of deep learning, including basic machine learning terminology, what neural networks are, and how to train them.
+    💡 Before embarking on this curriculum, it is necessary to understand the basics of deep learning, including basic machine learning terminology, what neural networks are, and how to train them.
 
-This week concludes with you building and finetuning your own Residual Neural Network based on the **ResNet34** architecture, to classify images from ImageNet.""")
+    This week concludes with you building and finetuning your own Residual Neural Network based on the **ResNet34** architecture, to classify images from ImageNet.""")
 
         st.info("""
-📜 This chapter's material is primarily based on the first week of MLAB2. It also draws on several PyTorch tutorials.
-""")
+    📜 This chapter's material is primarily based on the first week of MLAB2. It also draws on several PyTorch tutorials.
+    """)
 
 
         ch1_columns = st.columns(1)
         with ch1_columns[0]:
             st.markdown("""<h5><code>W0D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D1_-_Fourier_Transforms">Fourier Transforms 📝</a></h5>""", unsafe_allow_html=True)
             st.markdown("""
-Get comfortable with the basics of how exercises work, via an implementation of Fourier transforms. Then build a very basic neural network from the ground up, just to get an idea of what role all the different PyTorch components play.
+        Get comfortable with the basics of how exercises work, via an implementation of Fourier transforms. Then build a very basic neural network from the ground up, just to get an idea of what role all the different PyTorch components play.
 
----
-""")
+        ---
+        """)
             st.markdown("""<h5><code>W0D2</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D2_-_as_strided,_convolutions_and_CNNs">as_strided, convolutions and CNNs 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
-Learn about `as_strided`, as well as `einops` and `einsum` - important libraries for expressing more complicated linear operations within neural networks. Then apply this knowledge to build your own Linear and Convolutional layers, which inherit from `nn.Module`. 
+        Learn about `as_strided`, as well as `einops` and `einsum` - important libraries for expressing more complicated linear operations within neural networks. Then apply this knowledge to build your own Linear and Convolutional layers, which inherit from `nn.Module`. 
 
----
-""")
+        ---
+        """)
             st.markdown("""<h5><code>W0D3</code> & <code>W0D4</code>&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D3_-_ResNets_and_fine-tuning">ResNets and fine-tuning 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
-Apply the lessons from the previous day, to assemble and train a CNN out of layers that you built yourself. Use it to classify MNIST data. Then, build a more complicated architecture (ResNet34) and fine-tune it on ImageNet data.
+        Apply the lessons from the previous day, to assemble and train a CNN out of layers that you built yourself. Use it to classify MNIST data. Then, build a more complicated architecture (ResNet34) and fine-tune it on ImageNet data.
 
-Today's exercises are expected to run over into part of tomorrow.
+        Today's exercises are expected to run over into part of tomorrow.
 
----
-""")
+        ---
+        """)
             st.markdown("""<h5><code>W0D4</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D4_-_Weights_and_Biases">Weights and Biases 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
-Today, you'll be introduced to **Weights and Biases**, a tool for logging and efficient hyperparameter search. You should spend the morning on W0D3, since the associated exercises here should only take an afternoon.
+    Today, you'll be introduced to **Weights and Biases**, a tool for logging and efficient hyperparameter search. You should spend the morning on W0D3, since the associated exercises here should only take an afternoon.
 
----
-    """)
+    ---
+        """)
             st.markdown("""<h5><code>W0D5</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D5_-_Build_Your_Own_Backprop_Framework">Build Your Own Backpropagation Framework 📝</a></h5>""", unsafe_allow_html=True)
             st.markdown("""
-Today, you'll learn about the nuts and bolts of implementing backpropagation: how gradients are stored, and how they're propagated backwards through a computational graph.
+    Today, you'll learn about the nuts and bolts of implementing backpropagation: how gradients are stored, and how they're propagated backwards through a computational graph.
 
-This is bonus content, and won't be essential for any other parts of the course. You may wish to return here after the course has finished.
-""")
+    This is bonus content, and won't be essential for any other parts of the course. You may wish to return here after the course has finished.
+    """)
 
     with tabs[1]:
 
@@ -265,10 +265,10 @@ This is bonus content, and won't be essential for any other parts of the course.
         st.subheader("Chapter 1 - Transformers")
 
         st.markdown("""
-<div style="color:gray; margin-top:-30px">
-Duration: 7 days
-</div>
-""", unsafe_allow_html=True)
+        <div style="color:gray; margin-top:-30px">
+        Duration: 7 days
+        </div>
+        """, unsafe_allow_html=True)
 
         st.success("""
     💡 The **transformer** is an important neural network architecture used for language modelling.
@@ -305,8 +305,6 @@ Duration: 7 days
             st.markdown("""<h5><code>W1D4</code> - <code>W2D5</code>&emsp;|&emsp;<a href="https://arena-ldn-ch1.streamlit.app/">Build your own transformer (2/2) 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
     The rest of this chapter will be spent on additional transformer exercises, including building and using GPT-2 and BERT, and trying to build a classifier using only modules you've created yourself (in a throwback to our work from week 0 assembling ResNet34). 
-
-    ---
         """)
 
     with tabs[2]:

@@ -305,8 +305,6 @@ def page():
             st.markdown("""<h5><code>W1D4</code> - <code>W2D5</code>&emsp;|&emsp;<a href="https://arena-ldn-ch1.streamlit.app/">Build your own transformer (2/2) 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
     The rest of this chapter will be spent on additional transformer exercises, including building and using GPT-2 and BERT, and trying to build a classifier using only modules you've created yourself (in a throwback to our work from week 0 assembling ResNet34). 
-
-    ---
         """)
 
     with tabs[2]:
