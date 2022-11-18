@@ -9,6 +9,7 @@ if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
     rootdir = "ch3/"
+is_local = (rootdir == "")
 
 def read_from_html(filename):
     filename = rootdir + f"images/{filename}.html"
@@ -337,11 +338,11 @@ Note, this observation specifically refers to the parameters. When you're updati
 
     st.markdown("""### More Tips
 
-- The provided `params` might be a generator, in which case you can only iterate over it once before the generator is exhausted. Copy it into a `list` to be able to iterate over it repeatedly
+- The provided `params` might be a generator, in which case you can only iterate over it once before the generator is exhausted. **You should copy it into a `list` to be able to iterate over it repeatedly.**
 - Your step function shouldn't modify the gradients. Use the `with torch.inference_mode():` context for this. Fun fact: you can instead use `@torch.inference_mode()` (note the preceding `@`) as a method decorator to do the same thing.
 - If you create any new tensors, they should be on the same device as the corresponding parameter. Use `torch.zeros_like()` or similar for this.
 - Be careful not to mix up `Parameter` and `Tensor` types in this step.
-- The actual PyTorch implementations have an additional feature called parameter groups where you can specify different hyperparameters for each group of parameters. You can ignore this for now; we'll come back to it tomorrow.
+- The actual PyTorch implementations have an additional feature called parameter groups where you can specify different hyperparameters for each group of parameters. You can ignore this for now; we'll come back to it in the next section.
 
 Note, the configurations used during testing will start simple (e.g. all parameters set to zero except `lr`) and gradually move to more complicated ones. This will help you track exactly where in your model the error is coming from.
 
@@ -820,7 +821,7 @@ def check_password():
         # Password correct.
         return True
 
-if check_password():
+if is_local or check_password():
     page()
 
 

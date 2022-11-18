@@ -4,6 +4,7 @@ if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
     rootdir = "ch1/"
+is_local = (rootdir == "")
 
 st.set_page_config(layout="wide")
 
@@ -617,5 +618,5 @@ def check_password():
         # Password correct.
         return True
 
-if check_password():
+if is_local or check_password():
     page()

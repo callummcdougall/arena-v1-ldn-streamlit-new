@@ -5,6 +5,7 @@ if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
     rootdir = "ch0/"
+is_local = (rootdir == "")
 
 st.markdown("""
 <style>
@@ -954,5 +955,5 @@ def check_password():
         # Password correct.
         return True
 
-if check_password():
+if is_local or check_password():
     page()

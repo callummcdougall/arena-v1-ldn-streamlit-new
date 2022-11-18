@@ -9,6 +9,7 @@ if os.path.exists(os.getcwd() + "/images"):
     rootdir = ""
 else:
     rootdir = "ch0/"
+is_local = (rootdir == "")
 
 def read_from_html(filename):
     filename = rootdir + f"images/{filename}.html"
@@ -1995,5 +1996,5 @@ def check_password():
         # Password correct.
         return True
 
-if check_password():
+if is_local or check_password():
     page()
