@@ -75,14 +75,14 @@ def page():
 
     st.markdown("""# Training at scale
 
-    There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.
+There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.
 
-    Some highlights from this chapter include:
+Some highlights from this chapter include:
 
-    * Building docker containers to house the models you've built
-    * Using Lambda Labs to access cloud compute
-    * Learning about & using tools from distributed computing
-    """)
+* Building docker containers to house the models you've built
+* Using Lambda Labs to access cloud compute
+* Learning about & using tools from distributed computing
+""")
 
 def check_password():
     """Returns `True` if the user had the correct password."""
