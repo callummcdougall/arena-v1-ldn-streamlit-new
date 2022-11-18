@@ -103,7 +103,11 @@ def section_home():
 
 Today's exercises will take you through how different optimisation algorithms work (specifically SGD, RMSprop and Adam). You'll write your own optimisers, and use plotting functions to visualise gradient descent on loss landscapes.
 
-## 2️⃣ Learning rate schedulers
+## 2️⃣ Optimizer groups
+
+PyTorch's optimizers allow you to pass different hyperparameters to different parts of your network. This can be useful in certain situations, and it's good to understand the basics of how this works.
+
+## 3️⃣ Learning rate schedulers
 
 You'll also learn about learning rate schedulers, and write some of your own.
 """)
@@ -526,7 +530,19 @@ You can try and play around with a few optimisers. Do Adam and RMSprop do well o
 """)
 
 def section1_part2():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#what-are-parameter-groups">What are parameter groups?</a></li>
+   <li><a class="contents-el" href="#when-to-use-parameter-groups">When to use parameter groups</a></li>
+   <li><a class="contents-el" href="#exercises">Exercises</a></li>
+</ul>
+""", unsafe_allow_html=True)
+
     st.markdown("""
+## What are parameter groups?
+
 We mentioned parameter groups briefly in the last set of exercises, but didn't go into much detail. To elaborate further here: rather than passing a single iterable of parameters into an optimizer, you have the option to pass a list of parameter groups, each one with different hyperparameters. As an example of how this might work:
 
 ```python
@@ -546,6 +562,18 @@ optim.SGD([
 ```
 
 PyTorch optimisers will store all their params and hyperparams in the `param_groups` attribute, which is a list of dictionaries like the one above, where each one contains *every* hyperparameter rather than just the ones that were specified by the user at initialisation. Optimizers will have this `param_groups` attribute even if they only have one param group - then `param_groups` will just be a list containing a single dictionary.
+
+## When to use parameter groups
+
+Parameter groups can be useful in several different circumstances. A few examples:
+
+* Finetuning a model by freezing earlier layers and only training later layers is an extreme form of parameter grouping. We can use the parameter group syntax to apply a modified form, where the earlier layers have a smaller learning rate. This allows these earlier layers to adapt to the specifics of the problem, while making sure they don't forget all the useful features they've already learned.
+* Often it's good to treat weights and biases differently, e.g. effects like weight decay are often applied to weights but not biases. PyTorch doesn't differentiate between these two, so you'll have to do this manually using paramter groups.
+    * This in particular, we'll be doing next week when we train BERT from scratch.
+
+More generally, if you're trying to replicate a paper, it's important to be able to use all the same training details that the original authors did, so you can get the same results.
+
+## Exercises
 
 Your exercise is to rewrite the `SGD` optimizer from yesterday, to use `param_groups`. A few things to keep in mind during this exercise:
 
