@@ -89,64 +89,14 @@ def section1():
 
 <ul class="contents">
     <li><a class="contents-el" href="#1-parameter-groups">1. Parameter groups</a></li>
-    <li><a class="contents-el" href="#2-benchmark-different-optimizers-and-learning-rates">2. Benchmark different optimizers and learning rates</a></li>
-    <li><a class="contents-el" href="#3-noisy-quadratic-model">3. Noisy Quadratic Model</a></li>
-    <li><a class="contents-el" href="#4-shampoo">4. Shampoo</a></li>
-    <li><a class="contents-el" href="#5-the-colorization-problem">5. The Colorization Problem</a></li>
-    <li><a class="contents-el" href="#6-extra-reading">6. Extra reading</a></li>
+    <li><a class="contents-el" href="#1-benchmark-different-optimizers-and-learning-rates">1. Benchmark different optimizers and learning rates</a></li>
+    <li><a class="contents-el" href="#2-noisy-quadratic-model">2. Noisy Quadratic Model</a></li>
+    <li><a class="contents-el" href="#3-shampoo">3. Shampoo</a></li>
+    <li><a class="contents-el" href="#4-the-colorization-problem">4. The Colorization Problem</a></li>
+    <li><a class="contents-el" href="#5-extra-reading">5. Extra reading</a></li>
 </ul>
 """, unsafe_allow_html=True)
     st.markdown("""
-## 1. Parameter groups
-
-We mentioned parameter groups briefly yesterday, but didn't go into much detail. To elaborate further here: rather than passing a single iterable of parameters into an optimizer, you have the option to pass a list of parameter groups, each one with different hyperparameters. As an example of how this might work:
-
-```python
-optim.SGD([
-    {'params': model.base.parameters()},
-    {'params': model.classifier.parameters(), 'lr': 1e-3}
-], lr=1e-2, momentum=0.9)
-```
-
-The first argument here is a list of dictionaries, with each dictionary defining a separate parameter group. Each should contain a `params` key, which contains an iterable of parameters belonging to this group. The dictionaries may also contain keyword arguments. If a parameter is not specified in a group, PyTorch uses the value passed as a keyword argument. So the example above is equivalent to:
-
-```python
-optim.SGD([
-    {'params': model.base.parameters(), 'lr': 1e-2, 'momentum': 0.9},
-    {'params': model.classifier.parameters(), 'lr': 1e-3, 'momentum': 0.9}
-])
-```
-
-PyTorch optimisers will store all their params and hyperparams in the `param_groups` attribute, which is a list of dictionaries like the one above, where each one contains *every* hyperparameter rather than just the ones that were specified by the user at initialisation. Optimizers will have this `param_groups` attribute even if they only have one param group - then `param_groups` will just be a list containing a single dictionary.
-
-Your exercise is to rewrite the `SGD` optimizer from yesterday, to use `param_groups`. A few things to keep in mind during this exercise:
-
-* The learning rate must either be specified as a keyword argument, or it must be specified in every group. If it isn't specified as a keyword argument but it is specified in every group, you should raise an error.
-    * This isn't true for the other hyperparameters like momentum. They all have default values, and so they don't need to be specified.
-* You should add some code to check that no parameters appear in more than one group (PyTorch raises an error if this happens).
-
-```python
-class SGD:
-
-    def __init__(self, params, **kwargs):
-        '''Implements SGD with momentum.
-
-        Accepts parameters in groups, or an iterable.
-
-        Like the PyTorch version, but assume nesterov=False, maximize=False, and dampening=0
-            https://pytorch.org/docs/stable/generated/torch.optim.SGD.html#torch.optim.SGD
-        kwargs can contain lr, momentum or weight_decay
-        '''
-        pass
-    
-    def zero_grad(self) -> None:
-        pass
-
-utils.test_sgd_param_groups(SGD)
-```
-
-You can also try to rewrite the learning rate schedulers from yesterday, to work on optimisers which store their params and hyperparams in the `param_groups` attribute (this will just require replacing one line in each of your schedulers).
-
 ## 2. Benchmark different optimizers and learning rates
 
 Now that you've learned about different optimizers and learning rates, and you've used `wandb` to run hyperparameter sweeps, you now have the opportunity to combine the two and run your own experiments. A few things which might be interesting to investigate:

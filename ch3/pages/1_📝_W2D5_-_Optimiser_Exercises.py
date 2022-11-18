@@ -525,6 +525,57 @@ fig.show()
 You can try and play around with a few optimisers. Do Adam and RMSprop do well on this function? Why / why not? Can you find some other functions where they do better / worse, and plot those?
 """)
 
+def section1_part2():
+    st.markdown("""
+We mentioned parameter groups briefly in the last set of exercises, but didn't go into much detail. To elaborate further here: rather than passing a single iterable of parameters into an optimizer, you have the option to pass a list of parameter groups, each one with different hyperparameters. As an example of how this might work:
+
+```python
+optim.SGD([
+    {'params': model.base.parameters()},
+    {'params': model.classifier.parameters(), 'lr': 1e-3}
+], lr=1e-2, momentum=0.9)
+```
+
+The first argument here is a list of dictionaries, with each dictionary defining a separate parameter group. Each should contain a `params` key, which contains an iterable of parameters belonging to this group. The dictionaries may also contain keyword arguments. If a parameter is not specified in a group, PyTorch uses the value passed as a keyword argument. So the example above is equivalent to:
+
+```python
+optim.SGD([
+    {'params': model.base.parameters(), 'lr': 1e-2, 'momentum': 0.9},
+    {'params': model.classifier.parameters(), 'lr': 1e-3, 'momentum': 0.9}
+])
+```
+
+PyTorch optimisers will store all their params and hyperparams in the `param_groups` attribute, which is a list of dictionaries like the one above, where each one contains *every* hyperparameter rather than just the ones that were specified by the user at initialisation. Optimizers will have this `param_groups` attribute even if they only have one param group - then `param_groups` will just be a list containing a single dictionary.
+
+Your exercise is to rewrite the `SGD` optimizer from yesterday, to use `param_groups`. A few things to keep in mind during this exercise:
+
+* The learning rate must either be specified as a keyword argument, or it must be specified in every group. If it isn't specified as a keyword argument or there's at least one group in which it's not specified, you should raise an error.
+    * This isn't true for the other hyperparameters like momentum. They all have default values, and so they don't need to be specified.
+* You should add some code to check that no parameters appear in more than one group (PyTorch raises an error if this happens).
+
+```python
+class SGD:
+
+    def __init__(self, params, **kwargs):
+        '''Implements SGD with momentum.
+
+        Accepts parameters in groups, or an iterable.
+
+        Like the PyTorch version, but assume nesterov=False, maximize=False, and dampening=0
+            https://pytorch.org/docs/stable/generated/torch.optim.SGD.html#torch.optim.SGD
+        kwargs can contain lr, momentum or weight_decay
+        '''
+        pass
+    
+    def zero_grad(self) -> None:
+        pass
+
+utils.test_sgd_param_groups(SGD)
+```
+
+You can also try to rewrite the learning rate schedulers from yesterday, to work on optimisers which store their params and hyperparams in the `param_groups` attribute (this will just require replacing one line in each of your schedulers).
+""")
+
 def section2():
     st.sidebar.markdown("""
 ## Table of Contents
@@ -701,10 +752,9 @@ fig.show()
 How close can you get to the optimum within 100 steps, starting from (-1.5, 2.5)? Share screenshots of your best runs on Slack!
 """)
     
+func_list = [section_home, section1, section1_part2, section2]
 
-func_list = [section_home, section1, section2]
-
-page_list = ["🏠 Home", "1️⃣ Optimizers", "2️⃣ Learning rate schedulers"]
+page_list = ["🏠 Home", "1️⃣ Optimizers", "2️⃣ Optimizer groups", "3️⃣ Learning rate schedulers"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 def page():
