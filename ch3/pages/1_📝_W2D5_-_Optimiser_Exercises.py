@@ -166,7 +166,7 @@ Yesterday, you implemented backpropagation. Today, we're going to use the gradie
     st.info("""
 Note the conceptual shift here - we're not optimising the parameters of a neural network; we're optimising parameters `(x, y)` which represent coordinates at which we evaluate a function. We're doing this because the image of "loss landscapes" can be very helpful when thinking about the behaviour of different gradient descent algorithms.""")
 
-    st.markdown("""
+    st.markdown(r"""
 A loss function can be any differentiable function such that we prefer a lower value. To apply gradient descent, we start by initializing the parameters to random values (the details of this are subtle), and then repeatedly compute the gradient of the loss with respect to the model parameters. It [can be proven](https://tutorial.math.lamar.edu/Classes/CalcIII/DirectionalDeriv.aspx) that for an infinitesimal step, moving in the direction of the gradient would increase the loss by the largest amount out of all possible directions.
 
 We actually want to decrease the loss, so we subtract the gradient to go in the opposite direction. Taking infinitesimal steps is no good, so we pick some learning rate $\lambda$ (also called the step size) and scale our step by that amount to obtain the update rule for gradient descent:
