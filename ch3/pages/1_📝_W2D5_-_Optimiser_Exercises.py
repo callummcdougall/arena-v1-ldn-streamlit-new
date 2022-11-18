@@ -171,7 +171,7 @@ A loss function can be any differentiable function such that we prefer a lower v
 
 We actually want to decrease the loss, so we subtract the gradient to go in the opposite direction. Taking infinitesimal steps is no good, so we pick some learning rate $\lambda$ (also called the step size) and scale our step by that amount to obtain the update rule for gradient descent:
 
-$$ \theta_t \leftarrow \theta_{t-1} - \lambda \nabla L(\theta_{t-1}) $$
+$$\theta_t \leftarrow \theta_{t-1} - \lambda \nabla L(\theta_{t-1})$$
 
 We know that an infinitesimal step will decrease the loss, but a finite step will only do so if the loss function is linear enough in the neighbourhood of the current parameters. If the loss function is too curved, we might actually increase our loss.
 
@@ -329,7 +329,7 @@ The tricky thing that happens here is that both the optimizer and the `Module` i
         st.markdown("""
 You MUST use in-place operations in your optimizer because we want the model to see the change to the Parameter's storage on the next forward pass. If your optimizer allocates a new tensor, the model won't know anything about the new tensor and will continue to use the old, unmodified version.
 
-Note, this observation specifically refers to the parameters. When you're updating non-parameter variables that you're tracking, you should be careful not to accidentally use an in-place operation where you shouldn't!")""")
+Note, this observation specifically refers to the parameters. When you're updating non-parameter variables that you're tracking, you should be careful not to accidentally use an in-place operation where you shouldn't!)""")
 
     st.markdown("""### More Tips
 

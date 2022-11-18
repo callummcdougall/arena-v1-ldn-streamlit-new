@@ -70,15 +70,43 @@ ul.contents a:hover {
 # </ul>
 # """, unsafe_allow_html=True)
 
-st.image(rootdir + "images/headers/scale.png", width=320)
+def page():
+    st.image(rootdir + "images/headers/scale.png", width=320)
 
-st.markdown("""# Training at scale
+    st.markdown("""# Training at scale
 
-There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.
+    There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.
 
-Some highlights from this chapter include:
+    Some highlights from this chapter include:
 
-* Building docker containers to house the models you've built
-* Using Lambda Labs to access cloud compute
-* Learning about & using tools from distributed computing
-""")
+    * Building docker containers to house the models you've built
+    * Using Lambda Labs to access cloud compute
+    * Learning about & using tools from distributed computing
+    """)
+
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == st.secrets["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password.
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password not correct, show input + error.
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        st.error("😕 Password incorrect")
+        return False
+    else:
+        # Password correct.
+        return True
+
+if check_password():
+    page()

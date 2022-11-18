@@ -70,18 +70,46 @@ ul.contents a:hover {
 # </ul>
 # """, unsafe_allow_html=True)
 
-st.image(rootdir + "images/headers/trans.png", width=320)
+def page():
+    st.image(rootdir + "images/headers/trans.png", width=320)
 
-st.markdown("""
-# Transformers
+    st.markdown("""
+    # Transformers
 
-The transformer is an important neural network architecture used for language modeling.
+    The transformer is an important neural network architecture used for language modeling.
 
-In this chapter, you will learn all about transformers - how the attention mechanism works, how transformers are trained, and how they’ve managed to be the driving force behind language model progress of the last few years.
+    In this chapter, you will learn all about transformers - how the attention mechanism works, how transformers are trained, and how they’ve managed to be the driving force behind language model progress of the last few years.
 
-Some highlights from this chapter include:
+    Some highlights from this chapter include:
 
-* Building your own decoder-only transformer (which includes building a unidirectional attention block)
-* Training your transformer on the corpus of Shakespeare text, to generate realistic output
-* Assembling and loading weights into GPT-2, and sampling output from it
-* Training a transformer to solve some classic LeetCode-style problems""")
+    * Building your own decoder-only transformer (which includes building a unidirectional attention block)
+    * Training your transformer on the corpus of Shakespeare text, to generate realistic output
+    * Assembling and loading weights into GPT-2, and sampling output from it
+    * Training a transformer to solve some classic LeetCode-style problems""")
+
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == st.secrets["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password.
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password not correct, show input + error.
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        st.error("😕 Password incorrect")
+        return False
+    else:
+        # Password correct.
+        return True
+
+if check_password():
+    page()

@@ -602,10 +602,38 @@ func_list = [section_home, section_1, section_2, section_3]
 page_list = ["🏠 Home", "1️⃣ Attention mechanism", "2️⃣ Assembling your transformer", "3️⃣ Testing your transformer"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
-with st.sidebar:
+def page():
+    with st.sidebar:
 
-    radio = st.radio("Section", page_list)
+        radio = st.radio("Section", page_list)
 
-    st.markdown("---")
+        st.markdown("---")
 
-func_list[page_dict[radio]]()
+    func_list[page_dict[radio]]()
+
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == st.secrets["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password.
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password not correct, show input + error.
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        st.error("😕 Password incorrect")
+        return False
+    else:
+        # Password correct.
+        return True
+
+if check_password():
+    page()
