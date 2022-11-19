@@ -2,14 +2,16 @@ import streamlit as st
 import base64
 st.set_page_config(layout="wide")
 import os
+st.write("now", os.getcwd())
 if os.path.exists(os.getcwd() + "/images"):
     is_local = True
 else:
     is_local = False
     os.chdir("./ch2")
-st.write(is_local)
 import platform
-st.write(platform.processor())
+is_local = (platform.processor() != "")
+st.write(is_local)
+st.write("after", os.getcwd())
 
 def img_to_html(img_path, width):
     with open("images/" + img_path, "rb") as file:
