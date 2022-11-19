@@ -7,6 +7,7 @@ if os.path.exists(os.getcwd() + "/images"):
 else:
     is_local = False
     os.chdir("./ch2")
+st.write(is_local)
 
 def img_to_html(img_path, width):
     with open("images/" + img_path, "rb") as file:
