@@ -25,8 +25,14 @@ def read_from_html(filename):
         html = f.read()
     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
     call_args = json.loads(f'[{call_arg_str}]')
-    plotly_json = {'data': call_args[1], 'layout': call_args[2]}
-    return pio.from_json(json.dumps(plotly_json))
+    try:
+        plotly_json = {'data': call_args[1], 'layout': call_args[2]}
+        fig = pio.from_json(json.dumps(plotly_json))
+    except:
+        del call_args[2]["template"]["data"]["scatter"][0]["fillpattern"]
+        plotly_json = {'data': call_args[1], 'layout': call_args[2]}
+        fig = pio.from_json(json.dumps(plotly_json))
+    return fig
 
 def get_fig_dict():
     names = [f"rosenbrock_{i}" for i in range(1, 5)]
@@ -256,7 +262,7 @@ fig = utils.plot_fn(rosenbrocks_banana, x_range, y_range, log_scale=True)
 Your output should look like:
 """)
 
-    st.plotly_chart(fig_dict["rosenbrock_1"], use_container_width=True)
+    st.plotly_chart(fig_dict["rosenbrock_1"].update_layout(height=600), use_container_width=True)
 
     with st.expander("Question - where is the minimum of this function?"):
         st.markdown("""
@@ -316,7 +322,7 @@ fig.show()
 Hopefully, you should see output like this:
 """)
 
-    st.plotly_chart(fig_dict["rosenbrock_2"], use_container_width=True)
+    st.plotly_chart(fig_dict["rosenbrock_2"].update_layout(height=600), use_container_width=True)
 
     st.markdown("""
 ## Build Your Own Optimizers
@@ -532,7 +538,7 @@ fig.show()
 ```
 """)
 
-    st.plotly_chart(fig_dict["rosenbrock_3"], use_container_width=True)
+    st.plotly_chart(fig_dict["rosenbrock_3"].update_layout(height=600), use_container_width=True)
 
     st.markdown("""
 You can try and play around with a few optimisers. Do Adam and RMSprop do well on this function? Why / why not? Can you find some other functions where they do better / worse, and plot those?
@@ -783,7 +789,7 @@ fig.show()
 ```
 """)
 
-    st.plotly_chart(fig_dict["rosenbrock_4"], use_container_width=True)
+    st.plotly_chart(fig_dict["rosenbrock_4"].update_layout(height=600), use_container_width=True)
 
     st.markdown("""
 How close can you get to the optimum within 100 steps, starting from (-1.5, 2.5)? Share screenshots of your best runs on Slack!

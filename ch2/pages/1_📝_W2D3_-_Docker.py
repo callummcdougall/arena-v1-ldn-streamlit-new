@@ -3,12 +3,13 @@ import base64
 st.set_page_config(layout="wide")
 import os
 if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
+    is_local = True
 else:
-    rootdir = "ch2/"
-is_local = (rootdir == "")
+    is_local = False
+    os.chdir("./ch2")
+
 def img_to_html(img_path, width):
-    with open(rootdir + "images/" + img_path, "rb") as file:
+    with open("images/" + img_path, "rb") as file:
         img_bytes = file.read()
     encoded = base64.b64encode(img_bytes).decode()
     return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
@@ -165,10 +166,7 @@ In the meantime, the following readings might help:
 * [Build and deploy a Flask app using Docker](https://blog.logrocket.com/build-deploy-flask-app-using-docker/) (the exercises will approximately follow the structure of this tutorial)
 """)
 
-if rootdir:
-    func_list = [section_home, section_docker]
-else:
-    func_list = [section_home, section_docker]
+func_list = [section_home, section_docker]
 
 page_list = ["🏠 Home", "1️⃣ Docker"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
