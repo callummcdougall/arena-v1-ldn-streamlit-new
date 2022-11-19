@@ -8,6 +8,8 @@ else:
     is_local = False
     os.chdir("./ch2")
 st.write(is_local)
+import platform
+st.write(platform.processor())
 
 def img_to_html(img_path, width):
     with open("images/" + img_path, "rb") as file:
