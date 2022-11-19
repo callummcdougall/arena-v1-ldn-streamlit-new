@@ -1,20 +1,20 @@
 import streamlit as st
 import base64
-st.set_page_config(layout="wide")
+import platform
 import os
-if os.path.exists(os.getcwd() + "/images"):
-    is_local = True
-else:
-    is_local = False
+
+st.set_page_config(layout="wide")
+
+is_local = (platform.processor() != "")
+if not os.path.exists("./images"):
     os.chdir("./ch2")
-st.write(is_local)
-def img_to_html(img_path, width):
-    with open("images/" + img_path, "rb") as file:
+
+def st_image(name, width):
+    with open("images/" + name, "rb") as file:
         img_bytes = file.read()
     encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
-def st_image(name, width):
-    st.markdown(img_to_html(name, width=width), unsafe_allow_html=True)
+    img_html = f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
+    st.markdown(img_html, unsafe_allow_html=True)
 
 # code > span.string {
 #     color: red !important;
