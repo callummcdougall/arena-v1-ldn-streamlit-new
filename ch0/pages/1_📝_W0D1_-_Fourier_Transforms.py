@@ -1,84 +1,8 @@
-import streamlit as st
-import base64
 import os
-if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
-else:
-    rootdir = "ch0/"
-is_local = (rootdir == "")
-def img_to_html(img_path, width):
-    with open(rootdir + "images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%' src='data:image/png;base64,{encoded}' class='img-fluid'>"
-
-st.set_page_config(layout="wide")
-
-st.markdown("""
-<style>
-label.effi0qh3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-top: 15px;
-}
-p {
-    line-height:1.48em;
-}
-.streamlit-expanderHeader {
-    font-size: 1em;
-    color: darkblue;
-}
-.css-ffhzg2 .streamlit-expanderHeader {
-    color: lightblue;
-}
-header {
-    background: rgba(255, 255, 255, 0) !important;
-}
-code {
-    color: red;
-    white-space: pre-wrap !important;
-}
-code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
-    font-size: 13px;
-}
-a.contents-el > code {
-    color: black;
-    background-color: rgb(248, 249, 251);
-}
-.css-ffhzg2 a.contents-el > code {
-    color: orange;
-    background-color: rgb(26, 28, 36);
-}
-.css-ffhzg2 code:not(pre code) {
-    color: orange;
-}
-.css-ffhzg2 .contents-el {
-    color: white !important;
-}
-pre code {
-    font-size:13px !important;
-}
-.katex {
-    font-size:17px;
-}
-h2 .katex, h3 .katex, h4 .katex {
-    font-size: unset;
-}
-ul.contents {
-    line-height:1.3em; 
-    list-style:none;
-    color-black;
-    margin-left: -10px;
-}
-ul.contents a, ul.contents a:link, ul.contents a:visited, ul.contents a:active {
-    color: black;
-    text-decoration: none;
-}
-ul.contents a:hover {
-    color: black;
-    text-decoration: underline;
-}
-</style>""", unsafe_allow_html=True)
+if not os.path.exists("./images"):
+    os.chdir("./ch0")
+from st_dependencies import *
+styling()
 
 def section_home():
     st.markdown("""
@@ -348,7 +272,7 @@ create_interactive_fourier_graph(calculate_fourier_series, func = step_func)''')
 If this code has been written correctly, then when run it should produce interactive output that looks like this:
     """)
 
-    st.markdown(img_to_html('ani1.png', width=800), unsafe_allow_html=True)
+    st_image('ani1.png', width=800)
 
     st.markdown(r"""
 You should be able to move the slider to see how the Fourier series converges to the true function over time.
@@ -362,9 +286,9 @@ You can change the `func` parameter in `create_interactive_fourier_graph`, and i
 
     with st.expander("Explanation for sin(3x) + cos(17x)"):
         st.markdown("""You should see something like this:""")
-        st.markdown(img_to_html('ani1a.png', width=800), unsafe_allow_html=True)
-        st.markdown(img_to_html('ani1b.png', width=800), unsafe_allow_html=True)
-        st.markdown(img_to_html('ani1c.png', width=800), unsafe_allow_html=True)
+        st_image('ani1a.png', width=800)
+        st_image('ani1b.png', width=800)
+        st_image('ani1c.png', width=800)
         st.markdown(r"""This is because the Fourier series are orthogonal in the range $[-\pi, \pi]$.""")
         st.markdown("""The only non-zero coefficients are the ones that exactly match the frequencies already present in the data, so we only get changes in the reconstructed function once we add the 3rd and 17th frequencies.""")
 
@@ -406,7 +330,7 @@ We will start by using only NumPy, working from first principles, and slowly add
 
 This is the simplest possible neural network architecture - it only has a single layer, and only uses linear functions. All we are doing is learning the coefficients of a Fourier series. The inputs to our network are the frequencies, and the weights are the coefficients, so our output is the same as the truncated Fourier series expression we saw in the previous section:""")
 
-    st.markdown(img_to_html('diagram.png', width=800), unsafe_allow_html=True)
+    st_image('diagram.png', width=800)
     st.markdown("")
 
     st.markdown("""
@@ -516,7 +440,7 @@ You may find it helpful to first define `grad_y_pred` as the derivative of $L$ w
 If this works, then you should see a graph with a slider, that you can move to see the convergence of your function to the target one over time (along with a changing title to represent the coefficients):
 """)
 
-    st.markdown(img_to_html('ani2.png', width=800), unsafe_allow_html=True)
+    st_image('ani2.png', width=800)
 
     st.markdown("""## (II) PyTorch & Tensors
 

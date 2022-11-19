@@ -1,82 +1,8 @@
-import streamlit as st
-import base64
 import os
-if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
-else:
-    rootdir = "ch0/"
-is_local = (rootdir == "")
-def img_to_html(img_path, width):
-    with open("images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
-
-st.markdown("""
-<style>
-label.effi0qh3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-top: 15px;
-}
-p {
-    line-height:1.48em;
-}
-.streamlit-expanderHeader {
-    font-size: 1em;
-    color: darkblue;
-}
-.css-ffhzg2 .streamlit-expanderHeader {
-    color: lightblue;
-}
-header {
-    background: rgba(255, 255, 255, 0) !important;
-}
-code {
-    color: red;
-    white-space: pre-wrap !important;
-}
-code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
-    font-size: 13px;
-}
-a.contents-el > code {
-    color: black;
-    background-color: rgb(248, 249, 251);
-}
-.css-ffhzg2 a.contents-el > code {
-    color: orange;
-    background-color: rgb(26, 28, 36);
-}
-.css-ffhzg2 code:not(pre code) {
-    color: orange;
-}
-.css-ffhzg2 .contents-el {
-    color: white !important;
-}
-pre code {
-    font-size:13px !important;
-}
-.katex {
-    font-size:17px;
-}
-h2 .katex, h3 .katex, h4 .katex {
-    font-size: unset;
-}
-ul.contents {
-    line-height:1.3em; 
-    list-style:none;
-    color-black;
-    margin-left: -10px;
-}
-ul.contents a, ul.contents a:link, ul.contents a:visited, ul.contents a:active {
-    color: black;
-    text-decoration: none;
-}
-ul.contents a:hover {
-    color: black;
-    text-decoration: underline;
-}
-</style>""", unsafe_allow_html=True)
+if not os.path.exists("./images"):
+    os.chdir("./ch0")
+from st_dependencies import *
+styling()
 
 def section_home():
     st.markdown("""## 1️⃣ Building & training a CNN
@@ -143,7 +69,7 @@ import utils
 We'll be attempting to build the following neural network architecture:
 """)
 
-    st.markdown(img_to_html('mnist_diagram.png', width=900), unsafe_allow_html=True)
+    st_image('mnist_diagram.png', width=900)
 
     st.markdown("""
 Let's briefly discuss this architecture. We see that it starts with two consecutive stacks of:
@@ -783,7 +709,7 @@ In order to make sure there is a 1-1 correspondence between your model and PyTor
         ```
 """)
 
-    st.markdown(img_to_html('resnet-compared.png', width=900), unsafe_allow_html=True)
+    st_image('resnet-compared.png', width=900)
 
     st.info("""
 I just want to emphasise that this task is meant to be really difficult! If you're able to implement this then that's amazing, but if you've been trying for a while without making much progress you should definitely move on. Alternatively, you can ping me (Callum) on Slack with screenshots of your model and I can help with troubleshooting. In the meantime, you can proceed with the rest of the exercises using PyTorch's implementation.
@@ -847,7 +773,7 @@ Our `images` are of type `PIL.Image.Image`, so we can just call them in a cell t
 images[0]
 ```""")
 
-    st.markdown(img_to_html('chimpanzee.png', width=600), unsafe_allow_html=True)
+    st_image('chimpanzee.png', width=600)
 
     st.markdown("""We now need to define a `transform` object like we did for MNIST. We will use the same transforms to convert the PIL image to a tensor, and to normalize it. But we also want to resize the images to `height=224, width=224`, because not all of them start out with this size and we need them to be consistent before passing them through our model. You should use `transforms.Resize` for this. Note that you should apply this resize to a tensor, not to the PIL image.
 

@@ -1,23 +1,13 @@
-import streamlit as st
-import base64
+import os
+if not os.path.exists("./images"):
+    os.chdir("./ch1")
+from st_dependencies import *
+styling()
+
 import numpy as np
 import plotly.express as px
-import os
-if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
-else:
-    rootdir = "ch1/"
-is_local = (rootdir == "")
-def img_to_html(img_path, width):
-    with open(rootdir + "images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
-
-st.set_page_config(layout="wide")
-
 if "pe" not in st.session_state:
-    pe = np.load(rootdir + "images/pe.npy")
+    pe = np.load("images/pe.npy")
     pe_sim = np.einsum("ab,cb->ac", pe, pe) / np.outer(np.linalg.norm(pe, axis=-1), np.linalg.norm(pe, axis=-1))
     st.session_state["pe"] = pe
     st.session_state["pe_sim"] = pe_sim
@@ -118,7 +108,7 @@ Lastly, here is a diagram explaining the attention mechanism. It should also be 
 """)
 
     with st.expander("View diagram"):
-        st.markdown(img_to_html('attention_diagram.png', width=800), unsafe_allow_html=True)
+        st_image('attention_diagram.png', width=800)
         
         st.markdown(r"""
 1. The query is a feature vector that describes what we're looking for in the sequence, i.e. what we might want to pay attention to

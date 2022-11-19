@@ -1,22 +1,15 @@
-import streamlit as st
-import base64
+import os
+if not os.path.exists("./images"):
+    os.chdir("./ch0")
+from st_dependencies import *
+styling()
+
 import plotly.io as pio
 import re
 import json
-import os
-if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
-else:
-    rootdir = "ch0/"
-is_local = (rootdir == "")
-def img_to_html(img_path, width):
-    with open("images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
 
 def read_from_html(filename):
-    filename = rootdir + f"images/{filename}.html"
+    filename = f"images/{filename}.html"
     with open(filename) as f:
         html = f.read()
     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
@@ -33,76 +26,6 @@ if "fig_dict" not in st.session_state:
 fig_dict = st.session_state["fig_dict"]
 
 st.set_page_config(layout="wide")
-
-# code > span.string {
-#     color: red !important;
-# }
-
-st.markdown("""
-<style>
-label.effi0qh3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-top: 15px;
-}
-p {
-    line-height:1.48em;
-}
-.streamlit-expanderHeader {
-    font-size: 1em;
-    color: darkblue;
-}
-.css-ffhzg2 .streamlit-expanderHeader {
-    color: lightblue;
-}
-header {
-    background: rgba(255, 255, 255, 0) !important;
-}
-code {
-    color: red;
-    white-space: pre-wrap !important;
-}
-code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
-    font-size: 13px;
-}
-a.contents-el > code {
-    color: black;
-    background-color: rgb(248, 249, 251);
-}
-.css-ffhzg2 a.contents-el > code {
-    color: orange;
-    background-color: rgb(26, 28, 36);
-}
-.css-ffhzg2 code:not(pre code) {
-    color: orange;
-}
-.css-ffhzg2 .contents-el {
-    color: white !important;
-}
-pre code {
-    font-size:13px !important;
-}
-.katex {
-    font-size:17px;
-}
-h2 .katex, h3 .katex, h4 .katex {
-    font-size: unset;
-}
-ul.contents {
-    line-height:1.3em; 
-    list-style:none;
-    color-black;
-    margin-left: -10px;
-}
-ul.contents a, ul.contents a:link, ul.contents a:visited, ul.contents a:active {
-    color: black;
-    text-decoration: none;
-}
-ul.contents a:hover {
-    color: black;
-    text-decoration: underline;
-}
-</style>""", unsafe_allow_html=True)
 
 def section_home():
     st.markdown(r"""
@@ -369,7 +292,7 @@ One way to do hyperparameter search is to choose a set of values for each hyperp
 A much better idea is for each hyperparameter, decide on a sampling distribution and then on each trial just sample a random value from that distribution. This is called **random search** and back in 2012, you could get a [publication](https://www.jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf) for this. The diagram below shows the main reason that random search outperforms grid search. Empirically, some hyperparameters matter more than others, and random search benefits from having tried more distinct values in the important dimensions, increasing the chances of finding a "peak" between the grid points.
 """)
 
-    st.markdown(img_to_html('grid_vs_random.png', width=550), unsafe_allow_html=True)
+    st_image('grid_vs_random.png', width=550)
 
     st.markdown("""
 It's worth noting that both of these searches are vastly less efficient than gradient descent at finding optima - imagine if you could only train neural networks by randomly initializing them and checking the loss! Either of these search methods without a dose of human (or eventually AI) judgement is just a great way to turn electricity into a bunch of models that don't perform very well.

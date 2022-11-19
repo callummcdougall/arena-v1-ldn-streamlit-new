@@ -1,88 +1,8 @@
-import streamlit as st
-import platform
 import os
-if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
-else:
-    rootdir = "ch1/"
-is_local = (rootdir == "")
-import base64
-def img_to_html(img_path, width):
-    with open(rootdir + "images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
-st.set_page_config(layout="wide")
-
-# code > span.string {
-#     color: red !important;
-# }
-
-st.markdown("""
-<style>
-label.effi0qh3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-top: 15px;
-}
-p {
-    line-height:1.48em;
-}
-.streamlit-expanderHeader {
-    font-size: 1em;
-    color: darkblue;
-}
-.css-ffhzg2 .streamlit-expanderHeader {
-    color: lightblue;
-}
-header {
-    background: rgba(255, 255, 255, 0) !important;
-}
-code {
-    color: red;
-    white-space: pre-wrap !important;
-}
-code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
-    font-size: 13px;
-}
-a.contents-el > code {
-    color: black;
-    background-color: rgb(248, 249, 251);
-}
-.css-ffhzg2 a.contents-el > code {
-    color: orange;
-    background-color: rgb(26, 28, 36);
-}
-.css-ffhzg2 code:not(pre code) {
-    color: orange;
-}
-.css-ffhzg2 .contents-el {
-    color: white !important;
-}
-pre code {
-    font-size:13px !important;
-}
-.katex {
-    font-size:17px;
-}
-h2 .katex, h3 .katex, h4 .katex {
-    font-size: unset;
-}
-ul.contents {
-    line-height:1.3em; 
-    list-style:none;
-    color-black;
-    margin-left: -10px;
-}
-ul.contents a, ul.contents a:link, ul.contents a:visited, ul.contents a:active {
-    color: black;
-    text-decoration: none;
-}
-ul.contents a:hover {
-    color: black;
-    text-decoration: underline;
-}
-</style>""", unsafe_allow_html=True)
+if not os.path.exists("./images"):
+    os.chdir("./ch1")
+from st_dependencies import *
+styling()
 
 def section_home():
     st.markdown("""
@@ -242,11 +162,11 @@ Note - it is a common practice to stack the matrices `W_Q`, `W_K`, `W_V` into a 
 
 """)
 
-    st.markdown(img_to_html('computation_split.png', width=350), unsafe_allow_html=True)
+    st_image('computation_split.png', width=350)
 
     st.markdown("You can do this:")
 
-    st.markdown(img_to_html('computation_parallel.png', width=580), unsafe_allow_html=True)
+    st_image('computation_parallel.png', width=580)
 
     st.markdown("""
 You should use this method in your attention block implementation.
@@ -474,7 +394,7 @@ device = t.device("cuda:0" if t.cuda.is_available() else "cpu")
 You should now get `"cuda:0"` when you print your device. If you still get `cpu`, then you should examine your installation of PyTorch. The easiest way to install the right version of PyTorch is directly from the [PyTorch website](https://pytorch.org/). They give you a useful grid, and by selecting the right boxes you can get a command which you can run to install PyTorch with full GPU faculties:
 """)
 
-    st.markdown(img_to_html('install_pytorch.png', width=750), unsafe_allow_html=True)
+    st_image('install_pytorch.png', width=750)
 
     st.markdown("""
 

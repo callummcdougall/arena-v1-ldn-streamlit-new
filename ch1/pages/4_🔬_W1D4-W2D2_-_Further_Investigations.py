@@ -1,18 +1,8 @@
-import streamlit as st
-import base64
-st.set_page_config(layout="wide")
-
 import os
-if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
-else:
-    rootdir = "ch1/"
-is_local = (rootdir == "")
-def img_to_html(img_path, width):
-    with open(rootdir + "images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
+if not os.path.exists("./images"):
+    os.chdir("./ch1")
+from st_dependencies import *
+styling()
 
 st.markdown("""
 <style>
@@ -170,7 +160,7 @@ utils.print_param_count(my_gpt, gpt)
 Ideally, this will produce output that looks something like this (up to possibly having different layer names):
 """)
 
-    st.markdown(img_to_html('gpt-compared.png', width=770), unsafe_allow_html=True)
+    st_image('gpt-compared.png', width=770)
 
     st.markdown("""
 
@@ -637,7 +627,7 @@ You can see how this is applied in the diagram in the [BERT paper](https://arxiv
 
 Rather than simply ending with `LayerNorm -> Tied Unembed`, the Bert Language Model ends with a sequence of `Linear -> GELU -> LayerNorm -> Tied Unembed`. Additionally, the tied unembedding in BERT has a bias (which isn't tied to anything, i.e. it's just another learned parameter). The best way to handle this is to define the bias as an `nn.Parameter` object with size `(vocab_size,)`. Unfortunately, this seems to make copying weights a bit messier. I think `nn.Parameter` objects are registered first even if they're defined last, so you might find the output of `utils.print_param_count(my_bert, bert)` is shifted by 1 (see image below for what my output looked like), and you'll need to slightly rewrite the function you used to copy weights from GPT (more on this below).""")
 
-    st.markdown(img_to_html('bert-compared.png', width=770), unsafe_allow_html=True)
+    st_image('bert-compared.png', width=770)
 
     st.markdown(r"""
 ## BERT config
@@ -923,7 +913,7 @@ df["length"] = [len(text) for text in df["text"]]
 
 px.histogram(x=df["stars"]).update_layout(bargap=0.1)
 ```""")
-        st.markdown(img_to_html('data_pic_1.png', width=650), unsafe_allow_html=True)
+        st_image('data_pic_1.png', width=650)
         st.markdown("""
 There are no five or six star reviews.
 
@@ -934,7 +924,7 @@ px.histogram(x=df["length"])
 ```
 """)
 
-        st.markdown(img_to_html('data_pic_2.png', width=650), unsafe_allow_html=True)
+        st_image('data_pic_2.png', width=650)
         st.markdown("""
 The distribution is very heavy-tailed, peaks around 1000 characters.
 
@@ -944,7 +934,7 @@ The distribution is very heavy-tailed, peaks around 1000 characters.
 px.histogram(df, x="length", color="is_positive", barmode="overlay")
 ```
 """)
-        st.markdown(img_to_html('data_pic_3.png', width=650), unsafe_allow_html=True)
+        st_image('data_pic_3.png', width=650)
         st.markdown("""
 Slightly more of the shirt 200-500 word reviews for positive reviews, but apart from that the distributions are very similar.
 
@@ -1131,7 +1121,7 @@ If the model was in fact wrong, speculate on why it got that example wrong.
 def section4():
     st.markdown("""# LeetCode""")
     st.markdown("")
-    st.markdown(img_to_html('balanced_brackets.png', width=400), unsafe_allow_html=True)
+    st_image('balanced_brackets.png', width=400)
     st.markdown("""
 Pick some of your favourite easy LeetCode problems (e.g. detecting whether a bracket string is balanced), and train a transformer to solve it. Some questions you might like to think about:
 
@@ -1165,7 +1155,7 @@ Hopefully, stuff like this will become clearer in the interpretability week, whe
 
 # Semantle""")
 
-    st.markdown(img_to_html('semantle.png', width=150), unsafe_allow_html=True)
+    st_image('semantle.png', width=150)
     st.markdown("""
     
 Design your own game of [Semantle](https://semantle.com/), using your transformer's learned token embeddings. How easy is this version of the game to play, relative to the official version? 

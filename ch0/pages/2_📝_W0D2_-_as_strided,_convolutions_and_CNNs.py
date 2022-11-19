@@ -1,23 +1,15 @@
-import streamlit as st
-import base64
+import os
+if not os.path.exists("./images"):
+    os.chdir("./ch0")
+from st_dependencies import *
+styling()
+
 import plotly.io as pio
 import re
 import json
 
-import os
-if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
-else:
-    rootdir = "ch0/"
-is_local = (rootdir == "")
-def img_to_html(img_path, width):
-    with open(rootdir + "images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%' src='data:image/png;base64,{encoded}' class='img-fluid'>"
-
 def read_from_html(filename):
-    filename = rootdir + f"images/{filename}.html"
+    filename = f"images/{filename}.html"
     with open(filename) as f:
         html = f.read()
     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
@@ -32,78 +24,6 @@ if "fig_dict" not in st.session_state:
     fig_dict = get_fig_dict()
     st.session_state["fig_dict"] = fig_dict
 fig_dict = st.session_state["fig_dict"]
-
-st.set_page_config(layout="wide")
-
-# code > span.string {
-#     color: red !important;
-# }
-
-st.markdown("""
-<style>
-label.effi0qh3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-top: 15px;
-}
-p {
-    line-height:1.48em;
-}
-.streamlit-expanderHeader {
-    font-size: 1em;
-    color: darkblue;
-}
-.css-ffhzg2 .streamlit-expanderHeader {
-    color: lightblue;
-}
-header {
-    background: rgba(255, 255, 255, 0) !important;
-}
-code {
-    color: red;
-    white-space: pre-wrap !important;
-}
-code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
-    font-size: 13px;
-}
-a.contents-el > code {
-    color: black;
-    background-color: rgb(248, 249, 251);
-}
-.css-ffhzg2 a.contents-el > code {
-    color: orange;
-    background-color: rgb(26, 28, 36);
-}
-.css-ffhzg2 code:not(pre code) {
-    color: orange;
-}
-.css-ffhzg2 .contents-el {
-    color: white !important;
-}
-pre code {
-    font-size:13px !important;
-}
-.katex {
-    font-size:17px;
-}
-h2 .katex, h3 .katex, h4 .katex {
-    font-size: unset;
-}
-ul.contents {
-    line-height:1.3em; 
-    list-style:none;
-    color-black;
-    margin-left: -10px;
-}
-ul.contents a, ul.contents a:link, ul.contents a:visited, ul.contents a:active {
-    color: black;
-    text-decoration: none;
-}
-ul.contents a:hover {
-    color: black;
-    text-decoration: underline;
-}
-</style>""", unsafe_allow_html=True)
 
 def section0():
     st.markdown("""## 1️⃣ Einops and Einsum
@@ -543,7 +463,7 @@ A typical convolution operation is illustrated in the sketch below. Some notes o
 * The sketch assumes a batch size of 1. To generalise to a larger batch number, we can just imagine this operation being repeated identically on every input.
 """)
 
-    st.markdown(img_to_html('conv1d_illustration.png', width=900), unsafe_allow_html=True)
+    st_image('conv1d_illustration.png', width=900)
     st.markdown("")
 
     st.markdown("""
@@ -593,7 +513,7 @@ utils.test_conv1d_minimal(conv1d_minimal)
 
 2D convolutions are conceptually similar to 1D. The only difference is in how you move the kernel across the tensor as you take your convolution. In this case, you will be moving the tensor across two dimensions:
 """)
-    st.markdown(img_to_html('conv2d_illustration.png', width=540), unsafe_allow_html=True)
+    st_image('conv2d_illustration.png', width=540)
     st.markdown("")
     st.markdown("""
 For this reason, 1D convolutions tend to be used for signals (e.g. audio), 2D convolutions are used for images, and 3D convolutions are used for 3D scans (e.g. in medical applications). 

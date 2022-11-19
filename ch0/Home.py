@@ -1,12 +1,5 @@
-import streamlit as st
-import base64
-def img_to_html(img_path, width):
-    with open("images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%' src='data:image/png;base64,{encoded}' class='img-fluid'>"
-
-st.set_page_config(layout="wide")
+from st_dependencies import *
+styling()
 
 import os
 if os.path.exists(os.getcwd() + "/images"):
@@ -79,7 +72,7 @@ def page():
 </ul>
 """, unsafe_allow_html=True)
 
-    st.markdown(img_to_html('headers/pre.png', width=320), unsafe_allow_html=True)
+    st_image('headers/pre.png', width=320)
 
     st.markdown("""
 
@@ -136,30 +129,6 @@ At the end of each day, it can be beneficial to look at the solutions. However, 
 
 Happy coding!
 """)
-
-def check_password():
-    """Returns `True` if the user had the correct password."""
-
-    def password_entered():
-        """Checks whether a password entered by the user is correct."""
-        if st.session_state["password"] == st.secrets["password"]:
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # don't store password
-        else:
-            st.session_state["password_correct"] = False
-
-    if "password_correct" not in st.session_state:
-        # First run, show input for password.
-        st.text_input("Password", type="password", on_change=password_entered, key="password")
-        return False
-    elif not st.session_state["password_correct"]:
-        # Password not correct, show input + error.
-        st.text_input("Password", type="password", on_change=password_entered, key="password")
-        st.error("😕 Password incorrect")
-        return False
-    else:
-        # Password correct.
-        return True
 
 if is_local or check_password():
     page()

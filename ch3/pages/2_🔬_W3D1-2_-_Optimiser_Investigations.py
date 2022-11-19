@@ -1,21 +1,8 @@
-import streamlit as st
-
-st.set_page_config(layout="wide")
-import base64
 import os
-if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
-else:
-    rootdir = "ch3/"
-is_local = (rootdir == "")
-
-def img_to_html(img_path, width):
-    with open(rootdir + "images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%;st-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
-def st_image(name, width):
-    st.markdown(img_to_html(name, width=width), unsafe_allow_html=True)
+if not os.path.exists("./images"):
+    os.chdir("./ch3")
+from st_dependencies import *
+styling()
 
 st.markdown("""
 <style>
@@ -160,38 +147,9 @@ page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 def page():
     with st.sidebar:
-
         radio = st.radio("Section", page_list)
-
         st.markdown("---")
-
     func_list[page_dict[radio]]()
-    # for idx, section in enumerate(sections_selectbox):
-    #     func_list[idx]()
-
-def check_password():
-    """Returns `True` if the user had the correct password."""
-
-    def password_entered():
-        """Checks whether a password entered by the user is correct."""
-        if st.session_state["password"] == st.secrets["password"]:
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # don't store password
-        else:
-            st.session_state["password_correct"] = False
-
-    if "password_correct" not in st.session_state:
-        # First run, show input for password.
-        st.text_input("Password", type="password", on_change=password_entered, key="password")
-        return False
-    elif not st.session_state["password_correct"]:
-        # Password not correct, show input + error.
-        st.text_input("Password", type="password", on_change=password_entered, key="password")
-        st.error("😕 Password incorrect")
-        return False
-    else:
-        # Password correct.
-        return True
 
 if is_local or check_password():
     page()

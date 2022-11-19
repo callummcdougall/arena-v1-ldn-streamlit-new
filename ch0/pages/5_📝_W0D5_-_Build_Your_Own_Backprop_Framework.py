@@ -1,22 +1,14 @@
-import streamlit as st
-import plotly.io as pio
+import os
+if not os.path.exists("./images"):
+    os.chdir("./ch0")
 import re
 import json
-import os
-import base64
-if os.path.exists(os.getcwd() + "/images"):
-    rootdir = ""
-else:
-    rootdir = "ch0/"
-is_local = (rootdir == "")
-def img_to_html(img_path, width):
-    with open("images/" + img_path, "rb") as file:
-        img_bytes = file.read()
-    encoded = base64.b64encode(img_bytes).decode()
-    return f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
+import plotly.io as pio
+from st_dependencies import *
+styling()
 
 def read_from_html(filename):
-    filename = rootdir + f"images/{filename}.html"
+    filename = f"images/{filename}.html"
     with open(filename) as f:
         html = f.read()
     call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
@@ -31,74 +23,6 @@ if "fig_dict" not in st.session_state:
     fig_dict = get_fig_dict()
     st.session_state["fig_dict"] = fig_dict
 fig_dict = st.session_state["fig_dict"]
-
-st.set_page_config(layout="wide")
-
-st.markdown("""
-<style>
-label.effi0qh3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-top: 15px;
-}
-p {
-    line-height:1.48em;
-}
-.streamlit-expanderHeader {
-    font-size: 1em;
-    color: darkblue;
-}
-.css-ffhzg2 .streamlit-expanderHeader {
-    color: lightblue;
-}
-header {
-    background: rgba(255, 255, 255, 0) !important;
-}
-code {
-    color: red;
-    white-space: pre-wrap !important;
-}
-code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
-    font-size: 13px;
-}
-a.contents-el > code {
-    color: black;
-    background-color: rgb(248, 249, 251);
-}
-.css-ffhzg2 a.contents-el > code {
-    color: orange;
-    background-color: rgb(26, 28, 36);
-}
-.css-ffhzg2 code:not(pre code) {
-    color: orange;
-}
-.css-ffhzg2 .contents-el {
-    color: white !important;
-}
-pre code {
-    font-size:13px !important;
-}
-.katex {
-    font-size:17px;
-}
-h2 .katex, h3 .katex, h4 .katex {
-    font-size: unset;
-}
-ul.contents {
-    line-height:1.3em; 
-    list-style:none;
-    color-black;
-    margin-left: -10px;
-}
-ul.contents a, ul.contents a:link, ul.contents a:visited, ul.contents a:active {
-    color: black;
-    text-decoration: none;
-}
-ul.contents a:hover {
-    color: black;
-    text-decoration: underline;
-}
-</style>""", unsafe_allow_html=True)
 
 def section_home():
     st.markdown("""
@@ -118,7 +42,7 @@ Also, if you don't have enough time to finish all sections (which is understanda
 
 ## 1️⃣ Introduction
 
-This takes you through what a **computational graph** is, and the basics of how gradients can be backpropagated through such a graph. You'll also implement the backwards versions of some basic functions: if we have tensors `output = func(input)`, then the backward function of `func` can calculate the `input.grad` as a function of `(output.grad, output, input)`.
+This takes you through what a **computational graph** is, and the basics of how gradients can be backpropagated through such a graph. You'll also implement the backwards versions of some basic functions: if we have tensors `output = func(input)`, then the backward function of `func` can calculate the grad of `input` as a function of the grad of `output`.
 
 ## 2️⃣ Autograd
 
@@ -195,7 +119,7 @@ A second obvious way is to write out the function for the entire network, and th
 
 Suppose that you have some **computational graph**, and you want to determine the derivative of the some scalar loss L with respect to NumPy arrays a, b, and c:""")
 
-    st.write("""<figure style="max-width:550px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:450px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
 
     st.markdown(r"""This graph corresponds to the following Python:
 
@@ -268,7 +192,7 @@ During backpropagation, for each forward function in our computational graph we 
 
 First, we'll write the backward function for `x -> out = log(x)`. This should be a function which, when fed the values `x, out, dL/d(out)` returns the value of `dL/dx` based on the contribution from this particular computational path.""")
 
-    st.write("""<figure style="max-width:400px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNo1zbEOwjAMBNBfiW5ufyADE2ydYM1iNW4bqYmr4Eigqv9eg-CWu-FJt2OUyPCYK22LG-6hOMvL9f3FDTJ_W5qiQ-aaKUWz-wcF6MKZA7zNyBO1VQNCOYy2LZLyLSaVCj_R-uQO1FQe7zLCa238R9dEdp1_6jgBox4vQQ" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:320px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNo1zbEOwjAMBNBfiW5ufyADE2ydYM1iNW4bqYmr4Eigqv9eg-CWu-FJt2OUyPCYK22LG-6hOMvL9f3FDTJ_W5qiQ-aaKUWz-wcF6MKZA7zNyBO1VQNCOYy2LZLyLSaVCj_R-uQO1FQe7zLCa238R9dEdp1_6jgBox4vQQ" /></figure>""", unsafe_allow_html=True)
 
 
     st.markdown(r"""
@@ -403,7 +327,7 @@ You might be wondering why we need a `multiply_back0` and a `multiply_back1` fun
 
 Now we'll use our backward functions to do backpropagation manually, for the following computational graph:""")
 
-    st.write("""<figure style="max-width:800px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpFj7EOgzAMRH8l8ljBAGOGTu3G1I6kgxubgEQSlCZDhfj3plCKB8s-PZ_OM2hPDBKUMwGnXjQ35UQuFGV5FlPwVLWnx7rQX6p3qVv76E3VNt5smtkMnofBJuidrQ-WD0vloADLweJAOc_8PVIQe7asQOaRuMM0RpWjLhlNE2HkKw3RB5Adji8uAFP097fTIGNIvEOXAfNz9kctHyZgSew" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:600px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpFj7EOgzAMRH8l8ljBAGOGTu3G1I6kgxubgEQSlCZDhfj3plCKB8s-PZ_OM2hPDBKUMwGnXjQ35UQuFGV5FlPwVLWnx7rQX6p3qVv76E3VNt5smtkMnofBJuidrQ-WD0vloADLweJAOc_8PVIQe7asQOaRuMM0RpWjLhlNE2HkKw3RB5Adji8uAFP097fTIGNIvEOXAfNz9kctHyZgSew" /></figure>""", unsafe_allow_html=True)
 
     st.markdown("""
 This should give you a feel for how the backwards functions that you've defined so far will actually work in practice (although eventually you'll be automating these steps in a way similar to PyTorch's `autograd`).
@@ -456,7 +380,7 @@ def section_autograd():
     <li><a class="contents-el" href="#backpropagation">Backpropagation</a></li>
     <li><ul class="contents">
         <li><a class="contents-el" href="#topological-sort">Topological Sort</a></li>
-        <li><a class="contents-el" href="#the-backward-method"></a>The <code>backward</code> method</li>
+        <li><a class="contents-el" href="#the-backward-method">The <code>backward</code> method</a></li>
         <li><a class="contents-el" href="#end-grad">End grad</a></li>
         <li><a class="contents-el" href="#the-backprop-function">The <code>backprop</code> function</a></li>
     </li></ul>
@@ -1076,7 +1000,7 @@ At a very high level, your code here should iterate through the sorted computati
 
 As an example, consider this computational graph from earlier (assume for simplicity that all nodes are scalars):""")
 
-    st.write("""<figure style="max-width:550px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
+    st.write("""<figure style="max-width:450px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNpNjzEOgzAMRa8SeegEA4wZKlVqN7q0axaDTUEigNJkqCLuXpMCqocv67832BGaiRg0vBzOnaoeZlQyqE6qVnl-VvcwFFFi-YFaQJPAhaiIEhtYvdTTTss_usqp54MeoExVBRlYdhZ7kmviSg34ji0b0LIStxgGb8CMi6hhJvR8o95PDnSLw5szwOCn52dsQHsXeJeuPcpzdrOWLxMNSCM" /></figure>""", unsafe_allow_html=True)
 
     st.markdown("""
 If we ran `L.backward()`, the process of running backprop would iterate through the nodes as follows:
@@ -1118,7 +1042,7 @@ Since implementing this function will likely be very challenging, we've provided
         
 To explain further, suppose your computational graph is simply:""")
 
-        st.write("""<figure style="max-width:550px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNolTjEOwjAQ-0p0czvAmIGJERZYbzmSC43UJFW4DKjp37kWT7Zly17BFc9g4V1pmcztgdkoyIzjxfTQsjv11y4Ofu7GwQCJa6LotbXucQSZODGCVeo5UJsFAfOmUWpSnt_swEptPEBbPAlfI-leAhto_qjLPkqp9_-T49D2A4txMhY" /></figure>""", unsafe_allow_html=True)
+        st.write("""<figure style="max-width:320px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNolTjEOwjAQ-0p0czvAmIGJERZYbzmSC43UJFW4DKjp37kWT7Zly17BFc9g4V1pmcztgdkoyIzjxfTQsjv11y4Ofu7GwQCJa6LotbXucQSZODGCVeo5UJsFAfOmUWpSnt_swEptPEBbPAlfI-leAhto_qjLPkqp9_-T49D2A4txMhY" /></figure>""", unsafe_allow_html=True)
 
         st.markdown("""When you reach `b` in your backprop iteration, you should calculate the gradient wrt `a` (the only parent of `b`) and store it in your `grads` dictionary, as `grads[a]`. In order to do this, you need the backward function for `func1`, which is stored in the node `b` (recall that the recipe of a tensor can be thought of as a set of instructions for how that tensor was created).""")
 
@@ -1969,36 +1893,9 @@ page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 def page():
     with st.sidebar:
-
         radio = st.radio("Section", page_list)
-
         st.markdown("---")
-
     func_list[page_dict[radio]]()
-
-def check_password():
-    """Returns `True` if the user had the correct password."""
-
-    def password_entered():
-        """Checks whether a password entered by the user is correct."""
-        if st.session_state["password"] == st.secrets["password"]:
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # don't store password
-        else:
-            st.session_state["password_correct"] = False
-
-    if "password_correct" not in st.session_state:
-        # First run, show input for password.
-        st.text_input("Password", type="password", on_change=password_entered, key="password")
-        return False
-    elif not st.session_state["password_correct"]:
-        # Password not correct, show input + error.
-        st.text_input("Password", type="password", on_change=password_entered, key="password")
-        st.error("😕 Password incorrect")
-        return False
-    else:
-        # Password correct.
-        return True
 
 if is_local or check_password():
     page()
