@@ -84,6 +84,8 @@ def page():
 
 There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.
 
+The purpose of this week isn't just to give you a theoretical overview of the topics, but to have you come away from this week with concrete skills that will be important for research engineers. So the focus won't just be on reading, but also on hands-on use of the tools we'll discuss during this section.
+
 Some highlights from this chapter include:
 
 * Building docker containers to house the models you've built
