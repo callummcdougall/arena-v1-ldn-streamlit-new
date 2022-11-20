@@ -2,8 +2,8 @@ import os
 if not os.path.exists("./images"):
     os.chdir("./ch2")
 
-
-from st_dependencies import *
+import streamlit as st
+from st_dependencies import is_local, st_image, styling, check_password
 files = [f for f in os.listdir('.')]
 st.write(files)
 styling()
