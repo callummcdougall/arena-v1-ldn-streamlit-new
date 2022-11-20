@@ -2,6 +2,9 @@ import os
 if not os.path.exists("./images"):
     os.chdir("./ch2")
 
+files = [f for f in os.listdir('.')]
+st.write(files)
+
 from st_dependencies import *
 styling()
 
