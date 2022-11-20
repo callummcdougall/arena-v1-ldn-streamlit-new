@@ -16,6 +16,31 @@ In the first half if today, you'll be going through a step-by-step process on ho
 Once you're familiar with the basics of Docker, you'll have a chance to deploy a model inside your app, e.g. your Shakespeare-trained transformer, or your GANs. There are multiple different ways we'll suggest for you to do this, depending on your background with web development, or tools such as Streamlit.""")
 
 def section_1():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+    <li><a class="contents-el" href="#introduction-to-docker">Introduction to Docker</a></li>
+    <li><a class="contents-el" href="#getting-started">Getting started</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#docker">Docker</a></li>
+        <li><a class="contents-el" href="#heroku">Heroku</a></li>
+        <li><a class="contents-el" href="#misc">Misc.</a></li>
+    </ul></li>
+    <li><a class="contents-el" href="#creating-the-flask-app">Creating the Flask app</a></li>
+    <li><a class="contents-el" href="#the-html-template">The HTML template</a></li>
+    <li><a class="contents-el" href="#requirements-txt"><code>requirements.txt</code></a></li>
+    <li><a class="contents-el" href="#setting-up-the-dockerfile">Setting up the Dockerfile</a></li>
+    <li><a class="contents-el" href="#build-the-docker-image">Build the Docker image</a></li>
+    <li><a class="contents-el" href="#run-the-container">Run the container</a></li>
+    <li><a class="contents-el" href="#deploying-to-docker-hub">Deploying to Docker Hub</a></li>
+    <li><a class="contents-el" href="#deploying-your-app-to-heroku">Deploying your app to Heroku</a></li>
+    <li><a class="contents-el" href="#extra-reading">Extra reading</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#vscode">VSCode</a></li>
+    </li></ul>
+</ul>
+""", unsafe_allow_html=True)
     st.markdown("""
 ## Introduction to Docker
 
@@ -34,16 +59,10 @@ A few more important concepts to cover:
 * The **Docker Registry** is a cataloging system for hosting, pushing and pulling Docker images. These can be local, or third party services. In this tutorial, we'll be using the official Docker Registry for this, also known as [Docker Hub](https://docs.docker.com/registry/).
 * The **Docker daemon**, called `dockerd`, listens for Docker API requests and manages Docker objects such as images and containers. When you run commands using the Docker client `docker` (e.g. `docker build`), the Docker daemon bridges the gap between the client and the rest of the Docker architecture.""")
 
-    st_image("docker_architecture.png", 500)
+    st_image("docker_architecture.png", 600)
 
     st.markdown("""
 Don't worry if this seems a little abstract right now - as we get more hands-on throughout the rest of this tutorial, this should all make a lot more sense.
-
-## Build and deploy a Flask app using Docker
-
-If you've ever built a web application with Python, chances are that you used a framework to achieve this, one of which could be Flask. Flask is an open-source, beginner-friendly web framework built on the Python programming language. Flask is suitable when you want to develop an application with a light codebase rapidly.
-
-Docker is an open-source tool that enables you to containerize your applications. It aids in building, testing, deploying, and managing your applications within an isolated environment, and we'll use it to do everything except test in this article.
 
 ## Getting started
 
@@ -72,6 +91,8 @@ You should have at least Python version 3.8 installed on your machine.
 You will find it helpful to have some basic familiarity with command line interfaces. If you haven't yet gone through the corresponding prerequisite material, you can do so [here](https://arena-prerequisites.streamlit.app/#unix). At the very least, you should understand what CLIs are, and how to use commands like `cd`, `cp`, `mkdir`.
 
 ## Creating the Flask app
+
+Flask is an open-source, beginner-friendly web framework built on the Python programming language. Flask is suitable when you want to develop an application with a light codebase rapidly.
 
 If you haven't come across Flask before, you can read [this short introduction](https://www.geeksforgeeks.org/python-introduction-to-web-development-using-flask/) to get an idea of how it works. You should follow up to at least the section on **using variables in Flask**, however if you want to create interesting Flask applications later on then you are strongly recommended to read the whole page.
 
@@ -147,7 +168,7 @@ Within the root directory, create a `templates` directory, then create the `inde
 </html>
 ```
 
-## Writing Python requirement files with Docker
+## `requirements.txt`
 
 If you've ever explored any published Python project, you may have noticed a `requirements.txt` file. This file contains the list of packages and dependencies that you need to run your project and their respective versions.
 
@@ -190,10 +211,12 @@ You should now have the following directory structure:
 
 ```
 flask_docker
-  ├ templates
-  | └ sub1b
-  ├ requirements.txt
-  └ view.py
+  ├── templates
+  │   └── index.html
+  ├── Dockerfile
+  ├── Procfile
+  ├── requirements.txt
+  └── view.py
 ```
 
 You can test that the application works before you proceed to containerize it. Run this command on your terminal within the root directory to perform this test:
@@ -202,9 +225,9 @@ You can test that the application works before you proceed to containerize it. R
 python view.py
 ```
 
-This command serves your Flask app. It should give you a url e.g. `http://10.21.85.144:5000/`, which you can use to run your app locally. You should see a page like this:""")
+This command serves your Flask app. It should give you a URL that looks like `http://<your-ip-address>:5000/`, which you can use to run your app. You should see a page like this:""")
 
-    st_image("flask_app.png", 400)
+    st_image("flask_app.png", 700)
     st.markdown("""
 
 In general, running your app locally is the best way to see the effect of the changes you make, before you push it to Heroku (which we'll get to later).
@@ -235,10 +258,22 @@ ENTRYPOINT [ "python" ]
 CMD ["view.py" ]
 ```
 
+
+docker image build -t shakespeare . --progress=plain
+docker tag shakespeare themcdouglas/firstapp
+docker push themcdouglas/firstapp
+
+heroku container:push web --app callum-firstapp
+heroku container:release web --app callum-firstapp
+
+
 Let's go over the instructions in this Dockerfile:
 
 * **`FROM python:3.8-alpine`**
-    * Since Docker allows us to inherit existing images, we install a Python image and install it in our Docker image. Alpine is a lightweight Linux distro that will serve as the OS on which we install our image.
+    * Since Docker allows us to inherit existing images, we install a Python image and install it in our Docker image.
+    * `Alpine` is a lightweight Linux distro that will serve as the OS on which we install our image.
+    * See [this page](https://pythonspeed.com/articles/base-image-python-docker-images/) for a discussion of which Docker base images to use for your Python app.
+        * In particular, note that Alpine won't enable to use NumPy or PyTorch, which will be pretty important for our use-cases! We will discuss alternatives in the next section.
 * **`COPY ./requirements.txt /app/requirements.txt`**
     * Here, we copy the requirements file and its content (the generated packages and dependencies) into the app folder of the image
     * Remember, the second path here (the one containing `app`) refers to your container - it has no relation to the `flask_docker` directory on the machine you're currently working on.
@@ -246,7 +281,7 @@ Let's go over the instructions in this Dockerfile:
     * We proceed to set the working directory as `/app`, which will be the root directory of our application in the container.
     * Any subsequent commands (e.g. `COPY`, `ENTRYPOINT`, `CMD`) will refer to this directory.
 * **`RUN pip install -r requirements.txt`**
-    This command installs all the dependencies defined in the `requirements.txt file` into our application within the container.
+    * This command installs all the dependencies defined in the `requirements.txt file` into our application within the container.
 * **`COPY . /app`**
     * This copies every other file and its respective contents into the `app` folder that is the root directory of our application within the container.
 * **`ENTRYPOINT [ "python" ]`**
@@ -265,6 +300,8 @@ Let's proceed to build the image with the command below:
 docker image build -t flask_docker .
 ```
 
+The flag `-t` stands for tag. This means we can now refer to this image using the tag `flask_docker`.
+
 You can also add the flag `--progress=plain` to the end of this command, if you want to see logs during the building process.
 
 ## Run the container
@@ -275,19 +312,22 @@ After successfully building the image, the next step is to run an instance of th
 docker run -p 5000:5000 -d flask_docker
 ```
 
-This command runs the container and its embedded application, each on port 5000 using a port-binding approach. The first 5000 is the port that we allocate to the container on our machine. The second 5000 is the port where the application will run on the container.
+This command runs the container and its embedded application, each on port 5000 using a port-binding approach. The first 5000 is the port that we allocate to the container on our machine. The second 5000 is the port where the application will run on the container. Remember that our docker container has its own filesystem and ports, distinct from the filesystem and ports on our client machine.
 
-Once you see this command, you should see the same webpage as earlier when you send the request `localhost:5000` in your browser.
+Once you run this command, you should see the same webpage as earlier when you send the request `localhost:5000` in your browser. Also, if you open your Docker Desktop app, and select **Containers** from the menu on the left, you should see your container listed there, along with its status, ports and how long ago it started.""")
 
-## Deploying your Flask app to Docker Hub
+    st_image("containers.png", 700)
+    st.markdown("""
 
-As we mentioned above, Docker Hub is a registry where Docker users can create, test, and manage containers. If you’ve worked with GitHub, this section will be very familiar to you.
+## Deploying to Docker Hub
+
+As we mentioned above, Docker Hub is a registry where Docker users can create, test, and manage containers. If you've worked with GitHub, this section will be very familiar to you.
 
 Follow the next sequence of steps to deploy the image we built to Docker Hub so that you can access it anywhere.
 
 #### 1. Create a repository on the Docker Hub
 
-If you don’t already have an account, proceed to sign up on Docker Hub. After successfully creating an account, log in and click the Repositories tab on the navbar.""")
+If you don't already have an account, proceed to [sign up](https://hub.docker.com/signup) on Docker Hub. After successfully creating an account, log in and click the Repositories tab on the navbar.""")
 
     st_image("repositories-docker-hub-navbar.png", 700)
     st.markdown("""
@@ -299,8 +339,12 @@ The next step is to log in on your local machine to create a connection between 
 
 ```
 docker login
-```
+```""")
+    with st.expander("Help - I get 'error during connect: This error may indicate that the docker daemon is not running'."):
+        st.markdown("""
+This might be because you've disabled the features which cause Docker to run automatically on startup. Running the Docker Desktop app should fix this.""")
 
+    st.markdown("""
 #### 3. Rename the Docker image
 
 When pushing an image to Docker Hub, there is a standard format that your image name has to follow. This format is specified as:
@@ -309,11 +353,13 @@ When pushing an image to Docker Hub, there is a standard format that your image 
 <your-docker-hub-username>/<repository-name>
 ```
 
-Here is the command for renaming the image:
+Here is the command you should use to rename the image:
 
 ```
 docker tag flask_docker <your-docker-hub-username>/flask-docker
 ```
+
+When you do this, you should see a second image appear in the **Images** tab of your Docker Desktop app, with the new name.
 
 #### 4. Create a repository on the Docker Hub
 
@@ -328,13 +374,11 @@ This is what you should see upon successful deployment:""")
     st_image("successful-flask-docker-app.png", 600)
 
     st.markdown("""
-## Deploying our app to Heroku
-
-You should create Her
+## Deploying your app to Heroku
 
 As mentioned earlier, Heroku is a platform where developers can build and run applications in the cloud. If you don't already have an account with Heroku, you can create one [here](https://signup.heroku.com/).
 
-We'll now proceed to deploy our containerized application to Heroku with the following steps:
+You should now proceed to deploy our containerized application to Heroku, with the following steps:
 
 #### 1: Log in to Heroku
 
@@ -342,16 +386,10 @@ We'll now proceed to deploy our containerized application to Heroku with the fol
 heroku login
 ```
 
-If you’ve not previously logged in to your Docker Hub account, you’ll be required to do this to proceed.
+If you've not previously logged in to your Docker Hub account, you'll be required to do this to proceed.
 
 ```
 docker login --username=<your-username> --password=<your-password>
-```
-
-If you get authorization errors now (or at any other point in this procedure), then running the following command might fix the problem (although you probably shouldn't have to run it):
-
-```
-heroku auth:token | docker login --username=<your-username> registry.heroku.com --password-stdin
 ```
 
 #### 2: Create Heroku app
@@ -376,8 +414,20 @@ web: gunicorn app:app
 
 ```
 heroku container:push web --app <app-name>
+```""")
+
+    with st.expander("Help - I get 'unauthorized: authentication required'."):
+        st.markdown("""
+Try running the following command (with your username):
+
+```
+heroku auth:token | docker login --username=<your-username> registry.heroku.com --password-stdin
 ```
 
+and then trying again to push. If this also fails, it might be time for some Google / StackOverflow debugging!
+""")
+
+    st.markdown("""
 #### 5: Release the image
 
 ```
@@ -388,19 +438,38 @@ heroku container:release web --app <app-name>
     st.markdown("")
 
     st.info("""
-Let's review all of these steps. With `flask-docker` as our app name, and `flask_docker` as our temporary name (which gets changed after the `docker tag` command), we have the following:
+Let's review all of these steps. We have:
 
 ```
 docker login
-(one time only) heroku login
-(one time only) heroku create <app_name>
+docker image build -t <tag-name> . --progress=plain
+(for running locally) docker run -p 5000:5000 -d <tag-name>
+docker tag <tag-name> <docker-username>/<repository-name>
+docker push <docker-username>/<repository-name>
+
+heroku login
+heroku create <app-name>
 (create Procfile containing `web: gunicorn app:app`)
-docker image build -t <temporary_name> . --progress=plain
-docker tag <temporary_name> <docker_username>/<app_name>
-docker push <docker_username>/<app_name>
-heroku container:push web --app <app_name>
-heroku container:release web --app <app_name>
-```""")
+heroku container:push web --app <app-name>
+heroku container:release web --app <app-name>
+```
+
+where in this case, we used `flask-docker` as our tag name, and `flask_docker` as our repository name. 
+
+When you make changes to the app, you will only need to run three commands again: the `docker push`, and the last two Heroku commands: `push` and `release`. If your changes include new dependencies (e.g. changes to `requirements.txt`), then you'll need to build a new image.
+
+Our directory structure at this point looks like:
+
+```
+flask_docker
+  ├── templates
+  │   └── index.html
+  ├── Dockerfile
+  ├── Procfile
+  ├── requirements.txt
+  └── view.py
+```
+""")
 
     st.markdown("")
     st.markdown("")
@@ -411,6 +480,14 @@ You can now proceed to view your application on Heroku with the URL:
 https://<app-name>.herokuapp.com/
 ```
 
+Alternatively, you can run the command:
+
+```
+heroku open --app <app-name>
+```
+
+and this URL should automatically open for you.
+
 ## Extra reading
 
 Congratulations, you've finished building your first app! 
@@ -419,13 +496,177 @@ If you want, you can progress immediately to the second set of exercises. Altern
 
 * [Best practices from Docker documentation](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/)
 * [Video: Docker best practices](https://www.youtube.com/watch?v=8vXoMqWgbQQ) (18 mins)
+
+### VSCode
+
+VSCode has a very useful Docker extension. Much like its GitHub extension, this abstracts away many of the messy details of running commands in the CLI. You can do things like:
+
+* See a list of currently active containers and images.
+* View the filestructure of your container (this is especially useful to check that e.g. commands like `COPY` in your Dockerfile have worked as you expected them to).
+* Run commands like pushes and pulls with docker.
+
+However, it's recommended not to use this until you're a bit more comfortable with the CLI-based workflow.
 """)
 
 def section_2():
-    pass
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+    <li><a class="contents-el" href="#methods-of-deployment">Methods of deployment</a></li>
+    <li><a class="contents-el" href="#streamlit">Streamlit</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#getting-started-with-streamlit">Getting started with Streamlit</a></li>
+        <li><a class="contents-el" href="#deploy-streamlit-using-docker">Deploy Streamlit using Docker</a></li>
+    </ul></li>
+    <li><a class="contents-el" href="#flask-html-css-javascript">Flask (& HTML, CSS JavaScript)</a></li>
+    <li><a class="contents-el" href="#conclusion">Conclusion</a></li>
+</ul>
+""", unsafe_allow_html=True)
+    st.markdown(r"""
+Now that you've made a basic Docker app, it's time to deploy one of the models you trained earlier in the course!
+
+This can be whichever one you'd like - you can use your MNIST from the first week, or you can use more advanced models like your Shakespeare transformer, or your GAN / VAE from the contrastive modelling section.
+
+## Methods of deployment
+
+Now, we come to ways you can deploy your app.
+
+One point to address first - in the previous tutorial we used the `python:3.8-alpine` image. This suffices for basic applications, but it won't now that we're trying to import and use packages like NumPy and PyTorch. Messing around with the right images and `RUN` commands can be a pretty big pain! 
+
+I found that using the following the following in my Dockerfile worked:
+
+```docker
+FROM python:3.8-slim
+
+RUN pip3 install --upgrade pip
+RUN pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip3 install -r requirements.txt
+```
+
+The `install torch` line was taken from [this site](https://pytorch.org/get-started/locally/), using the following settings: Stable, Linux, Pip, Python, CPU. Note that using CPU rather than CUDA results in a smaller image, but also means that this model can't be run on a GPU. Later in this chapter we'll try and build models that can be run on GPUs (we'll use **FastAPI** to do this rather than Flask), but for now most of the models we've built will be able to perform inference on a CPU without too much stress.
+
+Building this image will take some time since, PyTorch download and installation takes a while.
+
+One gotcha here - if your app actually contains PyTorch models or state dictionaries which you load during runtime, make sure these are stored on the CPU. In the case of a state dictionary, you can move it to the CPU using code like:
+
+```python
+state_dict_cpu = {k: v.cpu() for k, v in state_dict_cuda.items()}
+t.save(state_dict_cpu, "state_dict.pt")
+```
+
+## Streamlit
+
+Streamlit is the framework these exercises are being hosted with (i.e. these pages were designed using Streamlit). But in fact, Streamlit can be used for a lot more than serving markdown files with navbars! It was **specifically designed for developing and deploying interactive data science dashboards and machine learning models.**
+
+One major advantage of Streamlit is that the entire thing is written in Python, as opposed to the suggested task above which requires you to have familiarity with HTML and JavaScript at least. This makes it extremely easy to pick up and become proficient in, even if you have no experience of web development. So if the **HTML, CSS & JavaScript** option below seems intimidating, I'd recommend trying this one.
+
+### Getting started with Streamlit
+
+Gettting started is as simple as installing Streamlit with `pip install streamlit`, then running `streamlit hello`. A Streamlit page will open that demos some of its main features, and the page also provides links to other help pages and documentation.
+
+### Deploy Streamlit using Docker
+
+Luckily, Streamlit has consistently good documentation, including a page on how to [deploy Streamlit using Docker](https://docs.streamlit.io/knowledge-base/tutorials/deploy/docker). Most of the stuff on this page should be familiar to you (or at least understandable) given the context of the section 1️⃣ Introduction to Docker.
+
+
+## Flask (& HTML, CSS JavaScript)
+
+For people with any front-end web development background, this might be a fun project. Even if you don't, this could be a good opportunity to tip your toe in! I'd recommend the [CS50x course](https://cs50.harvard.edu/x/2022/notes/8/) - specifically week 8 - for a speed-run introduction to HTML, CSS and JavaScript and how they work together. If you're looking for a longer intro, then you might want to check out [CS50's Web Programming with Python and Javascript](https://cs50.harvard.edu/web/2020/). However, it's worth emphasising that to fully treat these topics would take us quite far outside the bounds of this course material!
+
+Once you understand the basics, you should be able to create simple apps like this:""")
+
+    st_image("vanilla-shakespeare.png", 600)
+
+    st.markdown(r"""
+This was created using the following basic method:
+
+### 1. Adding the appropriate Python files to the directory
+
+Below is what the directory looked like at the end (note that this represents just one possible design choice, and it's possible this isn't in line with best practices!).
+
+```
+flask_docker
+  ├── my_transformer
+  │   ├── 100-0.txt                  
+  │   ├── load_shakespeare.py
+  │   ├── model_state_dict.pt
+  │   ├── sampling_methods.py
+  │   └── transformer_architecture.py
+  ├── templates
+  │   └── index.html
+  ├── Dockerfile
+  ├── Procfile
+  ├── requirements.txt
+  └── view.py
+```
+
+### 2. Adding [JavaScript Forms](https://www.w3schools.com/js/js_validation.asp) to `index.html`
+
+Here is an example of how you can use a form, which just takes initial text and temperature as inputs, and also has a submit button:
+
+```js
+<form action="{{ url_for('submit') }}" method="post">
+    <div id="text-input">
+        <textarea name="text" rows="4" cols="50" placeholder="Enter your text here, and press submit."></textarea>
+    </div>
+
+    <div>
+        <label for="temperature">Temperature:</label>
+        <input type="number" name="temperature" min="0.0" max="10.0" value="1.0" step="0.05">
+    </div>
+
+    <div>
+        <input type="submit" value="Generate text!">
+    </div>
+</form>
+```
+
+See [this page](https://www.w3schools.com/html/html_form_input_types.asp) to view and test out the other types of `<input>` elements you can add to forms.
+
+Note the `action="{{ url_for('submit') }}` argument inside the form definition. This tells Flask where the data is sent to on submit (see the following section for how our `submit` page handles this data). The `method` argument tells Flask how to submit the data, either as a query string (GET) or form data (POST). Here, I'm using POST so that the values aren't visible in the URL. You could use GET in this case if you wanted, although it would be somewhat less natural.
+
+### 3. Replace the `home` function (decorated with `@app.route('/')`) with:
+
+```python
+@app.route('/', methods=["GET"])
+def home():
+    return render_template('index.html')
+
+@app.route('/submit', methods=['POST'])
+def submit():
+
+    # Get information from the `request.form` object, using elements' `name` attribute
+    temperature = float(request.form["temperature"])
+    initial_text = request.form["text"]
+
+    # Generate model output (not shown)
+
+    # Return `index.html`, with model output passed as an argument
+    return render_template('index.html', model_output=model_output)
+```
+
+### 4. Adding a location for the model output to `index.html`
+
+```html
+<pre>{{model_output}}</pre>
+```
+
+See [this section of the Flask introduction](https://www.geeksforgeeks.org/python-introduction-to-web-development-using-flask/#:~:text=Sending%20Form%20Data%20to%20the%20HTML%20File%20of%20Server%3A) to see how the double curly brackets syntax can be used to send information that is rendered in your html pages.
+
+---
+
+## Conclusion
+
+Once you've built an app, please share it with the group! It would be great to assemble a gallery of Docker apps that people on this programme have created.
+
+Later in this chapter, we'll use Lambda Labs to pre-train our BERT model on some powerful GPUs, then bring everything full-circle by deploying our apps.
+""")
 
 def section_empty():
     st.markdown("""Coming soon!
+
+
 
 In the meantime, the following readings might help:
 

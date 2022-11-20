@@ -12,7 +12,7 @@ def st_image(name, width):
     st.markdown(img_html, unsafe_allow_html=True)
 
 def styling():
-    st.set_page_config(layout="wide")
+    st.set_page_config(layout="wide", page_icon="🔬")
     st.markdown("""
     <style>
     label.effi0qh3 {

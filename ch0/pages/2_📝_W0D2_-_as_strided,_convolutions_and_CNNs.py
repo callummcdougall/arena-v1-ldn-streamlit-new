@@ -429,6 +429,7 @@ def section3():
     st.markdown("""
 ## Reading
 
+* [But what is a convolution?](https://www.youtube.com/watch?v=KuXjwB4LzSA) by 3Blue1Brown
 * [A Comprehensive Guide to Convolutional Neural Networks (TowardsDataScience)](https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53)
 
 Here are some questions to make sure you've understood the material. Once you finish the article above, you should try and answer these questions without referring back to the original article.
