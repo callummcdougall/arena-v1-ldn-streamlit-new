@@ -11,7 +11,7 @@ def st_image(name, width):
     img_html = f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
     st.markdown(img_html, unsafe_allow_html=True)
 
-def st_styling():
+def styling():
     st.set_page_config(layout="wide", page_icon="🔬")
     st.markdown("""
 <style>

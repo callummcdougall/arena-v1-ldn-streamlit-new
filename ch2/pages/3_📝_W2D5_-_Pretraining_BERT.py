@@ -3,7 +3,7 @@ if not os.path.exists("./images"):
     os.chdir("./ch2")
 
 from st_dependencies import *
-st_styling()
+styling()
 
 def section_home():
     st.markdown("""
