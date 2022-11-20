@@ -4,9 +4,9 @@ if not os.path.exists("./images"):
 
 
 from st_dependencies import *
-styling()
 files = [f for f in os.listdir('.')]
 st.write(files)
+styling()
 
 def section_home():
     st.markdown("""
