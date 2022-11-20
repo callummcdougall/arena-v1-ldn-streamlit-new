@@ -2,11 +2,8 @@ import os
 if not os.path.exists("./images"):
     os.chdir("./ch2")
 
-import streamlit as st
-from st_dependencies import is_local, st_image, styling, check_password
-files = [f for f in os.listdir('.')]
-st.write(files)
-styling()
+from st_dependencies import *
+st_styling()
 
 def section_home():
     st.markdown("""
