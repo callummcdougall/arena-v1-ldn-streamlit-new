@@ -111,7 +111,7 @@ There is some markup at least for section headings. Again, this might be somethi
 
 It's important to know that the `zipfile` standard library module is written in pure Python, and while this makes it portable it is extremely slow as a result. It's fine here, but for larger datasets, definitely don't use it - it's better to launch a subprocess and use an appropriate decompression program for your system like `unzip` or `7-zip`.
 
-```
+```python
 path = os.path.join(DATA_FOLDER, DATASETS[DATASET])
 maybe_download(BASE_URL + DATASETS[DATASET], path)
 expected_hexdigest = {"103": "0ca3512bd7a238be4a63ce7b434f8935", "2": "f407a2d53283fc4a49bcff21bc5f3770"}
@@ -168,7 +168,7 @@ def tokenize_1d(tokenizer, lines: list[str], max_seq: int) -> t.Tensor:
 if MAIN:
     max_seq = 128
     print("Tokenizing training text...")
-    train_data = tokenize_1d(tokenizer, train_text, max_seq, 100)
+    train_data = tokenize_1d(tokenizer, train_text, max_seq)
     print("Training data shape is: ", train_data.shape)
     print("Tokenizing validation text...")
     val_data = tokenize_1d(tokenizer, val_text, max_seq)
