@@ -27,6 +27,7 @@ def section_1():
 ## Table of Contents
 
 <ul class="contents">
+   <li><a class="contents-el" href="#imports">Imports</a></li>
    <li><a class="contents-el" href="#introduction">Introduction</a></li>
    <li><a class="contents-el" href="#reading">Reading</a></li>
    <li><a class="contents-el" href="#data-preparation">Data Preparation</a></li>
@@ -38,6 +39,8 @@ def section_1():
 </ul>
 """, unsafe_allow_html=True)
     st.markdown("""
+## Imports 
+
 ```python
 import hashlib
 import os
