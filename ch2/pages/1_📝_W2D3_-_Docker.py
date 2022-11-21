@@ -9,7 +9,7 @@ def section_home():
     st.markdown("""
 ## 1️⃣ Introduction to Docker
 
-In the first half if today, you'll be going through a step-by-step process on how to set up a basic Docker project. This closely resembles the online tutorial from [LogRocket](https://blog.logrocket.com/build-deploy-flask-app-using-docker/).
+In the first half of today, you'll be going through a step-by-step process on how to set up a basic Docker project. This closely resembles the online tutorial from [LogRocket](https://blog.logrocket.com/build-deploy-flask-app-using-docker/).
 
 ## 2️⃣ Deploying a PyTorch model
 
