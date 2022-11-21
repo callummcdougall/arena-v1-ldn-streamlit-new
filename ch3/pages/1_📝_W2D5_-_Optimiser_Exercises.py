@@ -668,7 +668,7 @@ utils.test_MultiStepLR(MultiStepLR, SGD)
 
 There are more advanced learning rate schedulers available in PyTorch. For example, there are [cyclic learning rates](https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.CyclicLR.html#torch.optim.lr_scheduler.CyclicLR), which are based on the core intuition that an optimal learning rate range exists, and we should vary the learning rate in a disciplined way in order to make sure you spend time in that range.""")
 
-    st_image("lr.png", 300)
+    st_image("lr.png", 700)
 
     st.markdown("""
 There are also more complicated dependencies you can use - for instance, [`ReduceLROnPlateau`](https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html#torch.optim.lr_scheduler.ReduceLROnPlateau) will reduce the learning rate once a metric has stopped improving. 

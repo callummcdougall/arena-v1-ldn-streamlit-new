@@ -354,7 +354,7 @@ config_dict = dict(
     max_grad_norm=None,
 )
 
-(train_data, val_data, test_data) = t.load("./data/wikitext_tokens_103.pt")
+(train_data, val_data, test_data) = t.load("./data/wikitext_tokens_2.pt")
 print("Training data size: ", train_data.shape)
 
 train_loader = DataLoader(
