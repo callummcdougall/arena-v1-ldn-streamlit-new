@@ -71,8 +71,9 @@ if not os.path.exists(DATA_FOLDER):
 
 ## Introduction
 
-Now we'll prepare text data to train a BERT from scratch! The largest BERT would require days of training and a large training set, so we're going to train a tiny BERT on a small training set: [WikiText](https://blog.salesforceairesearch.com/the-wikitext-long-term-dependency-language-modeling-dataset/). This comes in a small version WikiText-2 (the 2 means 2 million tokens in the train set) and a medium version WikiText-103 with 103 million tokens. For the sake of fast feedback loops, we'll be using the small version but in the bonus you'll be able to use the medium version with the same code by changing the DATASET variable below. Both versions consist of text taken from Good and Featured articles on Wikipedia.
-
+Now we'll prepare text data to train a BERT from scratch! The largest BERT would require days of training and a large training set, so we're going to train a tiny BERT on a small training set: [WikiText](https://blog.salesforceairesearch.com/the-wikitext-long-term-dependency-language-modeling-dataset/). This comes in a small version WikiText-2 (the 2 means 2 million tokens in the train set) and a medium version WikiText-103 with 103 million tokens. For the sake of fast feedback loops, we'll be using the small version but in the bonus you'll be able to use the medium version with the same code by changing the DATASET variable below. Both versions consist of text taken from Good and Featured articles on Wikipedia.""")
+    st.error("""If you haven't already gone through the tutorial on setting up Lambda Labs, now would be a good time to do that.""")
+    st.markdown("""
 ## Reading
 
 * [BERT Paper](https://arxiv.org/pdf/1810.04805.pdf) - focus on the details of pretraining, found primarily in Section 3.1 and Appendix A.

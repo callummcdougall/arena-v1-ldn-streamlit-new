@@ -4,12 +4,16 @@ import platform
 
 is_local = (platform.processor() != "")
 
-def st_image(name, width):
+def st_image(name, width, return_html=False):
     with open("images/" + name, "rb") as file:
         img_bytes = file.read()
     encoded = base64.b64encode(img_bytes).decode()
-    img_html = f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
-    st.markdown(img_html, unsafe_allow_html=True)
+    if return_html:
+        img_html = f"<img style='width:{width}px;' src='data:image/png;base64,{encoded}' class='img-fluid'>"
+        return img_html
+    else:
+        img_html = f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
+        st.markdown(img_html, unsafe_allow_html=True)
 
 def styling():
     st.set_page_config(layout="wide", page_icon="🔬")
