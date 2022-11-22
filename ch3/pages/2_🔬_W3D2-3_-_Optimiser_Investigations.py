@@ -99,10 +99,11 @@ Now that you've learned about different optimizers and learning rates, and you'v
 * How does the training loss for different optimizers behave when training your ConvNet or ResNets from chapter 0, or your decoder-only transformer from chapter 1?
 * It was mentioned yesterday that PyTorch applies weight decay to all parameters equally, rather than only to weights and not to biases. What happens when you run experiments on your ConvNet or ResNet with weight decay varying across weights and biases?
     * Note - you'll need to use **parameter groups** for this task; see exercise 1 above. You can find all the biases by iterating through `model.named_parameters()`, and checking whether the name contains the string `"bias"`.
+* You might want to go back to your BERT implementation from last section, and run some of these experiments on that.
 
 ## 2. Noisy Quadratic Model
 
-As we discussed yesterday, a large bach generall means that the estimate of the gradient is closer to that of the true gradient over the entire dataset (because it is an aggregate of many different datapoints). But empirically, we tend to observe a [**critical batch size**](https://arxiv.org/pdf/1812.06162.pdf), above which training becomes less-data efficient.
+As was mentioned yesterday in the discussion of gradient descent, a large bach generally means that the estimate of the gradient is closer to that of the true gradient over the entire dataset (because it is an aggregate of many different datapoints). But empirically, we tend to observe a [critical batch size](https://arxiv.org/pdf/1812.06162.pdf), above which training becomes less-data efficient.
 
 The NQM is the second-order Taylor expansion of the loss discussed in the critical batch size paper, and accounts for surprisingly many deep learning phenomena. [This paper](https://arxiv.org/abs/1907.04164) uses this model to explain the effect of curvature and preconditioning on the critical batch size.
 

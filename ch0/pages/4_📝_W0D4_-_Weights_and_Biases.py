@@ -25,8 +25,6 @@ if "fig_dict" not in st.session_state:
     st.session_state["fig_dict"] = fig_dict
 fig_dict = st.session_state["fig_dict"]
 
-st.set_page_config(layout="wide")
-
 def section_home():
     st.markdown(r"""
 ## 1️⃣ Weights and Biases

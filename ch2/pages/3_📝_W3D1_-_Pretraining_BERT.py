@@ -110,7 +110,7 @@ There are Japanese characters immediately at the start of the training set, whic
 
 There is some markup at least for section headings. Again, this might be something we'd want to manually handle.""")
 
-    st.markdown("""
+    st.markdown(r"""
 ### Use of zipfile library
 
 It's important to know that the `zipfile` standard library module is written in pure Python, and while this makes it portable it is extremely slow as a result. It's fine here, but for larger datasets, definitely don't use it - it's better to launch a subprocess and use an appropriate decompression program for your system like `unzip` or `7-zip`.
@@ -186,7 +186,7 @@ if MAIN:
 
 Implement `random_mask`, which we'll call during training on each batch. This function should apply masking to the tokens based on the material in the [BERT Paper](https://arxiv.org/pdf/1810.04805.pdf) - specifically in Section 3.1 and Appendix A.
 
-Note - it's not enough just to get the right mask in expectation (e.g. by constructing a mask directly from `t.rand() < threshold_value`), you should try to mask close to the exact right number of tokens. When sampling a random token, sample uniformly at random from [0..vocabulary size).
+To further clarify: you should have exactly 15% (within rounding error) of the `batch * seq_len` tokens of each batch being masked. Of those 15%, exactly 80% will be replaced with a [MASK] token, 10% will be replaced with a random token, and 10% will be unchanged. These percentages will be inputs to your function. Importantly, you don't need to apply these percentages to every single sequence within the batch, just to the batch as a whole.
 
 Make sure that any tensors that you create are on the same device as `input_ids` - you'll find this helpful later on.
 """)
@@ -196,6 +196,8 @@ Make sure that any tensors that you create are on the same device as `input_ids`
 Probably the easiest way to approach this task is to construct boolean masks, and apply them using `t.where`.
 
 Using `t.randperm` is probably the easiest way to construct your masks.
+
+Additionally, you might find it helpful to flatten your `(batch, seq_len)` tensor into a 1D tensor, and work with this object.
 """)
 
     with st.expander("Is there anything special or optimal about the numbers 15%, 80%, and 10%?"):
