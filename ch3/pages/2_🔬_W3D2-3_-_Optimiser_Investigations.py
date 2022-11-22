@@ -97,7 +97,7 @@ You can do this by defining an optimizer just like your `SGD`, `RMSprop` and `Ad
 
 ## 4. Neural Tangent Kernel
 
-Read the blog post [Understanding the Neural Tangent Kernel](https://rajatvd.github.io/NTK/). This is an accessible introduction to the [NTK paper](https://arxiv.org/pdf/1806.07572.pdf). You might also find [this post](https://lilianweng.github.io/posts/2022-09-08-ntk/#neural-tangent-kernel) helpful.
+Read the blog post [Understanding the Neural Tangent Kernel](https://rajatvd.github.io/NTK/). This is an accessible introduction to the [NTK paper](https://arxiv.org/pdf/1806.07572.pdf). You might also find [this post](https://lilianweng.github.io/posts/2022-09-08-ntk/#neural-tangent-kernel) helpful. Lastly, [this LessWrong post](https://www.lesswrong.com/posts/QzpKq92nXqp8NHM34/neural-tangent-kernel-distillation) on the NTK (produced as part of the 2022 SERI MATS programme) shines a light on the intuitions behind NTK, and its possible relevance for alignment.
 
 The NTK paper's critical proposition is:""")
 
@@ -114,7 +114,7 @@ The NTK paper's critical proposition is:""")
 Investigate these claims in your own 2-layer MNIST CNN. You can try the following:
 
 * Test out the **lazy training** phenomenon. Make an animated graph of how the weights between your hidden layers change over time. Do you observe them to be approximately constant for large networks?
-* Estimate the quantity $\color{blue}\kappa(\boldsymbol{\omega_0})$, defined in the paper as:
+* Calculate the quantity $\color{blue}\kappa(\boldsymbol{\omega_0})$, defined in the paper as:
 
     $\color{blue}\kappa(\boldsymbol{\omega_0}) = \left\|\left(\boldsymbol{y}\left(\boldsymbol{w}_0\right)-\overline{\boldsymbol{y}}\right)\right\| \frac{\left\|\nabla_w^2 \boldsymbol{y}\left(\boldsymbol{w}_{\mathbf{0}}\right)\right\|}{\left\|\nabla_w \boldsymbol{y}\left(\boldsymbol{w}_{\mathbf{0}}\right)\right\|^2}$
 
@@ -144,9 +144,20 @@ fig.show()
 ```""")
         st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("""
 
-## 5. Extra reading
+
+    st.markdown("""
+## 5. Lottery ticket hypothesis
+
+(Coming soon.)
+
+## 6. Momentum, and the Colorization Problem
+
+This problem was described in the [Distill blog post on momentum](https://distill.pub/2017/momentum/#:~:text=Example%3A%20The%20Colorization%20Problem). Can you implement this problem, and test it out with different optimizers and hyperparameters? What kinds of results do you get?
+
+(Note - the idea for this exercise is for it to help illustrate concepts about momentum, rather than to just be an implementation task. More prompt questions will be coming here soon, to help with this.)
+
+## 7. Extra reading
 
 If none of the experiments above seem all that exciting to you, then you can read some more about optimisation instead. As well as yesterday's resources, a few you might enjoy are:
 
