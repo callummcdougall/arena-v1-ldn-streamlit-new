@@ -3,70 +3,36 @@ if not os.path.exists("./images"):
     os.chdir("./ch3")
 from st_dependencies import *
 styling()
+import numpy as np
+import plotly.express as px
+if "fig" not in st.session_state:
+    img = np.random.random(size=(15, 10, 10, 3))
+    fig = px.imshow(img, animation_frame=0)
+    st.session_state["fig"] = fig
+else:
+    fig = st.session_state["fig"]
+
 
 st.markdown("""
 <style>
-label.effi0qh3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-top: 15px;
+table {
+    width: calc(100% - 30px);
+    margin: 15px
 }
-p {
-    line-height:1.48em;
+[data-testid="stDecoration"] {
+    background-image: none;
 }
-.streamlit-expanderHeader {
-    font-size: 1em;
-    color: darkblue;
+div.css-fg4pbf [data-testid="column"] {
+    box-shadow: 7px 7px 14px #aaa;
+    padding: 15px;
 }
-.css-ffhzg2 .streamlit-expanderHeader {
-    color: lightblue;
+div.css-ffhzg2 [data-testid="column"] {
+    box-shadow: 7px 7px 14px #aaa;
+    background: #333;
+    padding: 15px;
 }
-header {
-    background: rgba(255, 255, 255, 0) !important;
-}
-code {
-    color: red;
-    white-space: pre-wrap !important;
-}
-code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
-    font-size: 13px;
-}
-a.contents-el > code {
-    color: black;
-    background-color: rgb(248, 249, 251);
-}
-.css-ffhzg2 a.contents-el > code {
-    color: orange;
-    background-color: rgb(26, 28, 36);
-}
-.css-ffhzg2 code:not(pre code) {
-    color: orange;
-}
-.css-ffhzg2 .contents-el {
-    color: white !important;
-}
-pre code {
-    font-size:13px !important;
-}
-.katex {
-    font-size:17px;
-}
-h2 .katex, h3 .katex, h4 .katex {
-    font-size: unset;
-}
-ul.contents {
-    line-height:1.3em; 
-    list-style:none;
-    color-black;
-    margin-left: -10px;
-}
-ul.contents a, ul.contents a:link, ul.contents a:visited, ul.contents a:active {
-    color: black;
+[data-testid="column"] a {
     text-decoration: none;
-}
-ul.contents a:hover {
-    color: black;
-    text-decoration: underline;
 }
 </style>""", unsafe_allow_html=True)
 
@@ -127,11 +93,58 @@ We briefly mentioned Shampoo yesterday, a special type of structure-aware precon
     st.markdown("")
 
     st.markdown("""
-You can do this by defining an optimizer just like your `SGD`, `RMSprop` and `Adam` implementations yesterday. Try using your optimizer on Rosenbrock's banana, and on some of the neural networks you've made so far like your ConvNet or ResNet. How does it do compared to the other algorithms?
+You can do this by defining an optimizer just like your `SGD`, `RMSprop` and `Adam` implementations yesterday. Try using your optimizer on image classifiers; either your MNIST classifier something more advanced like CIFAR-10. How does it compare to the other algorithms? Do your results appear similar to **Figure 2** in the paper?
 
-## 4. The Colorization Problem
+## 4. Neural Tangent Kernel
 
-This problem was described in the [Distill blog post on momentum](https://distill.pub/2017/momentum/#:~:text=Example%3A%20The%20Colorization%20Problem). Can you implement this problem, and test it out with different optimizers and hyperparameters? What kinds of results do you get?
+Read the blog post [Understanding the Neural Tangent Kernel](https://rajatvd.github.io/NTK/). This is an accessible introduction to the [NTK paper](https://arxiv.org/pdf/1806.07572.pdf). You might also find [this post](https://lilianweng.github.io/posts/2022-09-08-ntk/#neural-tangent-kernel) helpful.
+
+The NTK paper's critical proposition is:""")
+
+    cols = st.columns([1])
+    with cols[0]:
+        st.markdown(r"""
+**When $n_1, ..., n_L \to \infty$ (network with infinite width), the NTK:**
+
+1. **Converges to a deterministic limit, meaning that the kernel's limit is irrelevant to the initialization values and only determined by the model architecture.**
+2. **Stays essentially constant during training.**
+""")
+
+    st.markdown(r"""
+Investigate these claims in your own 2-layer MNIST CNN. You can try the following:
+
+* Test out the **lazy training** phenomenon. Make an animated graph of how the weights between your hidden layers change over time. Do you observe them to be approximately constant for large networks?
+* Estimate the quantity $\color{blue}\kappa(\boldsymbol{\omega_0})$, defined in the paper as:
+
+    $\color{blue}\kappa(\boldsymbol{\omega_0}) = \left\|\left(\boldsymbol{y}\left(\boldsymbol{w}_0\right)-\overline{\boldsymbol{y}}\right)\right\| \frac{\left\|\nabla_w^2 \boldsymbol{y}\left(\boldsymbol{w}_{\mathbf{0}}\right)\right\|}{\left\|\nabla_w \boldsymbol{y}\left(\boldsymbol{w}_{\mathbf{0}}\right)\right\|^2}$
+
+    Note that you can calculate the Hessian and Jacobian using the PyTorch functions:
+
+    ```python
+    torch.autograd.functional.jacobian(func, x)
+    torch.autograd.functional.hessian(func, x)
+    ```
+
+    Plot $\color{blue}\kappa(\boldsymbol{\omega_0})$ against the number of neurons in the hidden layers. Do you get it decaying to near zero, as expected?
+    
+    (Make sure you properly initialise the weights, as [described in the post](https://rajatvd.github.io/NTK/#:~:text=independent%20zero%2Dmean%20Gaussian%20random%20variables%20with%20a%20variance%20that%20goes%20inversely%20with%20the%20size%20of%20the%20input%20layer.).)
+
+""")
+
+    with st.expander("Example code for producing animations with Plotly:"):
+        st.markdown("""
+```python
+import numpy as np
+import plotly.express as px
+
+# img is a list of 10 images
+img = np.random.random(size=(15, 10, 10, 3))
+fig = px.imshow(img, animation_frame=0)
+fig.show()
+```""")
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("""
 
 ## 5. Extra reading
 
