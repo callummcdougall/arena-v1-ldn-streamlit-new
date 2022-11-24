@@ -42,7 +42,9 @@ def read_from_html(filename):
 
 def section_home():
     st.markdown("""
-    In Part 1 we'll study the multi-armed bandit problem, which is simple yet captures introduces many of the difficulties in RL. Many practical problems can be posed in terms of generalizations of the multi-armed bandit. For example, the Hyperband algorithm for hyperparameter optimization is based on the multi-armed bandit with an infinite number of arms.
+## 1️⃣ Multi-Armed Bandit
+
+In Part 1 we'll study the multi-armed bandit problem, which is simple yet captures introduces many of the difficulties in RL. Many practical problems can be posed in terms of generalizations of the multi-armed bandit. For example, the Hyperband algorithm for hyperparameter optimization is based on the multi-armed bandit with an infinite number of arms.
 """)
 
 def section1():
@@ -393,9 +395,9 @@ if MAIN:
 * Complete the exercises at the end of Chapter 2 of Sutton and Barto.
 """)
 
-func_list = [section1]
+func_list = [section_home, section1]
 
-page_list = ["🏠 Home", "1️⃣ Optimizers", "2️⃣ Optimizer groups", "3️⃣ Learning rate schedulers"]
+page_list = ["🏠 Home", "1️⃣ Multi-Armed Bandit"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 def page():
