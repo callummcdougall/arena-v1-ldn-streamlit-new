@@ -92,7 +92,8 @@ from typing import Optional, Union
 import gym
 import gym.envs.registration
 import gym.spaces
-import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
 import numpy as np
 from tqdm.auto import tqdm
 
@@ -103,10 +104,7 @@ N_RUNS = 200
 
 ## Intro to OpenAI Gym
 
-Today and tomorrow, we'll be using OpenAI Gym, which provides a uniform interface to many different RL
-environments including Atari games. Gym was released in 2016 and details of the API have changed
-significantly over the years. We are using version 0.23.1, so ensure that any documentation you use
-refers to the same version.
+Today and tomorrow, we'll be using OpenAI Gym, which provides a uniform interface to many different RL environments including Atari games. Gym was released in 2016 and details of the API have changed significantly over the years. We are using version 0.23.1, so ensure that any documentation you use refers to the same version.
 
 Below, we've provided a simple environment for the multi-armed bandit described in the Sutton and Barto reading. Here, an action is an integer indicating the choice of arm to pull, and an observation is the constant integer 0, since there's nothing to observe here. Even though the agent does in some sense observe the reward, the reward is always a separate variable from the observation.
 
@@ -254,9 +252,12 @@ class Agent:
         self.rng = np.random.default_rng(seed)
 
 def run_episode(env: gym.Env, agent: Agent, seed: int):
+
     (rewards, was_best) = ([], [])
+
     env.reset(seed=seed)
     agent.reset(seed=seed)
+
     done = False
     while not done:
         arm = agent.get_action()
@@ -264,6 +265,7 @@ def run_episode(env: gym.Env, agent: Agent, seed: int):
         agent.observe(arm, reward, info)
         rewards.append(reward)
         was_best.append(1 if arm == info["best_arm"] else 0)
+    
     rewards = np.array(rewards, dtype=float)
     was_best = np.array(was_best, dtype=int)
     return (rewards, was_best)
@@ -278,8 +280,13 @@ def test_agent(env: gym.Env, agent: Agent, n_runs=200):
     return (np.array(all_rewards), np.array(all_was_bests))
 
 class RandomAgent(Agent):
+
     def get_action(self) -> ActType:
         pass
+
+    def __repr__(self):
+        # Useful when plotting multiple agents with `plot_rewards`
+        return "RandomAgent"
 
 if MAIN:
     "TODO: YOUR CODE HERE"
@@ -300,20 +307,31 @@ Remember to call `super().__init__(num_arms, seed)` in your `__init__()` method.
 $$Q_k = Q_{k-1} + \frac{1}{k}[R_k - Q_{k-1}]$$
 
 Where $k$ is the number of times the action has been taken, $R_k$ is the reward from the kth time the action was taken, and $Q_{k-1}$ is the average reward from the previous times this action was taken (this notation departs slightly from the S&B notation, but may be more helpful for our implementation).
+
+**Important - $k$ is not the total number of timesteps, it's the total number of times you've taken this particular action.**
 """)
 
     st.markdown(r"""
+We've given you a function for plotting multiple agents' reward trajectories on the same graph, with an optional moving average parameter to make the graph smoother.
+
 ```python
-def plot_rewards(all_rewards: np.ndarray):
-    (n_runs, n_steps) = all_rewards.shape
-    (fig, ax) = plt.subplots(figsize=(15, 5))
-    ax.plot(all_rewards.mean(axis=0), label="Mean over all runs")
-    quantiles = np.quantile(all_rewards, [0.05, 0.95], axis=0)
-    ax.fill_between(range(n_steps), quantiles[0], quantiles[1], alpha=0.5)
-    ax.set(xlabel="Step", ylabel="Reward")
-    ax.axhline(0, color="red", linewidth=1)
-    fig.legend()
-    return fig
+def moving_avg(a, n):
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
+
+def plot_rewards(
+    all_rewards: List[np.ndarray], 
+    names: List[str],
+    moving_avg_window: Optional[int] = 15,
+):
+    fig = go.Figure(layout=dict(template="simple_white", title_text="Mean reward over all runs"))
+    for rewards, name in zip(all_rewards, names):
+        rewards_avg = rewards.mean(axis=0)
+        if moving_avg_window is not None:
+            rewards_avg = moving_avg(rewards_avg, moving_avg_window)
+        fig.add_trace(go.Scatter(y=rewards_avg, mode="lines", name=name))
+    fig.show()
 
 class RewardAveraging(Agent):
     def __init__(self, num_arms: int, seed: int, epsilon: float, optimism: float):
@@ -328,24 +346,41 @@ class RewardAveraging(Agent):
     def reset(self, seed: int):
         pass
 
+    def __repr__(self):
+        pass
+
 if MAIN:
+    num_arms = 10
+    stationary = True
+    names, all_rewards = [], []
     env = gym.make("ArmedBanditTestbed-v0", num_arms=num_arms, stationary=stationary)
-    regular_reward_averaging = RewardAveraging(num_arms, 0, epsilon=0.1, optimism=0)
-    (all_rewards, all_corrects) = test_agent(env, regular_reward_averaging, n_runs=N_RUNS)
-    print(f"Frequency of correct arm: {all_corrects.mean()}")
-    print(f"Average reward: {all_rewards.mean()}")
-    fig = plot_rewards(all_rewards)
-    optimistic_reward_averaging = RewardAveraging(num_arms, 0, epsilon=0.1, optimism=5)
-    (all_rewards, all_corrects) = test_agent(env, optimistic_reward_averaging, n_runs=N_RUNS)
-    print(f"Frequency of correct arm: {all_corrects.mean()}")
-    print(f"Average reward: {all_rewards.mean()}")
-    plot_rewards(all_rewards)
+
+    for optimism in [0, 5]:
+        agent = RewardAveraging(num_arms, 0, epsilon=0.1, optimism=optimism)
+        (rewards, num_correct) = test_agent(env, agent, n_runs=N_RUNS, base_seed=1)
+        names.append(str(agent))
+        all_rewards.append(rewards)
+        print(agent)
+        print(f" -> Frequency of correct arm: {num_correct.mean():.4f}")
+        print(f" -> Average reward: {rewards.mean():.4f}")
+
+    plot_rewards(all_rewards, names, moving_avg_window=15)
 ```
 
 ## Cheater Agent
 
-Implement the cheating agent and see how much reward it can get. If your agent gets more than this in the long run, you have a bug!
+Implement the cheating agent and see how much reward it can get. If your agent gets more than this in the long run, you have a bug!""")
 
+    with st.expander("Help - I'm not sure how to implement the cheater."):
+        st.markdown("""
+Recall that your `env.step` method returns a tuple of `(obs, reward, done, info)`, and the `info` dict contains `best_arm`.
+
+In `observe`, you should read the `best_arm` object from the `info` dictionary, and store it. Then, in `get_action`, you should always return this best arm.
+
+Note, you'll have to make a special case for when best arm hasn't been observed yet (in this case, your action doesn't matter).
+""")
+
+    st.markdown("""
 ```python
 class CheatyMcCheater(Agent):
     def __init__(self, num_arms: int, seed: int):
@@ -357,12 +392,23 @@ class CheatyMcCheater(Agent):
     def observe(self, action, reward, info):
         pass
 
+    def repr(self):
+        pass
+
 if MAIN:
     cheater = CheatyMcCheater(num_arms, 0)
-    (all_rewards, all_corrects) = test_agent(env, cheater, n_runs=N_RUNS)
-    print(f"Frequency of correct arm: {all_corrects.mean()}")
-    print(f"Average reward: {all_rewards.mean()}")
-    plot_rewards(all_rewards)
+    reward_averaging = RewardAveraging(num_arms, 0, epsilon=0.1, optimism=0)
+    random = RandomAgent(num_arms, 0)
+
+    names = []
+    all_rewards = []
+
+    for agent in [cheater, reward_averaging, random]:
+        (rewards, num_correct) = test_agent(env, agent, n_runs=N_RUNS, base_seed=1)
+        names.append(str(agent))
+        all_rewards.append(rewards)
+
+    plot_rewards(all_rewards, names, moving_avg_window=15)
 ```
 
 ## The Authentic RL Experience
