@@ -98,8 +98,7 @@ from tqdm.auto import tqdm
 
 MAIN = __name__ == "__main__"
 max_episode_steps = 1000
-IS_CI = os.getenv("IS_CI")
-N_RUNS = 200 if not IS_CI else 5
+N_RUNS = 200
 ```
 
 ## Intro to OpenAI Gym
