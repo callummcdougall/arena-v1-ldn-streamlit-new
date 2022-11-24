@@ -48,6 +48,28 @@ In Part 1 we'll study the multi-armed bandit problem, which is simple yet captur
 """)
 
 def section1():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#readings">Readings</a></li>
+   <li><a class="contents-el" href="#learning-objectives">Learning Objectives</a></li>
+   <li><a class="contents-el" href="#intro-to-openai-gym">Intro to OpenAI Gym</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#the-info-dictionary">The <code>info</code> dictionary</a></li>
+       <li><a class="contents-el" href="#the-render()-method">The <code>render()</code> method</a></li>
+       <li><a class="contents-el" href="#observation-and-action-types">Observation and Action Types</a></li>
+       <li><a class="contents-el" href="#registering-an-environment">Registering an Environment</a></li>
+       <li><a class="contents-el" href="#timelimit-wrapper">TimeLimit Wrapper</a></li>
+       <li><a class="contents-el" href="#a-note-on-(pseudo)-rngs">A Note on (pseudo) RNGs</a></li>
+       <li><a class="contents-el" href="#reward-averaging">Reward Averaging</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#cheater-agent">Cheater Agent</a></li>
+   <li><a class="contents-el" href="#the-authentic-rl-experience">The Authentic RL Experience</a></li>
+   <li><a class="contents-el" href="#ucbactionselection">UCBActionSelection</a></li>
+   <li><a class="contents-el" href="#bonus">Bonus</a></li>
+</ul>
+""", unsafe_allow_html=True)
     st.markdown(r"""
 
 ## Readings
