@@ -448,12 +448,21 @@ class UCBActionSelection(Agent):
         pass
 
 if MAIN:
-    env = gym.make("ArmedBanditTestbed-v0", num_arms=num_arms, stationary=stationary)
+    cheater = CheatyMcCheater(num_arms, 0)
+    reward_averaging = RewardAveraging(num_arms, 0, epsilon=0.1, optimism=0)
+    reward_averaging_optimism = RewardAveraging(num_arms, 0, epsilon=0.1, optimism=5)
     ucb = UCBActionSelection(num_arms, 0, c=2.0)
-    (all_rewards, all_corrects) = test_agent(env, ucb, n_runs=N_RUNS)
-    print(f"Frequency of correct arm: {all_corrects.mean()}")
-    print(f"Average reward: {all_rewards.mean()}")
-    plot_rewards(all_rewards)
+    random = RandomAgent(num_arms, 0)
+
+    names = []
+    all_rewards = []
+
+    for agent in [cheater, reward_averaging, reward_averaging_optimism, ucb, random]:
+        (rewards, num_correct) = test_agent(env, agent, n_runs=N_RUNS, base_seed=1)
+        names.append(str(agent))
+        all_rewards.append(rewards)
+
+    plot_rewards(all_rewards, names, moving_avg_window=15)
 ```
 
 ## Bonus
