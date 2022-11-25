@@ -234,7 +234,45 @@ $$
 """)
     with st.expander("Hint"):
         st.markdown(r"""
-Start by writing the expectation as a sum over all possible actions $a$ that can be taken from state $s$.
+Start by writing the expectation as a sum over all possible actions $a$ that can be taken from state $s$. Then, try to separate $r_{t+1}$ and the later reward terms inside the sum.
+""")
+
+    with st.expander("Solution"):
+        st.markdown(r"""
+First, we write it out as a sum over possible next actions, using the **policy function** $\pi$:
+$$
+\begin{aligned}
+V_\pi(s) &=\mathbb{E}_\pi\left[\sum_{i=t}^{\infty} \gamma^{i-t} r_{i+1} \mid s_t=s\right] \\
+&=\sum_a \pi(a \mid s) \mathbb{E}_\pi\left[\sum_{i=t}^{\infty} \gamma^{i-t} r_{i+1} \mid s_t=s, a_t=a\right]
+\end{aligned}
+$$
+In other words, this is an average of the possible expected reward streams after a particular action, weighted by the probability that this action is chosen.
+
+We can then separate out the term for the rewward at step $t+1$:
+$$
+=\sum_a \pi(a \mid s) \mathbb{E}_\pi\left[r_{t+1}+\sum_{i=t+1}^{\infty} \gamma^{i-t} r_{i+1} \mid s_t=s, a_t=a\right]
+$$
+And then we expand the sum over all possible state-reward pairs $(s', r)$ which we might evolve to, following state-action pair $(s, a)$:
+$$
+\begin{aligned}
+&=\sum_{a, s^{\prime}, r} \pi(a \mid s) p\left(s^{\prime}, r \mid s, a\right)\left(r+\gamma \cdot \mathbb{E}_\pi\left[\sum_{i=t+1}^{\infty} \gamma^{i-(t+1)} r_{i+1} \mid s_{t+1}=s^{\prime}\right]\right) \\
+\end{aligned}
+$$
+Finally, we can notice that the sum term looks a lot like our original expression for $V_{\pi}(s)$, just starting from $s'$ rather than $s$. So we can write this as:
+$$
+\begin{aligned}
+&=\sum_{a, s, r} \pi(a \mid s) p\left(s^{\prime}, r \mid s, a\right)\left(r+\gamma V_\pi\left(s^{\prime}\right)\right) \\
+\end{aligned}
+$$
+And finally, we rearrange the sum terms:
+$$
+\begin{aligned}
+&=\sum_a \pi(a \mid s) \sum_{s^{\prime}, r} p\left(s^{\prime}, r \mid s, a\right)\left(r+\gamma V_\pi\left(s^{\prime}\right)\right)
+\end{aligned}
+$$
+as required.
+
+How should we interpret this? This formula tells us that the total value from present time can be written as sum of next-timestep rewards and value terms discounted by a factor of $\gamma$. Recall earlier in our discussion of **geometric** vs **hyperbolic** discounting, we argued that geometric discounting has a symmetry through time, because of the constant discount factor. This is exactly what this formula shows, just on the scale of a single step.
 """)
 #     with st.expander("Hint"):
 #         st.markdown(r"""
