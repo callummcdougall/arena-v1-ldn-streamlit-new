@@ -44,7 +44,9 @@ def section_home():
     st.markdown("""
 ## 1️⃣ Tabular RL and Policy Improvement
 
-Today, we'll start to get into the weeds of some of the mathematical formulations of RL. Some important concepts to cover are Markov processes and the Bellman equation. We'll then put this into practice on some basic gridworld environments.
+Today, we'll start to get into the weeds of some of the mathematical formulations of RL. Some important concepts to cover are **Markov processes**, the **value function** and the **Bellman equation**. 
+
+We'll then put this into practice on some basic gridworld environments.
 """)
 
 def section_1():
