@@ -100,7 +100,7 @@ from gym.utils import seeding
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
-import rl_test
+import utils
 
 MAIN = __name__ == "__main__"
 Arr = np.ndarray
@@ -595,7 +595,7 @@ def policy_eval_numerical(env: Environment, pi: Arr, gamma=0.99, eps=1e-08) -> A
     pass
 
 if MAIN:
-    rl_test.test_policy_eval(policy_eval_numerical, exact=False)
+    utils.test_policy_eval(policy_eval_numerical, exact=False)
 ```
 
 ## Exact Policy Evaluation
@@ -649,7 +649,7 @@ def policy_eval_exact(env: Environment, pi: Arr, gamma=0.99) -> Arr:
     pass
 
 if MAIN:
-    rl_test.test_policy_eval(policy_eval_exact, exact=True)
+    utils.test_policy_eval(policy_eval_exact, exact=True)
 ```
 
 ## Policy Improvement
@@ -678,7 +678,7 @@ def policy_improvement(env: Environment, V: Arr, gamma=0.99) -> Arr:
     pass
 
 if MAIN:
-    rl_test.test_policy_improvement(policy_improvement)
+    utils.test_policy_improvement(policy_improvement)
 ```
 
 Putting these together, we now have an algorithm to find the optimal policy for an environment.
@@ -710,7 +710,7 @@ def find_optimal_policy(env: Environment, gamma=0.99):
     pass
 
 if MAIN:
-    rl_test.test_find_optimal_policy(find_optimal_policy)
+    utils.test_find_optimal_policy(find_optimal_policy)
     penalty = -0.04
     norvig = Norvig(penalty)
     pi_opt = find_optimal_policy(norvig, gamma=0.99)
