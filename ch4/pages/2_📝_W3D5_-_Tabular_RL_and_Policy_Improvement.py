@@ -234,60 +234,64 @@ $$
 """)
     with st.expander("Hint"):
         st.markdown(r"""
-The expectation can be fully expanded as
-$$
-\mathbb{E}_{\pi} \left[ \sum_{i=t}^\infty \gamma^{i-t} r_i \Bigg| s_t = s\right]
-$$
-$$
-= \lim_{m \to \infty} \sum_{a_t} \pi(a_t | s_t)
-\sum_{s_{t+1}, r_{t+1}} p(s_{t+1}, r_{t+1} | s_t, a_t)
-\ldots
-\sum_{a_m} \pi(a_m | s_m)
-\sum_{s_{m+1}, r_{m+1}} p(s_{m+1}, r_{m+1} | s_m, a_m) \sum_{i=t}^m \gamma^{i-t} r_i
-$$
-You can remove the first term from the reward sum
-$$
-\sum_{i=t}^\infty \gamma^{i-t} r_i
-= r_t + \gamma \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i
-$$
-and unroll the first two sums of the expectation. Rearrange the rest of the
-sum so it looks like the value $V_\pi(s')$ of the next state $s'$.
+Start by writing the expectation as a sum over all possible actions $a$ that can be taken from state $s$.
 """)
+#     with st.expander("Hint"):
+#         st.markdown(r"""
+# The expectation can be fully expanded as
+# $$
+# \mathbb{E}_{\pi} \left[ \sum_{i=t}^\infty \gamma^{i-t} r_i \Bigg| s_t = s\right]
+# $$
+# $$
+# = \lim_{m \to \infty} \sum_{a_t} \pi(a_t | s_t)
+# \sum_{s_{t+1}, r_{t+1}} p(s_{t+1}, r_{t+1} | s_t, a_t)
+# \ldots
+# \sum_{a_m} \pi(a_m | s_m)
+# \sum_{s_{m+1}, r_{m+1}} p(s_{m+1}, r_{m+1} | s_m, a_m) \sum_{i=t}^m \gamma^{i-t} r_i
+# $$
+# You can remove the first term from the reward sum
+# $$
+# \sum_{i=t}^\infty \gamma^{i-t} r_i
+# = r_t + \gamma \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i
+# $$
+# and unroll the first two sums of the expectation. Rearrange the rest of the
+# sum so it looks like the value $V_\pi(s')$ of the next state $s'$.
+# """)
 
-    with st.expander("Solution"):
-        st.markdown(r"""
-We roll out the sum:
-$$
-\mathbb{E}_{\pi} \left[ \sum_{i=t}^\infty \gamma^{i-t} r_i \Bigg| s_t = s\right]
-= \mathbb{E}_{\pi} \left[r_t + \gamma \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i \Bigg| s_t = s\right]
-= \mathbb{E}_{\pi} [r_t | s_t = s] + \gamma \mathbb{E}_{\pi} \left[ \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i \Bigg| s_t = s\right]
-$$
+#     with st.expander("Solution"):
+#         st.markdown(r"""
+# We roll out the sum:
+# $$
+# \mathbb{E}_{\pi} \left[ \sum_{i=t}^\infty \gamma^{i-t} r_i \Bigg| s_t = s\right]
+# = \mathbb{E}_{\pi} \left[r_t + \gamma \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i \Bigg| s_t = s\right]
+# = \mathbb{E}_{\pi} [r_t | s_t = s] + \gamma \mathbb{E}_{\pi} \left[ \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i \Bigg| s_t = s\right]
+# $$
 
-Focusing on the first part, we can compute the expected immediate reward $\mathbb{E}_\pi[r]$
-by summing over all actions $a$ that $\pi$ might take (weighted by $\pi(a|s)$, how likely $\pi$ would
-choose $a$ in state $s$), and then sum over all future state/reward pairs $s',r$ (weighted
-by how likely $p$ would choose them)
-$$
-\mathbb{E}_{\pi} [r_t]
-= \sum_a \pi(a | s) \sum_{s',r} p(s',r | s,a) r
-$$
+# Focusing on the first part, we can compute the expected immediate reward $\mathbb{E}_\pi[r]$
+# by summing over all actions $a$ that $\pi$ might take (weighted by $\pi(a|s)$, how likely $\pi$ would
+# choose $a$ in state $s$), and then sum over all future state/reward pairs $s',r$ (weighted
+# by how likely $p$ would choose them)
+# $$
+# \mathbb{E}_{\pi} [r_t]
+# = \sum_a \pi(a | s) \sum_{s',r} p(s',r | s,a) r
+# $$
 
-Similarly, we can expand out the expectation over the sum of future rewards by considering all
-possible ways of transitioning to the next state $s_{t+1}$, weighted by their probability
-$$
-\gamma \mathbb{E}_{\pi} \left[ \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i \Bigg| s_t = s\right]
-=
-\sum_a \pi(a | s) \sum_{s',r} p(s',r | s,a) \gamma \mathbb{E}_{\pi} \left[ \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i \Bigg| s_{t+1} = s'\right]
-$$
-$$
-= \sum_a \pi(a | s) \sum_{s',r} p(s',r | s,a) \gamma V_\pi(s')
-$$
-Combining the results, we get
-$$
-V_\pi(s) = \sum_a \pi(a | s) \sum_{s', r} p(s',r \mid s, a) \left( r + \gamma V_\pi(s') \right)
-$$
-as required.
-""")
+# Similarly, we can expand out the expectation over the sum of future rewards by considering all
+# possible ways of transitioning to the next state $s_{t+1}$, weighted by their probability
+# $$
+# \gamma \mathbb{E}_{\pi} \left[ \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i \Bigg| s_t = s\right]
+# =
+# \sum_a \pi(a | s) \sum_{s',r} p(s',r | s,a) \gamma \mathbb{E}_{\pi} \left[ \sum_{i=t+1}^\infty \gamma^{i-(t+1)} r_i \Bigg| s_{t+1} = s'\right]
+# $$
+# $$
+# = \sum_a \pi(a | s) \sum_{s',r} p(s',r | s,a) \gamma V_\pi(s')
+# $$
+# Combining the results, we get
+# $$
+# V_\pi(s) = \sum_a \pi(a | s) \sum_{s', r} p(s',r \mid s, a) \left( r + \gamma V_\pi(s') \right)
+# $$
+# as required.
+# """)
 
     st.markdown(r"""
 This recursive formulation of the value function is called the **Bellman equation**, and can be thought of as "The value of the current state is the reward the agent gets now, plus the value for the next state."
@@ -317,7 +321,7 @@ The edges represent the state transitions given an action, as well as the reward
 ##### 1. How many choices of deterministic policy are there for this environment?""")
 
     with st.expander("Answer"):
-        st.markdown("""There are 3 states, and 2 actions for each state, so there are $2^3 = 8$ choices of deterministic policy $\pi$.""")
+        st.markdown("""The action at $s_L$ and $s_R$ is fully determined. There are two possible actions from $s_0$: left or right. So there are 2 possible deterministic policies.""")
 
     st.markdown(r"""
 We say that two policies $\pi_1$ and $\pi_2$ are **equivalent** if $\forall s \in S. V_{\pi_1}(s) = V_{\pi_2}(s)$.
