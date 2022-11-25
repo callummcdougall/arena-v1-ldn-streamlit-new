@@ -220,10 +220,9 @@ is a function of the timestep itself, and decays to 1 (no discount)
 $$
 \frac{\Gamma(t+1)}{\Gamma(t)} =  \frac{1+tD}{1+(t+1)D} \to 1
 $$
-so very little discounting is done once rewards are far away enough in the future.
-This would make our value function a function of not only state but also time:
-If the agent finds itself in the same state it was in before, it stands to reason
-the value should be the same (assuming the policy hasn't changed.)""")
+so very little discounting is done once rewards are far away enough in the future. 
+
+Hence, using geometric discount lends a certain symmetry to the problem. If after $N$ actions the agent ends up in exactly the same state as it was in before, then there will be less total value remaining (because of the decay rate), but the optimal policy won't change (because the rewards the agent gets if it takes a series of actions will just be a scaled-down version of the rewards it would have gotten for those actions $N$ steps ago).""")
 
     st.markdown(r"""
 Note we can write the value function in the following recursive matter:
