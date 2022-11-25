@@ -42,9 +42,9 @@ def read_from_html(filename):
 
 def section_home():
     st.markdown("""
-## 1️⃣ Multi-Armed Bandit
+## 1️⃣ Tabular RL and Policy Improvement
 
-In Part 1 we'll study the multi-armed bandit problem, which is simple yet captures introduces many of the difficulties in RL. Many practical problems can be posed in terms of generalizations of the multi-armed bandit. For example, the Hyperband algorithm for hyperparameter optimization is based on the multi-armed bandit with an infinite number of arms.
+Today, we'll start to get into the weeds of some of the mathematical formulations of RL. Some important concepts to cover are Markov processes and the Bellman equation. We'll then put this into practice on some basic gridworld environments.
 """)
 
 def section_1():
