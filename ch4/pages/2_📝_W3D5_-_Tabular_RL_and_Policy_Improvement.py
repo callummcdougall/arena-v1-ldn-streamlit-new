@@ -102,6 +102,7 @@ from gym.utils import seeding
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
+from PIL import Image, ImageDraw
 import utils
 
 MAIN = __name__ == "__main__"
@@ -141,22 +142,16 @@ Other authors notate the history as
 $$
 s_0, a_0, r_0, s_1, a_1, r_1, s_2, a_2, r_2, \ldots
 $$
-often when the reward $r_t$ is a deterministic function of the current state $s_t$ and
-action chosen $a_t$, and the environment's only job is to select the next state
-$s_{t+1}$ given $(s_t, a_t)$.
+often when the reward $r_t$ is a deterministic function of the current state $s_t$ and action chosen $a_t$, and the environment's only job is to select the next state $s_{t+1}$ given $(s_t, a_t)$.
 
-There's nothing much we can do about this, so be aware of the difference when reading
-other sources.
+There's nothing much we can do about this, so be aware of the difference when reading other sources.
 """)
 
     st.markdown("")
     st.markdown(r"""
-The agent chooses actions using a policy $\pi$, which we can think of as either
-a deterministic function $a = \pi(s)$ from states to actions, or more generally a stochastic
-function from which actions are sampled, $a \sim \pi(\cdot | s)$.
+The agent chooses actions using a policy $\pi$, which we can think of as either a deterministic function $a = \pi(s)$ from states to actions, or more generally a stochastic function from which actions are sampled, $a \sim \pi(\cdot | s)$.
 
-Implicitly, we have assumed that the agent need only be Markovian as well. Is this
-a reasonable assumption?""")
+Implicitly, we have assumed that the agent need only be Markovian as well. Is this a reasonable assumption?""")
 
     with st.expander("Answer"):
         st.markdown("""
@@ -165,48 +160,29 @@ state to decide how to act optimally (for example, in a game of tic-tac-toe, kno
 of the board is sufficient to determine the optimal move, how the board got to that state is irrelevant.)
 """)
     st.markdown(r"""
-The environment samples (state, reward) pairs from a probability distribution conditioned on
-the current state $s$ and the action $a$ the policy chose in that state,
-$(s', r) \sim p(\cdot | s, a)$. In the case where the environment is also deterministic,
-we write $(s', r) = p(s, a)$.
+The environment samples (state, reward) pairs from a probability distribution conditioned on the current state $s$ and the action $a$ the policy chose in that state, $(s', r) \sim p(\cdot | s, a)$. In the case where the environment is also deterministic, we write $(s', r) = p(s, a)$.
 
-The goal of the agent is to choose a policy that maximizes the **expected discounted return**, the sum of rewards it would expect to obtain by following it's currently
-chosen **policy** $\pi$. We call the expected discounted return from a state $s$
-following policy $\pi$ the **state value function** $V_{\pi}(s)$, or simply **value function**, as 
+The goal of the agent is to choose a policy that maximizes the **expected discounted return**, the sum of rewards it would expect to obtain by following it's currently chosen **policy** $\pi$. We call the expected discounted return from a state $s$ following policy $\pi$ the **state value function** $V_{\pi}(s)$, or simply **value function**, as 
 $$
 V_{\pi}(s) = \mathbb{E}_{\pi} \left[ \sum_{i=t}^\infty \gamma^{i-t} r_{i+1} \Bigg| s_t = s \right]
 $$
-where the expectation is with respect to sampling actions from $\pi$, and
-(implicitly) sampling states and rewards from $p$.""")
+where the expectation is with respect to sampling actions from $\pi$, and (implicitly) sampling states and rewards from $p$.""")
 
     st.info(r"""
 #### Pedantic note #2
 
-Technically $V_\pi$ also depends on the choice of environment $p$ and discount factor $\gamma$, but usually during training the only thing we are optimizing for
-is the choice of policy $\pi$ (the environment $p$ is fixed and the discount $\gamma$
-is either provided or fixed as a hyperparameter before training), so we ignore these dependencies instead of writing $V_{\pi, p, \gamma}$.
+Technically $V_\pi$ also depends on the choice of environment $p$ and discount factor $\gamma$, but usually during training the only thing we are optimizing for is the choice of policy $\pi$ (the environment $p$ is fixed and the discount $\gamma$ is either provided or fixed as a hyperparameter before training), so we ignore these dependencies instead of writing $V_{\pi, p, \gamma}$.
 """)
     with st.expander("Why discount?"):
         st.markdown(r"""
-We would like a way to signal to the agent that reward now is better than
-reward later.
+We would like a way to signal to the agent that reward now is better than reward later.
 If we didn't discount, the sum $\sum_{i=t}^\infty r_i$ may diverge.
-This leads to strange behavior, as we can't meaningfully compare the returns
-for sequences of rewards that diverge. Trying to sum the sequence $1,1,1,\ldots$ or
-$2,2,2,2\ldots$ or even $2, -1, 2 , -1, \ldots$ all diverge to positive infinity,
-and so are all "equally good"
-even though it's clear that $2,2,2,2\ldots$ would be the most desirable.
+This leads to strange behavior, as we can't meaningfully compare the returns for sequences of rewards that diverge. Trying to sum the sequence $1,1,1,\ldots$ or $2,2,2,2\ldots$ or even $2, -1, 2 , -1, \ldots$ all diverge to positive infinity, and so are all "equally good" even though it's clear that $2,2,2,2\ldots$ would be the most desirable.
 
-An agent with a policy that leads to infinite expected return might become lazy,
-as waiting around doing nothing for a thousand years, and then actually optimally
-leads to the same return (infinite) as playing optimal from the first time step.
+An agent with a policy that leads to infinite expected return might become lazy, as waiting around doing nothing for a thousand years, and then actually optimally leads to the same return (infinite) as playing optimal from the first time step.
 
-Worse still, we can have reward sequences for which the sum may never approach
-any finite value, nor diverge to $\pm \infty$ (like summing $-1, 1, -1 ,1 , \ldots$).
-We could otherwise patch this by requiring that the agent has a finite number of interactions
-with the environment (this is often true, and is called an **episodic** environment that we will
-see later) or restrict ourselves to environments for which the expected return for the optimal
-policy is finite, but these can often be undesirable constraints to place.
+Worse still, we can have reward sequences for which the sum may never approach any finite value, nor diverge to $\pm \infty$ (like summing $-1, 1, -1 ,1 , \ldots$).
+We could otherwise patch this by requiring that the agent has a finite number of interactions with the environment (this is often true, and is called an **episodic** environment that we will see later) or restrict ourselves to environments for which the expected return for the optimal policy is finite, but these can often be undesirable constraints to place.
 """)
     with st.expander("Why geometric discount?"):
         st.markdown(r"""
@@ -353,15 +329,8 @@ Consider the following environment: There are two actions $A = \{a_L, a_R\}$, th
     st_image("markov-diagram.png", 400)
     st.markdown("")
     st.markdown(r"""
-
 The edges represent the state transitions given an action, as well as the reward received. For example, in state $s_0$, taking action $a_L$ means the new state is $s_L$, and the reward received is $+1$. (The transitions for $s_L$ and $s_R$ are independent of action taken.)
 
-##### 1. How many choices of deterministic policy are there for this environment?""")
-
-    with st.expander("Answer"):
-        st.markdown("""The action at $s_L$ and $s_R$ is fully determined. There are two possible actions from $s_0$: left or right. So there are 2 possible deterministic policies.""")
-
-    st.markdown(r"""
 We say that two policies $\pi_1$ and $\pi_2$ are **equivalent** if $\forall s \in S. V_{\pi_1}(s) = V_{\pi_2}(s)$.
 
 This gives us effectively two choices of deterministic policies, $\pi_L(s_0) = s_L$ and $\pi_R(s_0) = s_R$. (It is irrelevant what those policies do in the other states.)
@@ -369,7 +338,7 @@ This gives us effectively two choices of deterministic policies, $\pi_L(s_0) = s
 A policy $\pi_1$ is **better** than $\pi_2$ (denoted $\pi_1 \geq \pi_2$) if
 $\forall s \in S. V_{\pi_1}(s) \geq V_{\pi_2}(s)$.
 
-##### 2. Compute the value $V_{\pi}(s_0)$ for $\pi = \pi_L$ and $\pi = \pi_R$.
+#### Exercise - compute the value $V_{\pi}(s_0)$ for $\pi = \pi_L$ and $\pi = \pi_R$.
 Which policy is better? Does the answer depend on the choice of
 discount factor $\gamma$? If so, how?""")
 
@@ -377,7 +346,7 @@ discount factor $\gamma$? If so, how?""")
         st.markdown(r"""
 Following the first policy, this gives
 $$
-V_{\pi_L}(s_0) = 1 + \gamma V_{\pi_L}(s_L) = 1 + \gamma(0 + V_{\pi_L}(s_0)) = 1 +\gamma^2 V_{\pi_L}(s_0)
+V_{\pi_L}(s_0) = 1 + \gamma V_{\pi_L}(s_L) = 1 + \gamma(0 + \gamma V_{\pi_L}(s_0)) = 1 +\gamma^2 V_{\pi_L}(s_0)
 $$
 Rearranging, this gives
 $$
@@ -403,8 +372,7 @@ which makes sense, an agent that discounts heavily ($\gamma < 1/2$) is shortsigh
 and will choose the reward 1 now, over the reward 2 later.""")
 
     st.markdown(r"""
-An **optimal** policy (denoted $\pi^*$) is a policy that is better than all other policies.
-There may be more than one optimal policy, so we refer to any of them as $\pi^*$, with the understanding that since all optimal policies have the same value $V_{\pi^*}$ for all states, it doesn't actually matter which is chosen.
+An **optimal** policy (denoted $\pi^*$) is a policy that is better than all other policies. There may be more than one optimal policy, so we refer to any of them as $\pi^*$, with the understanding that since all optimal policies have the same value $V_{\pi^*}$ for all states, it doesn't actually matter which is chosen.
 
 It is possible to prove that, for any environment, an optimal policy exists. I can go through this proof later in the day, using the whiteboard.
 
@@ -412,8 +380,9 @@ It is possible to prove that, for any environment, an optimal policy exists. I c
 
 For the moment, we focus on environments for which the agent has access to $p$, the function describing the underlying dynamics of the environment, which will allow us to solve the Bellman equation explicitly. While unrealistic, it means we can explicitly solve the Bellman equation. Later on we will remove this assumption and treat the environment as a black box from which the agent can sample from.
 
-We will simplify things a bit further, and assume that the environment samples states from a probability distribution $T(\cdot | s, a)$ conditioned on the current state $s$ and the action $a$ the policy $\pi$ chose in that state. Normally, the reward is also considered to be a stochastic function of both state and action $r \sim  R(\cdot \mid s,a)$, but we will assume the reward is a deterministic
-function $R(s,a,s')$ of the current state, action and next state, and offload the randomness in the rewards to the next state $s'$ sampled from $T$.
+We will simplify things a bit further, and assume that the environment samples states from a probability distribution $T(\cdot | s, a)$ conditioned on the current state $s$ and the action $a$ the policy $\pi$ chose in that state.
+
+Normally, the reward is also considered to be a stochastic function of both state and action $r \sim  R(\cdot \mid s,a)$, but we will assume the reward is a deterministic function $R(s,a,s')$ of the current state, action and next state, and offload the randomness in the rewards to the next state $s'$ sampled from $T$.
 
 This (together with assuming $\pi$ is deterministic) gives a simpler recursive form of the value function
 $$
@@ -428,14 +397,27 @@ Below, we've provided a simple environment for a gridworld taken from [Russell a
     st.markdown(r"""
 The result of choosing an action from an empty cell will move the agent in that direction, unless they would bump into a wall or walk outside the grid, in which case the next state is unchanged. Both the terminal states "trap" the agent, and any movement from one of the terminal states leaves the agent in the same state, and no reward is received. The agent receives a small penalty for each move $r = -0.04$ to encourage them to move to a terminal state quickly, unless the agent is moving into a terminal state, in which case they recieve reward either $+1$ or $-1$ as appropriate.
 
-Lastly, the environment is slippery, and the agent only has a 70\% chance of moving in the direction chosen, with a 10% chance each of attempting to move in the other three cardinal directions.
+Lastly, the environment is slippery, and the agent only has a 70\% chance of moving in the direction chosen, with a 10% chance each of attempting to move in the other three cardinal directions.""")
 
+    with st.expander("There are two possible routes to +1, starting from the cell immediately to the right of START. Which one do you think the agent will prefer? Does changing the penalty value r=-0.04 affect this?"):
+        st.markdown(r"""
+The two routes are moving clockwise and anticlockwise around the center obstacle.
+
+The clockwise route requires more steps, which (assuming $r<0$) will be penalised more.
+
+But the anticlockwise route has a different disadvantage. The agent has a 70% probability of slipping, and the anticlockwise route brings them into closer proximity with the $-1$ terminal state.
+
+We can guess that there is a certain threshold value $r^* < 0$ such that the optimal policy is clockwise when $r<r^*$ (because movement penalty is large, making the anticlockwise route less attractive), and anticlockwise when $r>r^*$. 
+
+You can test this out (and find the approximate value of $r^*$) when you run your RL agent!
+""")
+    st.markdown(r"""
 Provided is a class that allows us to define environments with known dynamics. The only parts you should be concerned
 with are
 * `.num_states`, which gives the number of states,
 * `.num_actions`, which gives the number of actions
-* `.T`, a 3-tensor of shape  `(num_states,num_actions,num_states)` representing the probability $T(s_{next} \mid s, a)$ = `T[s,a,s_next]`
-* `.R`, the reward function, encoded as a vector of shape `(num_states,num_actions,num_states)` that returns the reward $R(s,a,s')$ associated with entering state $s'$ from state $s$ by taking action $a$.
+* `.T`, a 3-tensor of shape  `(num_states, num_actions, num_states)` representing the probability $T(s_{next} \mid s, a)$ = `T[s,a,s_next]`
+* `.R`, the reward function, encoded as a vector of shape `(num_states, num_actions, num_states)` that returns the reward $R(s,a,s_{next})$ = `R[s,a,s_next]` associated with entering state $s_{next}$ from state $s$ by taking action $a$.
 
 This environment also provides two additional parameters which we will not use now, but need for part 3 where the environment is treated as a black box, and agents learn from interaction.
 * `.start`, the state with which interaction with the environment begins. By default, assumed to be state zero.
@@ -447,10 +429,7 @@ class Environment:
         self.num_states = num_states
         self.num_actions = num_actions
         self.start = start
-        if terminal is None:
-            self.terminal = np.array([], dtype=int)
-        else:
-            self.terminal = terminal
+        self.terminal = np.array([], dtype=int) if terminal is None else terminal
         (self.T, self.R) = self.build()
 
     def build(self):
@@ -488,8 +467,7 @@ class Environment:
 
     def render(pi: Arr):
         '''
-        Takes a policy pi, and draws an image of the behavior of that policy,
-        if applicable.
+        Takes a policy pi, and draws an image of the behavior of that policy, if applicable.
         Inputs:
             pi : (num_actions,) a policy
         Outputs:
@@ -506,8 +484,7 @@ class Environment:
         Outputs:
             states  : (num_states,) all the next states
             rewards : (num_states,) rewards for each next state transition
-            probs   : (num_states,) likelihood of each state-reward pair (including
-                           probability zero outcomes.)
+            probs   : (num_states,) likelihood of each state-reward pair (including zero-prob outcomes.)
         '''
         out_s = np.arange(self.num_states)
         out_r = np.zeros(self.num_states)
@@ -535,9 +512,9 @@ class Toy(Environment):
             else:
                 (next_state, reward) = (SR, 0)
         elif state == SL:
-            (next_state, reward) = (0, 0)
+            (next_state, reward) = (S0, 0)
         elif state == SR:
-            (next_state, reward) = (0, 2)
+            (next_state, reward) = (S0, 2)
         return (np.array([next_state]), np.array([reward]), np.array([1]))
 
     def __init__(self):
@@ -619,10 +596,23 @@ At the moment, we would like to determine the value function $V_\pi$ of some pol
 
 Firstly, we will use the Bellman equation as an update rule: Given a current estimate $\hat{V}_\pi$ of the value function $V_{\pi}$, we can obtain a better estimate by using the Bellman equation, sweeping over all states.
 $$
-\forall s. \hat{V}_\pi(s) \leftarrow \sum_{s'} T(s, \pi(s), s') \left( R(s,a,s') + \gamma \hat{V}_\pi(s) \right)
+\forall s. \hat{V}_\pi(s) \leftarrow \sum_{s'} T(s' \,|\, s, a) \left( R(s,a,s') + \gamma \hat{V}_\pi(s') \right) \;\text{ where } a = \pi(s)
 $$
-We continue looping this update rule until the result stabilizes: $\max_s |\hat{V}^{new}(s) - \hat{V}^{old}(s)| < \epsilon$ for some small $\epsilon > 0$. Use $\hat{V}_\pi(s) = 0$ as your initial guess.
+Recall that the true value function $V_\pi$ satisfies this as an equality, i.e. it is a fixed point of the iteration. 
 
+(Also, remember how we defined our objects: `T[s, a, s']` $= T(s' \,|\, a, s)$, and `R[s, a, s']` $= R(s, a, s')$.)
+
+We continue looping this update rule until the result stabilizes: $\max_s |\hat{V}^{new}(s) - \hat{V}^{old}(s)| < \epsilon$ for some small $\epsilon > 0$. Use $\hat{V}_\pi(s) = 0$ as your initial guess.""")
+    with st.expander("Help - I'm not sure how to write out the iterative formula."):
+        st.markdown(r"""
+Recall that $a$ is predetermined in all cases, i.e. our matrices are actually $T(s' \,|\, s, \pi(s))$ and $R(s, \pi(s), s')$. 
+
+For this reason, it can help to first create new matrices from `T` and `R`, which are 2D rather than 3D, and which can be indexed by `[s, s']`. Then you can finish by summing over the appropriate dimensions.
+
+Note - working with these 2D matrices will make the subsequent problems a lot easier.
+""")
+
+    st.markdown(r"""
 ```python
 def policy_eval_numerical(env: Environment, pi: Arr, gamma=0.99, eps=1e-08) -> Arr:
     '''
@@ -656,7 +646,7 @@ $$
 We can define two matrices $P^\pi$ and $R^\pi$, both of shape `(num_states, num_states)`
 as
 $$
-P^\pi_{i,j} = T(i, \pi(i), j) \quad R^\pi_{i,j} = R(i, \pi(i), j)
+P^\pi_{i,j} = T(j \,|\, \pi(i), i) \quad R^\pi_{i,j} = R(i, \pi(i), j)
 $$
 $P^\pi$ can be thought of as a probability transition matrix from current state to next state,
 and $R^\pi$ is the reward function given current
@@ -675,7 +665,7 @@ A little matrix algebra, and we obtain:
 $$
 \mathbf{v} = (I - \gamma P^\pi)^{-1} \mathbf{r}^\pi
 $$
-wich gives us a closed form solution for the value function $\mathbf{v}$.
+which gives us a closed form solution for the value function $\mathbf{v}$.
 
 Is the inverse $(I - \gamma P^\pi)^{-1}$ guaranteed to exist?
 Discuss with your partner, and ask Callum if you're not sure.""")
@@ -700,7 +690,7 @@ if MAIN:
 So, we now have a way to compute the value of a policy. What we are really interested in is finding better policies. One way we can do this is to compare how well $\pi$ performs on a state versus the value obtained by choosing another action instead, that is, the Q-value. If there is an action $a'$ for which $Q_{\pi}(s,a') > V_\pi(s) \equiv Q_\pi(s, \pi(s))$, then we would prefer that $\pi$ take action $a'$ in state $s$ rather than whatever action $\pi(s)$ currently is. In general, we can select the action that maximizes the Bellman equation:
 $$
 \argmax_a \sum_{s'} T(s' \mid s, a) (R(s,a,s') + \gamma V_{\pi}(s)) \geq \sum_{s',r}
-T(s' \mid s, \pi(a)) \left( R(s,\pi(a),s') + \gamma V_{\pi}(s) \right) = V_{\pi}(s)
+T(s' \mid s, \pi(s)) \left( R(s,\pi(s),s') + \gamma V_{\pi}(s) \right) = V_{\pi}(s)
 $$
 
 This gives us an update rule for the policy. Given the value function $V_{\pi}(s)$
@@ -708,6 +698,7 @@ for policy $\pi$, we define an improved policy $\pi^\text{better}$ as follows:
 $$
 \pi^\text{better}(s) = \argmax_a \sum_{s'} T(s' \mid s, a) (R(s,a,s') + \gamma V_{\pi}(s))
 $$
+Note that we are simultaneously applying this improvement over all states $s$.
 
 ```python
 def policy_improvement(env: Environment, V: Arr, gamma=0.99) -> Arr:
