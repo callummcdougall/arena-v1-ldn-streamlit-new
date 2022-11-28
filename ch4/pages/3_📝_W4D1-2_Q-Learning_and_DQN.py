@@ -623,7 +623,7 @@ def show_cliff_policy(Q: Arr):
 
 The methods used here are called tabular methods, because they create a lookup table from `(state, action)` to the Q value. This is pure memorization, and if our reward function was sampled from the space of all functions, this is usually the best you can do because there's no structure that you can exploit to do better.
 
-We can hope to do better on most "natural" reward functions that do have structure. For example in a game of poker, there is structure in both of the actions (betting $100 will have a similar reward to betting $99 or $101), and between states (having a pair of threes in your hand is similar to having a pair of twos or fours). We need to take advantage of this, otherwise there are just too many states and actions to have any hope of training an agent.
+We can hope to do better on most "natural" reward functions that do have structure. For example in a game of poker, there is structure in both of the actions (betting $100$ will have a similar reward to betting $99$ or $101$), and between states (having a pair of threes in your hand is similar to having a pair of twos or fours). We need to take advantage of this, otherwise there are just too many states and actions to have any hope of training an agent.
 
 One idea is to use domain knowledge to hand-code a function that "buckets" states or actions into a smaller number of equivalence classes and use those as the states and actions in a smaller version of the problem (see Sutton and Barto, Section 9.5). This was one component in the RL agent [Libratus: The Superhuman AI for No-Limit Poker](https://www.cs.cmu.edu/~noamb/papers/17-IJCAI-Libratus.pdf). The details are beyond the scope of today's material, but I found them fascinating.
 
@@ -779,14 +779,28 @@ The classic environment "CartPole-v1" is simple to understand, yet hard enough f
 
 [![CartPole](https://img.youtube.com/vi/46wjA6dqxOM/0.jpg)](https://www.youtube.com/watch?v=46wjA6dqxOM "CartPole")
 
-If you like, run `python play_cartpole.py` (locally, not on the remote machine)
-to try having a go at the task yourself! Use Left/Right to move the cart, R to reset,
-and Q to quit. By default, the cart will alternate Left/Right actions (there's no no-op action)
-if you're not pressing a button.
+If you like, run `python play_cartpole.py` (locally, not on the remote machine) to try having a go at the task yourself! Use Left/Right to move the cart, R to reset, and Q to quit. By default, the cart will alternate Left/Right actions (there's no no-op action) if you're not pressing a button.
 
+The description of the task is [here](https://www.gymlibrary.dev/environments/classic_control/cart_pole/). Note that unlike the previous environments, the observation here is now continuous. You can see the source for CartPole [here](https://github.com/openai/gym/blob/master/gym/envs/classic_control/cartpole.py); don't worry about the implementation but do read the documentation to understand the format of the actions and observations. In particular, take note of the following descriptions of the action space and observation space:
 
+```
+### Action Space
+The action is a `ndarray` with shape `(1,)` which can take values `{0, 1}` indicating the direction of the fixed force the cart is pushed with.
+| Num | Action                 |
+|-----|------------------------|
+| 0   | Push cart to the left  |
+| 1   | Push cart to the right |
 
-The description of the task is [here](https://www.gymlibrary.dev/environments/classic_control/cart_pole/). Note that unlike the previous environments, the observation here is now continuous. You can see the source for CartPole [here](https://github.com/openai/gym/blob/master/gym/envs/classic_control/cartpole.py); don't worry about the implementation but do read the documentation to understand the format of the actions and observations.
+### Observation Space
+The observation is a `ndarray` with shape `(4,)` with the values corresponding to the following positions and velocities:
+
+| Num | Observation           | Min                 | Max               |
+|-----|-----------------------|---------------------|-------------------|
+| 0   | Cart Position         | -4.8                | 4.8               |
+| 1   | Cart Velocity         | -Inf                | Inf               |
+| 2   | Pole Angle            | ~ -0.418 rad (-24°) | ~ 0.418 rad (24°) |
+| 3   | Pole Angular Velocity | -Inf                | Inf               |
+```
 
 The simple physics involved would be very easy for a model-based algorithm to fit, (this is a common assignment in control theory using [proportional-integral-derivative](https://en.wikipedia.org/wiki/PID_controller) (PID) controllers) but today we're doing it model-free: your agent has no idea that these observations represent positions or velocities, and it has no idea what the laws of physics are. The network has to learn in which direction to bump the cart in response to the current state of the world.
 
@@ -897,8 +911,6 @@ The capacity of the replay buffer is yet another hyperparameter; if it's too sma
 
 Implement `ReplayBuffer`. It only needs to handle a discrete action space, and you can assume observations are some shape of dtype `np.float32`, and actions are of dtype `np.int64`. The replay buffer will store experiences $e_t = (o_t, a_t, r_{t+1}, o_{t+1}, d_{t+1})$ in a circular queue. If the buffer is already full, the oldest experience is overwritten.
 
-You should also include objects `self.observations`, `self.actions`, etc in your `ReplayBuffer` class. This is just so that you can plot them against your shuffled replay buffer, and verify that the outputs look reasonable (see the next section).
-
 ```python
 @dataclass
 class ReplayBufferSamples:
@@ -910,7 +922,7 @@ class ReplayBufferSamples:
     dones: shape (sample_size, ), dtype t.bool
     next_observations: shape (sample_size, *observation_shape), dtype t.float
     '''
-
+    rng: Generator
     observations: t.Tensor
     actions: t.Tensor
     rewards: t.Tensor
@@ -1013,16 +1025,11 @@ As a result, DQN scored an embarrassing 0% of average human performance on this 
 One solution to sparse rewards is to use human knowledge to define auxillary reward functions that are more dense and made the problem easier (in exchange for leaking in side knowledge and making
 the algorithm more specific to the problem at hand). What could possibly go wrong?
 
-The canonical example is for a game called [CoastRunners](https://openai.com/blog/faulty-reward-functions/), where the goal was given to maximize the
-score (hoping that the agent would learn to race around the map). Instead, it found it could
-gain more score by driving in a loop picking up power-ups just as they respawn, crashing and
-setting the boat alight in the process.
+The canonical example is for a game called [CoastRunners](https://openai.com/blog/faulty-reward-functions/), where the goal was given to maximize the score (hoping that the agent would learn to race around the map). Instead, it found it could gain more score by driving in a loop picking up power-ups just as they respawn, crashing and setting the boat alight in the process.
 
 ### Reward Hacking
 
-For Montezuma's Revenge, the reward was shaped by giving a small reward for
-picking up the key.
-One time this was tried, the reward was given slightly too early and the agent learned it could go close to the key without quite picking it up, obtain the auxillary reward, and then back up and repeat.
+For Montezuma's Revenge, the reward was shaped by giving a small reward for picking up the key. One time this was tried, the reward was given slightly too early and the agent learned it could go close to the key without quite picking it up, obtain the auxillary reward, and then back up and repeat.
 
 [![Montezuma Reward Hacking](https://img.youtube.com/vi/_sFp1ffKIc8/0.jpg)](https://www.youtube.com/watch?v=_sFp1ffKIc8 "Montezuma Reward Hacking")
 
@@ -1031,16 +1038,7 @@ A collected list of examples of Reward Hacking can be found [here](https://docs.
 
 ### Advanced Exploration
 
-It would be better if the agent didn't require these auxillary rewards to be hardcoded by humans,
-but instead reply on other signals from the environment that a state might be worth exploring. One idea is that a state which is "surprising" or "novel" (according to the agent's current belief
-of how the environment works) in some sense might be valuable. Designing an agent to be
-innately curious presents a potential solution to exploration, as the agent will focus exploration
-in areas it is unfamiliar with. In 2018, OpenAI released [Random Network Distillation](https://openai.com/blog/reinforcement-learning-with-prediction-based-rewards/) which made progress in formalizing this notion, by measuring the agent's ability to predict the output of a neural network
-on visited states. States that are hard to predict are poorly explored, and thus highly rewarded.
-In 2019, an excellent paper [First return, then explore](https://arxiv.org/pdf/2004.12919v6.pdf) found an even better approach. Such reward shaping can also be gamed, leading to the
-noisy TV problem, where agents that seek novelty become entranced by a source of randomness in the
-environment (like a analog TV out of tune displaying white noise), and ignore everything else
-in the environment.
+It would be better if the agent didn't require these auxillary rewards to be hardcoded by humans, but instead reply on other signals from the environment that a state might be worth exploring. One idea is that a state which is "surprising" or "novel" (according to the agent's current belief of how the environment works) in some sense might be valuable. Designing an agent to be innately curious presents a potential solution to exploration, as the agent will focus exploration in areas it is unfamiliar with. In 2018, OpenAI released [Random Network Distillation](https://openai.com/blog/reinforcement-learning-with-prediction-based-rewards/) which made progress in formalizing this notion, by measuring the agent's ability to predict the output of a neural network on visited states. States that are hard to predict are poorly explored, and thus highly rewarded. In 2019, an excellent paper [First return, then explore](https://arxiv.org/pdf/2004.12919v6.pdf) found an even better approach. Such reward shaping can also be gamed, leading to the noisy TV problem, where agents that seek novelty become entranced by a source of randomness in the environment (like a analog TV out of tune displaying white noise), and ignore everything else in the environment.
 
 For now, implement the basic linearly decreasing exploration schedule.""")
 
@@ -1128,7 +1126,6 @@ class Probe1(gym.Env):
         super().__init__()
         self.observation_space = Box(np.array([0]), np.array([0]))
         self.action_space = Discrete(1)
-        self.seed()
         self.reset()
 
     def step(self, action: ActType) -> tuple[ObsType, float, bool, dict]:
@@ -1137,6 +1134,7 @@ class Probe1(gym.Env):
     def reset(
         self, seed: Optional[int] = None, return_info=False, options=None
     ) -> Union[ObsType, tuple[ObsType, dict]]:
+        super().reset(seed=seed)
         if return_info:
             return (np.array([0.0]), {})
         return np.array([0.0])
@@ -1153,6 +1151,8 @@ if MAIN:
 Feel free to skip ahead for now, and implement these as needed to debug your model. 
 
 Each implementation should be very similar to `Probe1` above. If you aren't sure whether you've implemented them correctly, you can check them against the solutions.
+
+Note - you can access a uniform random number generator using `self.np_random.random()`.
 
 ```python
 class Probe2(gym.Env):
@@ -1263,12 +1263,12 @@ $$
 $$
 \delta_t = \mathbb{E} \left[ r_t + \gamma \max_a Q(s_{t+1}, a) - Q(s_t, a_t) \right]
 $$
-Letting $y_t = r_t + \gamma \max_a Q(s_{t+1}, a)$, we can use the expected squared TD-Error $\delta_t^2 = (y_t - Q(s_t, a_t))^2$ as the loss function to optimize against. Since we want the modle to learn from a variety of experiences (recall that supervised learning is assuming i.i.d) we approximate the expectation by sampling a batch $B = \{s^i, a^i, r^i, s^i_\text{new}\}$ of experiences from the replay buffer, and try to adjust $\theta$ to make the loss
+Letting $y_t = r_t + \gamma \max_a Q(s_{t+1}, a)$, we can use the expected squared TD-Error $\delta_t^2 = (y_t - Q(s_t, a_t))^2$ as the loss function to optimize against. Since we want the model to learn from a variety of experiences (recall that supervised learning is assuming i.i.d) we approximate the expectation by sampling a batch $B = \{s^i, a^i, r^i, s^i_\text{new}\}$ of experiences from the replay buffer, and try to adjust $\theta$ to make the loss
 $$
 L(\theta) = \frac{1}{|B|} \sum_{i=1}^B \left( r^i +
 \gamma \max_a Q(s^i_\text{new}, a ; \theta_\text{target}) - Q(s^i, a^i ; \theta) \right)^2
 $$
-smaller via gradient descent. Here, $\theta_\text{target}$ is a previous copy of the parameters $\theta$. Every so often, we then update the target $\theta_\text{target} \leftarrow \theta$ as the agent improves it's Q-values from experience.
+smaller via gradient descent. Here, $\theta_\text{target}$ is a previous copy of the parameters $\theta$. Every so often, we then update the target $\theta_\text{target} \leftarrow \theta$ as the agent improves it's Q-values from experience. We don't do this every step, because this improves training stability (your network isn't continually chasing a moving target).
 
 Note that $\llbracket S \rrbracket$ is 1 if $S$ is True, and 0 if $S$ is False.""")
 
@@ -1393,9 +1393,20 @@ def log(
             writer.add_scalar("charts/episodic_length", info["episode"]["l"], step)
             writer.add_scalar("charts/epsilon", epsilon, step)
             break
+
+if MAIN:
+    if "ipykernel_launcher" in os.path.basename(sys.argv[0]):
+        filename = globals().get("__file__", "<filename of this script>")
+        print(f"Try running this file from the command line instead: python {os.path.basename(filename)} --help")
+        args = DQNArgs()
+    else:
+        args = parse_args()
+    # train_dqn(args)
 ```
 
 All of the above is boilerplate to interface with Weights and Biases, write information to logs, and read arguments from the commandline. You should only worry about `DQNArgs`, which is a datastructure preinitialized with sensible hyperparameters for CartPole (though you can adjust them using command line arguments.)
+
+After you've written your `train_dqn` function (see below), you should comment out the last line above.
 
 This file will read arguments from the command line. Run
 
@@ -1403,8 +1414,7 @@ This file will read arguments from the command line. Run
 python <your-script>.py -h
 ```
 
-to see the arguments it takes. The hyperparameters are already set to reasonable values by default,
-have a look inside `rl_utils.py` if you're interested.
+to see the arguments it takes. The hyperparameters are already set to reasonable values by default, have a look inside `w4d2_chapter4_dqn.utils` if you're interested.
 
 A sample invocation that will let you see your agent's progress in Weights and Biases, including videos of it playing episodes would look like:
 
@@ -1436,8 +1446,74 @@ For example, the Q-network initially learned some state was bad, because an agen
 ## Hints
 - When gathering experiences, make sure you have a line `obs = next_obs` at an appropriate location, or you'll just keep passing in the same observation on every iteration.
 - Use `net2.load_state_dict(net1.state_dict())` to copy the parameters from `net1` into an identically shaped network `net2`. (Useful for updating target network.)
-- Use `torch.no_grad()` when computing thins from the target network.
+- Use `torch.inference_mode()` when computing thins from the target network.
+- `args` contains a lot of the parameters you'll need to use, e.g. `learning_rate` for your optimizer's learning rate.
+    - Make sure not to confuse this learning rate with your `epsilon`. The former is used in your optimizer and is kept fixed; the latter is used in your agent's policy and follows the `linear_schedule`.
+- Pay attention to the difference between observation shape and number of observations.
+    - Observation shape is returned from `envs.single_observation_space.shape`. In the case of our CartPole environment, this is simply `(4,)` (see earlier description of CartPole), although in other environments this might be more than one-dimensional. For instance, the observation shape might be `(height, width)` for playing Atari games (because each pixel represents a different observation).
+    - The number of observations is simply equal to the product of the elements in `obs_shape`. In the case of CartPole, this is just 4.
 
+- Remember your observations might have more than one dimension (this is the case for cartpole - see above). You can get the observation shape from `envs.single_observation_space.shape`, and get the number of different possible observations from 
+
+Below are a few other hints to guide you through the exercises, in the form of dropdowns. You should use these liberally, because otherwise you might find yourself stuck for a while - it's hard to code up difficult functions like this when you're not already very familiar with the libraries involved.
+""")
+
+    with st.expander("Help - I'm not sure how to use the outputs of my Q network in the formulas."):
+        st.markdown(r"""
+Your network `q_network` will take in an observation (or multiple observations), and return the value for taking each action following that observation.
+
+In order to get $Q(s, a; \theta)$, you just evaluate your output at action `a`. In order to get $\max_{a'}Q(s, a'; \theta)$, you need to take the maximum over your outputs.
+""")
+    with st.expander("Help - I don't understand when to use my base network and target network."):
+        st.markdown(r"""
+Your base network is the one that actually gets updated via gradient descent, via the loss function given in the section above. It corresponds to the function $Q(s, a ; \theta)$ in that section.
+
+Your target network is $Q(s, a; \theta_\text{target})$ in the section above. It is also used in the formula for calculating loss. It is only updated once every `args.target_network_frequency` steps. 
+
+The idea beyhind this is that using the target network's Q values to train the main Q-network will improve the stability of the training (because your network isn't continually chasing a moving target).
+""")
+
+    st.markdown("""
+If you need more detailed instructions for what to do in some of the code sections, then you can look at the dropdowns.
+""")
+    with st.expander("Guidance for (1)"):
+        st.markdown(r"""
+You should do the following things, in order:
+
+* Define `num_actions` and `obs_shape` from your `envs` object.
+* Define both your networks, and your optimizer (which network's parameters should you pass in?).
+    * You can get your optimizer's learning rate from `args`. The other parameters should be left as default.
+* Create your `ReplayBuffer` object.
+    * Note that you can get the number of environments in `envs` using `len(envs.envs)`.
+""")
+        st.markdown("")
+    with st.expander("Guidance for (2)"):
+        st.markdown(r"""
+You should do the following things, in order:
+
+* Set `epsilon` using your `linear_schedule` function.
+* Choose your actions using your `epsilon_greedy_policy` function
+* Return a tuple of `(next_obs, rewards, dones, infos)` from your environment's `step` function.
+""")
+        st.markdown("")
+    with st.expander("Guidance for (3)"):
+        st.markdown(r"""
+You should do the following things, in order:
+
+* Use the `sample` method from your replay buffer to return $\{s^i, a^i, r^i, d^i, s_\text{new}^i\}$ (here I'm following the notation at the start of the **Main DQN Algorithm** section of this page).
+* Calculate your loss function $L(\theta)$ using both your base and target networks.
+    * Remember to use `t.inference_mode()` as appropriate.
+* Do the standard optimizer things: zero the gradient, perform backprop, step your optimizer.
+""")
+        st.markdown("")
+    with st.expander("Guidance for (4)"):
+        st.markdown(r"""
+(4) should just be one line. You'll need the function `load_state_dict`.
+""")
+        st.markdown("")
+
+    st.markdown(r"""
+Note, if you get dependency errors then you might have to upgrade to a more recent version of `gym` (I found 0.25.2 worked for me). You might also need to work your way through some error messages by e.g. doing some `pip install`s.
 
 ```python
 def train_dqn(args: DQNArgs):
@@ -1472,15 +1548,6 @@ def train_dqn(args: DQNArgs):
 
     envs.close()
     writer.close()
-
-if MAIN:
-    if "ipykernel_launcher" in os.path.basename(sys.argv[0]):
-        filename = globals().get("__file__", "<filename of this script>")
-        print(f"Try running this file from the command line instead: python {os.path.basename(filename)} --help")
-        args = DQNArgs()
-    else:
-        args = parse_args()
-    train_dqn(args)
 ```
 
 ## Beyond CartPole
@@ -1498,7 +1565,7 @@ There are many more exciting environments to play in, but generally they're goin
 
 ### Target Network
 
-Why have the target network? Modify the DQN code above, but this time use the same network for both the target and the Q-value network, rather than updating the target every so often.
+Why have the target network? Modify the DQN code above, but this time use the same network for both the target and the Q-value network, rather than updating the target every so often. 
 
 Compare the performance of this against using the target network.
 
