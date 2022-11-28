@@ -820,7 +820,7 @@ import os
 import sys
 import random
 import time
-impore re
+import re
 from dataclasses import dataclass
 from distutils.util import strtobool
 from typing import Any, List, Optional, Union, Tuple, Iterable
@@ -990,10 +990,6 @@ if MAIN:
     for i in range(512):
         actions = np.array([0])
         (next_obs, rewards, dones, infos) = envs.step(actions)
-        real_next_obs = next_obs.copy()
-        for (i, done) in enumerate(dones):
-            if done:
-                real_next_obs[i] = infos[i]["terminal_observation"]
         rb.add(obs, actions, rewards, dones, next_obs)
         obs = next_obs
     sample = rb.sample(128, t.device("cpu"))
@@ -1524,11 +1520,6 @@ def train_dqn(args: DQNArgs):
     obs = envs.reset()
     for step in range(args.total_timesteps):
         "YOUR CODE: Sample actions according to the epsilon greedy policy using the linear schedule for epsilon, and then step the environment"
-        "Boilerplate to handle the terminal observation case"
-        real_next_obs = next_obs.copy()
-        for (i, done) in enumerate(dones):
-            if done:
-                real_next_obs[i] = infos[i]["terminal_observation"]
         rb.add(obs, actions, rewards, dones, next_obs)
         obs = next_obs
         if step > args.learning_starts and step % args.train_frequency == 0:
