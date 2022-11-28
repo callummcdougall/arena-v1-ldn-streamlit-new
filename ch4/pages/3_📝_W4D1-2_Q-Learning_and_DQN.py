@@ -722,10 +722,10 @@ def section_2():
     <li><ul class="contents">
         <li><a class="contents-el" href="#additional-probe-environments">Additional Probe Environments</a></li>
     </ul></li>
-    <li><a class="contents-el" href="#weights-and-biases">Weights and Biases</a></li>
     <li><a class="contents-el" href="#main-dqn-algorithm">Main DQN Algorithm</a></li>
     <li><ul class="contents">
         <li><a class="contents-el" href="#logging-metrics">Logging Metrics</a></li>
+        <li><a class="contents-el" href="#weights-and-biases">Weights and Biases</a></li>
         <li><a class="contents-el" href="#expected-behavior-of-the-loss">Expected Behavior of the Loss</a></li>
     </ul></li>
     <li><a class="contents-el" href="#hints">Hints</a></li>
@@ -1244,12 +1244,6 @@ class Probe5(gym.Env):
 gym.envs.registration.register(id="Probe5-v0", entry_point=Probe5)
 ```
 
-## Weights and Biases
-
-In previous parts, we've just trained the agent, and then plotted the reward per episode after training. For small toy examples that train in a few seconds this is fine, but for longer runs we'd like to watch the run live and make sure the agent is doing something interesting (especially if we were planning to run the model overnight.)
-
-Luckily, **Weights and Biases** has got us covered! When you run your experiments, you'll be able to view not only *live plots* of the loss and average reward per episode while the agent is training - you can also log and view animations, which visualise your agent's progress in real time! The code below will handle all logging.
-
 ## Main DQN Algorithm
 
 We now combine all the elements we have designed thus far into the final DQN algorithm. Here, we assume the environment returns three parameters $(s_{new}, r, d)$, a new state $s_{new}$, a reward $r$ and a boolean $d$ indicating whether interaction has terminated yet.
@@ -1393,6 +1387,7 @@ def log(
             writer.add_scalar("charts/episodic_length", info["episode"]["l"], step)
             writer.add_scalar("charts/epsilon", epsilon, step)
             break
+    # OPTIONAL: ADD CODE HERE TO LOG TO WANDB
 
 if MAIN:
     if "ipykernel_launcher" in os.path.basename(sys.argv[0]):
@@ -1406,7 +1401,7 @@ if MAIN:
 
 All of the above is boilerplate to interface with Weights and Biases, write information to logs, and read arguments from the commandline. You should only worry about `DQNArgs`, which is a datastructure preinitialized with sensible hyperparameters for CartPole (though you can adjust them using command line arguments.)
 
-After you've written your `train_dqn` function (see below), you should comment out the last line above.
+After you've written your `train_dqn` function (see below), you should move the `if MAIN` block to the bottom of your Python file, and comment out the `train_dqn` line.
 
 This file will read arguments from the command line. Run
 
@@ -1422,16 +1417,23 @@ A sample invocation that will let you see your agent's progress in Weights and B
 python <your-script>.py --track --capture-video
 ```
 
-I recommend that you start by running statements line by line in the REPL and verifying that things are as you expect, then pasting them into the function when they work.
+You can do this from **VSCode's terminal**. Note - it can be annoying to have all your `utils` tests happening every time you run your file from the terminal, and there's no easy way of letting Python know whether you're running it from the terminal or from inside the file. One way around this is to add a boolean global variable `TESTING` at the top of your file, and changing the `if MAIN` loops so that they only run when `TESTING = True`. That way, you can set `TESTING = False` when you want to run the file from the terminal. Another solution is just to run your Python file the way you normally would (including the `parse_args` function).
 
 Don't be discouraged if it's not working - it's normal for debugging RL to take longer than you would expect. Add asserts or your own tests, implement an appropriate probe environment, try anything in the Andy Jones post that sounds promising, and try to notice confusion. Reinforcement Learning is often so tricky as even if the algorithm has bugs, the agent might still learn something useful regardless (albeit maybe not as well), or even if everything is correct, the agent might just fail to learn anything useful (like how DQN failed to do anything on Montezuma's Revenge.)
 
-Since the environment is already know to be one DQN can solve, and we've already provided hyperparameters that work for this environment, hopefully that's isolated a lot
-of the problems one would usually have with solving real world problems with RL.
+Since the environment is already know to be one DQN can solve, and we've already provided hyperparameters that work for this environment, hopefully that's isolated a lot of the problems one would usually have with solving real world problems with RL.
 
 ### Logging Metrics
 
 You can view your metrics either in the IDE using Tensorboard (VS Code has built-in Tensorboard support) or remotely on Weights and Biases. Some of the logs won't work properly until you define a variable with the expected name.
+
+### Weights and Biases
+
+In previous parts, we've just trained the agent, and then plotted the reward per episode after training. For small toy examples that train in a few seconds this is fine, but for longer runs we'd like to watch the run live and make sure the agent is doing something interesting (especially if we were planning to run the model overnight.)
+
+Luckily, **Weights and Biases** has got us covered! When you run your experiments, you'll be able to view not only *live plots* of the loss and average reward per episode while the agent is training - you can also log and view animations, which visualise your agent's progress in real time! This is all handled via the argument `monitor_gym=True` in `wandb.init`. The way this works is very simple - Weights and Biases just looks for the videos logged automatically by `gym` (which will also be saved in your `gym` folder).
+
+Note that forms of `wandb` logging other than video logging won't be done automatically for you; you'll have to add those like you've done previously. You can do this by editing the `log` function.
 
 ### Expected Behavior of the Loss
 
@@ -1444,16 +1446,15 @@ This means that once the agent starts to learn something and do better at the pr
 For example, the Q-network initially learned some state was bad, because an agent that reached them was just flapping around randomly and died shortly after. But now it's getting evidence that the same state is good, now that the agent that reached the state has a better idea what to do next. A higher loss is thus actually a good sign that something is happening (the agent hasn't stagnated), but it's not clear if it's learning anything useful without also checking how the total reward per episode has changed.
 
 ## Hints
-- When gathering experiences, make sure you have a line `obs = next_obs` at an appropriate location, or you'll just keep passing in the same observation on every iteration.
-- Use `net2.load_state_dict(net1.state_dict())` to copy the parameters from `net1` into an identically shaped network `net2`. (Useful for updating target network.)
-- Use `torch.inference_mode()` when computing thins from the target network.
-- `args` contains a lot of the parameters you'll need to use, e.g. `learning_rate` for your optimizer's learning rate.
-    - Make sure not to confuse this learning rate with your `epsilon`. The former is used in your optimizer and is kept fixed; the latter is used in your agent's policy and follows the `linear_schedule`.
-- Pay attention to the difference between observation shape and number of observations.
-    - Observation shape is returned from `envs.single_observation_space.shape`. In the case of our CartPole environment, this is simply `(4,)` (see earlier description of CartPole), although in other environments this might be more than one-dimensional. For instance, the observation shape might be `(height, width)` for playing Atari games (because each pixel represents a different observation).
-    - The number of observations is simply equal to the product of the elements in `obs_shape`. In the case of CartPole, this is just 4.
 
-- Remember your observations might have more than one dimension (this is the case for cartpole - see above). You can get the observation shape from `envs.single_observation_space.shape`, and get the number of different possible observations from 
+* When gathering experiences, make sure you have a line `obs = next_obs` at an appropriate location, or you'll just keep passing in the same observation on every iteration.
+* Use `net2.load_state_dict(net1.state_dict())` to copy the parameters from `net1` into an identically shaped network `net2`. (Useful for updating target network.)
+* Use `torch.inference_mode()` when computing thins from the target network.
+* `args` contains a lot of the parameters you'll need to use, e.g. `learning_rate` for your optimizer's learning rate.
+    * Make sure not to confuse this learning rate with your `epsilon`. The former is used in your optimizer and is kept fixed; the latter is used in your agent's policy and follows the `linear_schedule`.
+* Pay attention to the difference between observation shape and number of observations.
+    * Observation shape is returned from `envs.single_observation_space.shape`. In the case of our CartPole environment, this is simply `(4,)` (see earlier description of CartPole), although in other environments this might be more than one-dimensional. For instance, the observation shape might be `(height, width)` for playing Atari games (because each pixel represents a different observation).
+    * The number of observations is simply equal to the product of the elements in `obs_shape`. In the case of CartPole, this is just 4.
 
 Below are a few other hints to guide you through the exercises, in the form of dropdowns. You should use these liberally, because otherwise you might find yourself stuck for a while - it's hard to code up difficult functions like this when you're not already very familiar with the libraries involved.
 """)
