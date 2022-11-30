@@ -5,6 +5,7 @@ from st_dependencies import *
 styling()
 import plotly.io as pio
 import re
+import pandas as pd
 import json
 
 def img_to_html(img_path, width):
@@ -208,15 +209,15 @@ def section_2():
 ## Table of Contents
 
 <ul class="contents">
+   <li><a class="contents-el" href="#learning-objectives">Learning Objectives</a></li>
    <li><a class="contents-el" href="#readings">Readings</a></li>
    <li><a class="contents-el" href="#optional-reading">Optional Reading</a></li>
-   <li><a class="contents-el" href="#learning-objectives">Learning Objectives</a></li>
    <li><a class="contents-el" href="#on-policy-vs-off-policy">On-Policy vs Off-Policy</a></li>
    <li><a class="contents-el" href="#actor-critic-methods">Actor-Critic Methods</a></li>
    <li><a class="contents-el" href="#notes-on-todays-workflow">Notes on today's workflow</a></li>
    <li><a class="contents-el" href="#references-not-required-reading">References (not required reading)</a></li>
-   <li><a class="contents-el" href="#generalized-advantage-estimation-detail-#5">Generalized Advantage Estimation (detail #5)</a></li>
-   <li><a class="contents-el" href="#minibatch-update-detail-#6">Minibatch Update (detail #6)</a></li>
+   <li><a class="contents-el" href="#generalized-advantage-estimation-detail-5">Generalized Advantage Estimation (detail #5)</a></li>
+   <li><a class="contents-el" href="#minibatch-update-detail-6">Minibatch Update (detail #6)</a></li>
    <li><a class="contents-el" href="#loss-function">Loss Function</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#gradient-ascent">Gradient Ascent</a></li>
@@ -227,7 +228,7 @@ def section_2():
        <li><a class="contents-el" href="#entropy-diagnostic">Entropy Diagnostic</a></li>
    </ul></li>
    <li><a class="contents-el" href="#putting-it-all-together">Putting It All Together</a></li>
-   <li><a class="contents-el" href="#debug-variables-detail-#12">Debug Variables (detail #12)</a></li>
+   <li><a class="contents-el" href="#debug-variables-detail-12">Debug Variables (detail #12)</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#update-frequency">Update Frequency</a></li>
    </ul></li>
@@ -235,25 +236,6 @@ def section_2():
 </ul>
 """, unsafe_allow_html=True)
     st.markdown(r"""
-import os
-import random
-import time
-import sys
-import re
-from dataclasses import dataclass
-import numpy as np
-import torch
-import torch as t
-import gym
-import torch.nn as nn
-import torch.optim as optim
-from torch.distributions.categorical import Categorical
-from torch.utils.tensorboard import SummaryWriter
-from gym.spaces import Discrete
-from einops import rearrange
-from w4d3_chapter4_ppo.utils import make_env, ppo_parse_args
-from w4d3_chapter4_ppo import solutions, utils
-
 # PPO: Implementation
 
 In this section, you'll be implementing the Proximal Policy Gradient algorithm!""")
@@ -270,6 +252,27 @@ In this section, you'll be implementing the Proximal Policy Gradient algorithm!"
 * Design a reward function to incentivise novel behaviour
 """)
     st.markdown(r"""
+```python
+import os
+import random
+import time
+import sys
+import re
+from dataclasses import dataclass
+import numpy as np
+import torch
+import torch as t
+import gym
+import torch.nn as nn
+import torch.optim as optim
+from torch.distributions.categorical import Categorical
+from torch.utils.tensorboard import SummaryWriter
+from gym.spaces import Discrete
+from einops import rearrange
+
+from w4d3_chapter4_ppo.utils import make_env, ppo_parse_args
+from w4d3_chapter4_ppo import tests
+```
 
 ## Readings
 
@@ -426,7 +429,7 @@ def compute_advantages(
     pass
 
 if MAIN and RUNNING_FROM_FILE:
-    utils.test_compute_advantages(compute_advantages)
+    tests.test_compute_advantages(compute_advantages)
 ```""")
 
     with st.expander("Help - I'm confused about how to calculate advantages."):
@@ -553,7 +556,7 @@ def calc_value_function_loss(critic: nn.Sequential, mb_obs: t.Tensor, mb_returns
     pass
 
 if MAIN and RUNNING_FROM_FILE:
-    utils.test_calc_value_function_loss(calc_value_function_loss)
+    tests.test_calc_value_function_loss(calc_value_function_loss)
 ```
 
 ### Entropy Bonus (detail #10)
@@ -590,7 +593,7 @@ def calc_entropy_loss(probs: Categorical, ent_coef: float):
     pass
 
 if MAIN and RUNNING_FROM_FILE:
-    utils.test_calc_entropy_loss(calc_entropy_loss)
+    tests.test_calc_entropy_loss(calc_entropy_loss)
 ```
 
 ## Adam Optimizer and Scheduler (details #3 and #4)
@@ -809,7 +812,26 @@ The current rewards for `CartPole` encourage the agent to keep the episode runni
 
 Here, we inherit from `CartPoleEnv` so that we can modify the dynamics of the environment.
 
-Try to modify the reward to make the task as easy to learn as possible. Compare this against your performance on the original environment, and see if the agent learns faster with your shaped reward. If you can bound the reward on each timestep between 0 and 1, this will make comparing the results to `CartPole-v1` easier.
+Try to modify the reward to make the task as easy to learn as possible. Compare this against your performance on the original environment, and see if the agent learns faster with your shaped reward. If you can bound the reward on each timestep between 0 and 1, this will make comparing the results to `CartPole-v1` easier.""")
+
+    with st.expander("Help - I'm confused about what reward function to use."):
+        st.markdown(r"""
+Right now, the agent always gets a reward of 1 for each timestep it is active. You should try and change this so that it gets a reward between 0 and 1, which is closer to 1 when the agent is performing well / behaving stably, and equals 0 when the agent is doing very poorly.
+
+The variables we have available to us are cart position, cart velocity, pole angle, and pole angular velocity, which I'll denote as $x$, $v$, $\theta$ and $\omega$.
+
+Here are a few suggestions which you can try out:
+* $r = 1 - (\theta / \theta_{\text{max}})^2$. This will have the effect of keeping the angle close to zero.
+* $r = 1 - (x / x_{\text{max}})^2$. This will have the effect of pushing it back towards the centre of the screen (i.e. it won't tip over and move offscreen).
+""")
+        st.markdown("")
+
+    with st.expander("Help - my agent's episodic return is smaller than it was in the original CartPole-v0 environment."):
+        st.markdown(r"""
+This is to be expected, because your reward function is no longer always 1 when the agent is upright. Both your time-discounted reward estimates and your actual realised rewards will be less than they were in the cartpole environment. For a fairer test, measure the length of your episodes - hopefully your agent learns how to stay upright for the entire 500 timestep interval as fast as or faster than it did previously.
+""")
+
+    st.markdown(r"""
 
 ```python
 from gym.envs.classic_control.cartpole import CartPoleEnv
