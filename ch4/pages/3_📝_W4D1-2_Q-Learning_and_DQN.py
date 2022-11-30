@@ -41,7 +41,7 @@ def read_from_html(filename):
 #     fig_dict = st.session_state["fig_dict"]
 
 def section_home():
-    st.markdown("""
+    st.markdown(r"""
 ## 1️⃣ Q-learning
 
 Now, we deal with situations where the environment is a black-box, and the agent must learn the rules of the world via interaction with it. This is different from everything else we've done so far, e.g. in the previous section we could calculate optimal policies by using the tensors $R$ and $T$, which we will now assume the agent doesn't have direct knowledge of.
@@ -50,24 +50,30 @@ We call algorithms which have access to the transition probability distribution 
 
     cols = st.columns([1, 10, 1])
     with cols[1]:
-        st.markdown("""
+        st.markdown(r"""
 *[Q-learning] provides agents with the capability of learning to act optimally in Markovian domains by experiencing the consequences of actions, without requiring them to build maps of the domains.*
 """)
     st.markdown("")
-    st.markdown("""
+    st.markdown(r"""
 ## 2️⃣ DQN
 
 In this section, you'll implement Deep Q-Learning, often referred to as DQN for "Deep Q-Network". This was used in a landmark paper Playing Atari with [Deep Reinforcement Learning](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf).
 
-You'll apply the technique of DQN to master the famous CartPole environment (below), and then (if you have time) move on to harder challenges like Acrobot and MountainCar.
+You'll then apply the technique of DQN to master the famous CartPole environment (below).
 """)
     st.markdown("<img src='https://miro.medium.com/max/1200/1*v8KcdjfVGf39yvTpXDTCGQ.gif' style='max-width:100%;margin-top:0px'>", unsafe_allow_html=True)
+    st.markdown("""
+## 3️⃣ Bonus
+
+If you have time, then you can move onto bonus exercises! These include harder games like Acrobot and MountainCar, as well as more difficult implementations like Dueling DQN.
+""")
 
 def section_1():
     st.sidebar.markdown("""
 ## Table of Contents
 
 <ul class="contents">
+   <li><a class="contents-el" href="#learning-objectives">Learning Objectives</a></li>
    <li><a class="contents-el" href="#readings">Readings</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#optional-readings">Optional Readings</a></li>
@@ -97,6 +103,8 @@ def section_1():
 </ul>
 """, unsafe_allow_html=True)
     st.markdown(r"""
+# Q-learning
+
 Now, we deal with situations where the environment is a black-box, and the agent must learn the rules of the world via interaction with it. This is different from everything else we've done so far, e.g. in the previous section we could calculate optimal policies by using the tensors $R$ and $T$, which we will now assume the agent doesn't have direct knowledge of.
 
 We call algorithms which have access to the transition probability distribution and reward function **model-based algorithms**. **Q-learning** is a **model-free algorithm**. From the original paper introducing Q-learning:""")
@@ -107,7 +115,17 @@ We call algorithms which have access to the transition probability distribution 
 *[Q-learning] provides agents with the capability of learning to act optimally in Markovian domains by experiencing the consequences of actions, without requiring them to build maps of the domains.*
 """)
     st.markdown(r"""
-The "Q" part of Q-learning refers to the function $Q$ which we encountered last week - the expected rewards for an action $a$ taken in a particular state $s$, based on some policy $\pi$.
+The "Q" part of Q-learning refers to the function $Q$ which we encountered last week - the expected rewards for an action $a$ taken in a particular state $s$, based on some policy $\pi$.""")
+
+    st.info(r"""
+## Learning Objectives
+
+* Understand the `Agent` class provided as well as the `DiscreteEnviroGym` wrapper around `gym.Env` that makes the `.T` and `.R` dynamics avaliable to peek at.
+* Understand and implement both **SARSA** and **Q-Learning**.
+* Compare SARSA vs. Q-learning on an environment, spend some time hyperparameter tuning.
+* Understand that SARSA acts more cautiously as it learns on-policy, while Q-Learning learns off-policy and uses the best action to update, not the action that was taken.""")
+
+    st.markdown(r"""
 
 ## Readings
 
@@ -447,6 +465,7 @@ This means that Q-learning tries to estimate $Q^*$ directly, regardless of what 
     st.markdown("")
 
     st.markdown(r"""
+Note - if you're still confused by the difference between Q-learning and SARSA, you can read [this StackOverflow answer](https://stackoverflow.com/questions/6848828/what-is-the-difference-between-q-learning-and-sarsa).
 
 ## Explore vs. Exploit
 
@@ -697,6 +716,7 @@ def section_2():
 ## Table of Contents
 
 <ul class="contents">
+    <li><a class="contents-el" href="#learning-objectives">Learning Objectives</a></li>
     <li><a class="contents-el" href="#readings">Readings</a></li>
     <li><a class="contents-el" href="#fast-feedback-loops">Fast Feedback Loops</a></li>
     <li><a class="contents-el" href="#cartpole">CartPole</a></li>
@@ -729,13 +749,6 @@ def section_2():
         <li><a class="contents-el" href="#expected-behavior-of-the-loss">Expected Behavior of the Loss</a></li>
     </ul></li>
     <li><a class="contents-el" href="#hints">Hints</a></li>
-    <li><a class="contents-el" href="#beyond-cartpole">Beyond CartPole</a></li>
-    <li><a class="contents-el" href="#bonus">Bonus</a></li>
-    <li><ul class="contents">
-        <li><a class="contents-el" href="#target-network">Target Network</a></li>
-        <li><a class="contents-el" href="#shrink-the-brain">Shrink the Brain</a></li>
-        <li><a class="contents-el" href="#dueling-dqn">Dueling DQN</a></li>
-    </ul></li>
 </ul>
 """, unsafe_allow_html=True)
     st.markdown(r"""
@@ -744,7 +757,21 @@ def section_2():
 
 In this section, you'll implement Deep Q-Learning, often referred to as DQN for "Deep Q-Network". This was used in a landmark paper [Playing Atari with Deep Reinforcement Learning](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf).
 
-At the time, the paper was very exicitng: The agent would play the game by only looking at the same screen pixel data that a human player would be looking at, rather than a description of where the enemies in the game world are. The idea that convolutional neural networks could look at Atari game pixels and "see" gameplay-relevant features like a Space Invader was new and noteworthy. In 2022, we take for granted that convnets work, so we're going to focus on the RL aspect solely, and not the vision component.
+At the time, the paper was very exicitng: The agent would play the game by only looking at the same screen pixel data that a human player would be looking at, rather than a description of where the enemies in the game world are. The idea that convolutional neural networks could look at Atari game pixels and "see" gameplay-relevant features like a Space Invader was new and noteworthy. In 2022, we take for granted that convnets work, so we're going to focus on the RL aspect solely, and not the vision component.""")
+
+    st.info(r"""
+## Learning Objectives
+
+* Play `CartPole` to appreciate how difficult the task is for humans!
+* Implement the Q-network that will be used to estimate the Q-value for an (observation, action) pair.
+* Implement the replay buffer that stores experience from interaction with the environment, from which batches of training data will be sampled.
+* Implement the linear schedule for the exploration constant.
+* Implement an epsilon greedy policy based on the Q-Network and linearly decaying epsilon.
+* Implement some trivial debugging environments to sanity-check the DQN implementation.
+* Put all the pieces together, and implement the DQN algorithm, which should learn to balance the pole in `CartPole` until termination in 500 timesteps.
+""")
+
+    st.markdown(r"""
 
 ## Readings
 
@@ -1527,20 +1554,68 @@ def train_dqn(args: DQNArgs):
             log(writer, start_time, step, predicted_q_vals, loss, infos, epsilon)
 
     "If running one of the Probe environments, will test if the learned q-values are\n    sensible after training. Useful for debugging."
-    probe_batches = [
-        t.tensor([[0.0]]), t.tensor([[-1.0], [+1.0]]), t.tensor([[0.0], [1.0]]), t.tensor([[0.0]]), t.tensor([[0.0], [1.0]])
-    ]
+    probe_batches = [t.tensor([[0.0]]), t.tensor([[-1.0], [+1.0]]), t.tensor([[0.0], [1.0]]), t.tensor([[0.0]]), t.tensor([[0.0], [1.0]])]
+    probe_expected = [t.tensor([[1.0]]), t.tensor([[-1.0], [+1.0]]), t.tensor([[args.gamma], [1.0]]), t.tensor([[-1.0, 1.0]]), t.tensor([[1.0, -1.0], [-1.0, 1.0]])]
+    probe_tolerances = [5e-4, 5e-4, 5e-4, 5e-4, 1e-3]
     if re.match(r"Probe(\d)-v0", args.env_id):
-        probe_no = int(re.match(r"Probe(\d)-v0", args.env_id).group(1))
-        batch = probe_batches[probe_no]
+        probe_no = int(re.match(r"Probe(\d)-v0", args.env_id).group(1)) - 1
+        value = q_network(probe_batches[probe_no])
+        print("Value: ", value)
+        t.testing.assert_close(value, probe_expected[probe_no], atol=probe_tolerances[probe_no], rtol=0)
+
+
+    if args.env_id == "Probe1-v0":
+        batch = t.tensor([[0.0]]).to(device)
         value = q_network(batch)
         print("Value: ", value)
         expected = t.tensor([[1.0]]).to(device)
-        t.testing.assert_close(value, expected, 0.0001)
+        t.testing.assert_close(value, expected, atol=5e-4, rtol=0)
+    elif args.env_id == "Probe2-v0":
+        batch = t.tensor([[-1.0], [+1.0]]).to(device)
+        value = q_network(batch)
+        print("Value:", value)
+        expected = batch
+        t.testing.assert_close(value, expected, atol=5e-4, rtol=0)
+    elif args.env_id == "Probe3-v0":
+        batch = t.tensor([[0.0], [1.0]]).to(device)
+        value = q_network(batch)
+        print("Value: ", value)
+        expected = t.tensor([[args.gamma], [1.0]]).to(device)
+        t.testing.assert_close(value, expected, atol=5e-4, rtol=0)
+    elif args.env_id == "Probe4-v0":
+        batch = t.tensor([[0.0]]).to(device)
+        value = q_network(batch)
+        expected = t.tensor([[-1.0, 1.0]]).to(device)
+        print("Value: ", value)
+        t.testing.assert_close(value, expected, atol=5e-4, rtol=0)
+    elif args.env_id == "Probe5-v0":
+        batch = t.tensor([[0.0], [1.0]]).to(device)
+        value = q_network(batch)
+        expected = t.tensor([[1.0, -1.0], [-1.0, 1.0]]).to(device)
+        print("Value: ", value)
+        t.testing.assert_close(value, expected, atol=1e-3, rtol=0)
 
     envs.close()
     writer.close()
 ```
+
+If your training is successful, then you should see your pole balancing for the full `n_runs=500` timesteps. At this point, you can move on to the bonus exercises!
+""")
+
+def section_3():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+    <li><a class="contents-el" href="#beyond-cartpole">Beyond CartPole</a></li>
+    <li><a class="contents-el" href="#target-network">Target Network</a></li>
+    <li><a class="contents-el" href="#shrink-the-brain">Shrink the Brain</a></li>
+    <li><a class="contents-el" href="#dueling-dqn">Dueling DQN</a></li>
+</ul>
+""", unsafe_allow_html=True)
+
+    st.markdown(r"""
+# Bonus
 
 ## Beyond CartPole
 
@@ -1553,26 +1628,26 @@ There are many more exciting environments to play in, but generally they're goin
 - [Megastep](https://andyljones.com/megastep/) - RL environment that runs fully on the GPU (fast!)
 - [Procgen](https://github.com/openai/procgen) - A family of 16 procedurally generated gym environments to measure the ability for an agent to generalize. Optimized to run quickly on the CPU.
 
-## Bonus
+In particular, we will likely be working with Procgen when we get to the PPO section, so if you can get your algorithm working on Procgen that will put you in a great position for the rest of the week. Even if you don't have time to get your algorithm working, playing around with Procgen environments will still be a very useful exercise.
 
-### Target Network
+## Target Network
 
-Why have the target network? Modify the DQN code above, but this time use the same network for both the target and the Q-value network, rather than updating the target every so often. 
+Why have the target network? Modify the DQN code from the last section, but this time use the same network for both the target and the Q-value network, rather than updating the target every so often. 
 
 Compare the performance of this against using the target network.
 
-### Shrink the Brain
+## Shrink the Brain
 
 Can DQN still learn to solve CartPole with a Q-network with fewer parameters? Could we get away with three-quarters or even half as many parameters? Try comparing the resulting training curves with a shrunken version of the Q-network. What about the same number of parameters, but with more/less layers, and less/more parameters per layer?
 
-### Dueling DQN
+## Dueling DQN
 
 Implement dueling DQN according to [the paper](https://arxiv.org/pdf/1511.06581.pdf) and compare its performance.
 """)
 
-func_list = [section_home, section_1, section_2]
+func_list = [section_home, section_1, section_2, section_3]
 
-page_list = ["🏠 Home", "1️⃣ Q-learning", "2️⃣ DQN"]
+page_list = ["🏠 Home", "1️⃣ Q-learning", "2️⃣ DQN", "3️⃣ Bonus"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 def page():

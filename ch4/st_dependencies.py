@@ -23,6 +23,9 @@ def styling():
     p {
         line-height:1.48em;
     }
+    .st-ae h2 {
+        margin-top: -15px;
+    }
     .streamlit-expanderHeader {
         font-size: 1em;
         color: darkblue;
