@@ -235,6 +235,25 @@ def section_2():
 </ul>
 """, unsafe_allow_html=True)
     st.markdown(r"""
+import os
+import random
+import time
+import sys
+import re
+from dataclasses import dataclass
+import numpy as np
+import torch
+import torch as t
+import gym
+import torch.nn as nn
+import torch.optim as optim
+from torch.distributions.categorical import Categorical
+from torch.utils.tensorboard import SummaryWriter
+from gym.spaces import Discrete
+from einops import rearrange
+from w4d3_chapter4_ppo.utils import make_env, ppo_parse_args
+from w4d3_chapter4_ppo import solutions, utils
+
 # PPO: Implementation
 
 In this section, you'll be implementing the Proximal Policy Gradient algorithm!""")
@@ -332,7 +351,7 @@ from rl_utils import ppo_parse_args, make_env
 import part4_dqn_solution
 
 MAIN = __name__ == "__main__"
-
+RUNNING_FROM_FILE = "ipykernel_launcher" in os.path.basename(sys.argv[0])
 ```
 
 ### Actor-Critic Agent Implementation (detail #2)
@@ -380,7 +399,7 @@ Given a batch of experiences, we want to compute each `advantage[t][env]`. This 
 
 Implement `compute_advantages`. I recommend using a reversed for loop over `t` to get it working, and not worrying about trying to completely vectorize it.
 
-Remember that the terms in $(11)$ should be truncated at the first instance when the episode is terminated (i.e. `done=True`). This is another reason why using a for loop is easier than vectorization!
+Remember that the sum in $(11)$ should be truncated at the first instance when the episode is terminated (i.e. `done=True`). This is another reason why using a for loop is easier than vectorization!
 
 ```python
 @t.inference_mode()
@@ -405,7 +424,24 @@ def compute_advantages(
     Return: shape (t, env)
     '''
     pass
+
+if MAIN and RUNNING_FROM_FILE:
+    utils.test_compute_advantages(compute_advantages)
+```""")
+
+    with st.expander("Help - I'm confused about how to calculate advantages."):
+        st.markdown(r"""
+You can calculate all the deltas explicitly, using:
+
+```python
+deltas = rewards + gamma * next_values * (1.0 - next_dones) - values
 ```
+
+where `next_values` and `next_dones` are created by concatenating `(values, next_value)` and `(dones, next_done)` respectively and dropping the first element (i.e. the one at timestep $t=0$).
+
+When calculating the advantages from the deltas, it might help to work backwards, i.e. start with $\hat{A}_{T-1}$ and calculate them recursively. You can go from $\hat{A}_{t}$ to $\hat{A}_{t-1}$ by multiplying by a scale factor (which might be zero depending on the value of `dones[t]`) and adding $\delta_{t-1}$.
+""")
+    st.markdown(r"""
 
 ## Minibatch Update (detail #6)
 
@@ -442,6 +478,9 @@ def minibatch_indexes(batch_size: int, minibatch_size: int) -> list[np.ndarray]:
     assert batch_size % minibatch_size == 0
     pass
 
+if MAIN and RUNNING_FROM_FILE:
+    test_minibatch_indexes(minibatch_indexes)
+
 def make_minibatches(
     obs: t.Tensor,
     logprobs: t.Tensor,
@@ -473,13 +512,15 @@ Note - in the paper, don't confuse $r_{t}$ which is reward at time $t$ with $r_{
 
 ### Minibatch Advantage Normalization (detail #7)
 
-You should normalize the minibatches before using it, if the parameter `normalize` is true.
+Pay attention to the normalization instructions in detail #7 when implementing this loss function.
 
-Tip: you can use the `probs.log_prob` method to get the log probabilities that correspond to the actions in `mb_action`.
+You can use the `probs.log_prob` method to get the log probabilities that correspond to the actions in `mb_action`.
+
+Note - if you're wondering why we're using a `Categorical` type rather than just using `log_prob` directly, it's because we'll be using them to sample actions later on in our `train_ppo` function. Also, categoricals have a useful method for returning the entropy of a distribution (which will be useful for the entropy term in the loss function).
 
 ```python
 def calc_policy_loss(
-    probs: Categorical, mb_action: t.Tensor, mb_advantages: t.Tensor, mb_logprobs: t.Tensor, clip_coef: float, normalize: bool = True
+    probs: Categorical, mb_action: t.Tensor, mb_advantages: t.Tensor, mb_logprobs: t.Tensor, clip_coef: float
 ) -> t.Tensor:
     '''Return the policy loss, suitable for maximisation with gradient ascent.
 
@@ -490,6 +531,9 @@ def calc_policy_loss(
     normalize: if true, normalize mb_advantages to have mean 0, variance 1
     '''
     pass
+
+if MAIN and RUNNING_FROM_FILE:
+    test_calc_policy_loss(calc_policy_loss)
 ```
 
 ### Value Function Loss (detail #9)
@@ -507,6 +551,9 @@ def calc_value_function_loss(critic: nn.Sequential, mb_obs: t.Tensor, mb_returns
     v_coef: the coefficient for the value loss, which weights its contribution to the overall loss. Denoted by c_1 in the paper.
     '''
     pass
+
+if MAIN and RUNNING_FROM_FILE:
+    utils.test_calc_value_function_loss(calc_value_function_loss)
 ```
 
 ### Entropy Bonus (detail #10)
@@ -541,13 +588,18 @@ def calc_entropy_loss(probs: Categorical, ent_coef: float):
     ent_coef: the coefficient for the entropy loss, which weights its contribution to the overall loss. Denoted by c_2 in the paper.
     '''
     pass
+
+if MAIN and RUNNING_FROM_FILE:
+    utils.test_calc_entropy_loss(calc_entropy_loss)
 ```
 
 ## Adam Optimizer and Scheduler (details #3 and #4)
 
 Even though Adam is already an adaptive learning rate optimizer, empirically it's still beneficial to decay the learning rate.
 
-Implement a linear decay from `initial_lr` to `end_lr` over num_updates steps. Also, make sure you read details #3 and #4 so you don't miss any of the Adam details.
+Implement a linear decay from `initial_lr` to `end_lr` over num_updates steps. Also, make sure you read details #3 and #4 so you don't miss any of the Adam implementational details.
+
+Note, the training terminates after `num_updates`, so you don't need to worry about what the learning rate will be after this point.
 
 ```python
 class PPOScheduler:
@@ -571,18 +623,33 @@ def make_optimizer(agent: Agent, num_updates: int, initial_lr: float, end_lr: fl
 
 Again, we've provided the boilerplate for you. It looks worse than it is - a lot of it is just tracking metrics for debugging. Implement the sections marked with placeholders.""")
 
-    with st.expander("Help - I don't know how to get probs."):
-        st.markdown(r"""
-Your `agent.actor` takes the observations from your minibatch as inputs, and returns a `logits` item. This can be passed into the PyTorch `Categorical` function to create your `probs` object.""")
-
     with st.expander("Help - I get the error 'AssertionError: tensor(1, device='cuda:0') (<class 'torch.Tensor'>) invalid'."):
         st.markdown(r"""
-The actions passed into `envs.step` should probably be numpy arrays, not tensors. Convert them using `.detach().cpu().numpy()`.
+The actions passed into `envs.step` should probably be numpy arrays, not tensors. Convert them using `.cpu().numpy()`.
 """)
 
     with st.expander("Help - I get 'RuntimeError: Trying to backward through the graph a second time...'."):
         st.markdown(r"""
 You should be doing part 1 of coding (the **rollout phase**) in inference mode. This is just designed to sample actions, not for actual network updates.""")
+
+    st.markdown(r"""
+
+If you need more detailed instructions for what to do in some of the code sections, then you can look at the dropdowns. You should attempt each section of code for at least 20-30 mins before you look at these dropdowns.""")
+
+    with st.expander("Guidance for (1)"):
+        st.markdown(r"""
+For each value of `i in range(0, args.num_envs)`, you need to fill in the `i`th row of your tensors `obs`, `dones`, `values`, `actions`, `logprobs` and `rewards`. You get each of these items in the following ways (and in the following order):
+* Values are found from inputting `next_obs` to your critic.
+* You can get the logits for your policy $\pi_\theta$ by inputting `next_obs` to your actor, and from these you can get:
+    * A distribution object, via using `Categorical`.
+    * Actions, using the `sample` method of `Categorical` objects.
+    * Logprobs, which are the log-probabilities of your distribution object corresponding to the sampled actions.
+    * Rewards, by passing your actions into the `envs.step` function.
+""")
+    with st.expander("Guidance for (2)"):
+        st.markdown(r"""
+
+""")
 
     st.markdown(r"""
 
