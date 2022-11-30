@@ -216,6 +216,7 @@ def section_2():
    <li><a class="contents-el" href="#actor-critic-methods">Actor-Critic Methods</a></li>
    <li><a class="contents-el" href="#notes-on-todays-workflow">Notes on today's workflow</a></li>
    <li><a class="contents-el" href="#references-not-required-reading">References (not required reading)</a></li>
+   <li><a class="contents-el" href="#actor-critic-agent-implementation-detail-2">Actor-Critic Agent Implementation (detail #2)</a></li>
    <li><a class="contents-el" href="#generalized-advantage-estimation-detail-5">Generalized Advantage Estimation (detail #5)</a></li>
    <li><a class="contents-el" href="#minibatch-update-detail-6">Minibatch Update (detail #6)</a></li>
    <li><a class="contents-el" href="#loss-function">Loss Function</a></li>
@@ -363,10 +364,16 @@ MAIN = __name__ == "__main__"
 RUNNING_FROM_FILE = "ipykernel_launcher" in os.path.basename(sys.argv[0])
 ```
 
-### Actor-Critic Agent Implementation ([detail #2](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Orthogonal%20Initialization%20of%20Weights%20and%20Constant%20Initialization%20of%20biases))
+## Actor-Critic Agent Implementation ([detail #2](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Orthogonal%20Initialization%20of%20Weights%20and%20Constant%20Initialization%20of%20biases))
 
-Implement the `Agent` class according to the diagram, inspecting `envs` to determine the observation shape and number of actions. We are doing separate Actor and Critic networks because [detail #13](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Shared%20and%20separate%20MLP%20networks%20for%20policy%20and%20value%20functions) notes that is performs better than a single shared network in simple environments. Note that today `envs` will actually have multiple instances of the environment inside, unlike yesterday's DQN which had only one instance inside.
+Implement the `Agent` class according to the diagram, inspecting `envs` to determine the observation shape and number of actions. We are doing separate Actor and Critic networks because [detail #13](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Shared%20and%20separate%20MLP%20networks%20for%20policy%20and%20value%20functions) notes that is performs better than a single shared network in simple environments. Note that today `envs` will actually have multiple instances of the environment inside, unlike yesterday's DQN which had only one instance inside. From the **37 implementation details** post:""")
 
+    cols = st.columns([1, 15, 1])
+    with cols[1]:
+
+        st.info(r"""In this architecture, PPO first initializes a vectorized environment `envs` that runs $N$ (usually independent) environments either sequentially or in parallel by leveraging multi-processes. `envs` presents a synchronous interface that always outputs a batch of $N$ observations from $N$ environments, and it takes a batch of $N$ actions to step the $N$ environments. When calling `next_obs = envs.reset()`, next_obs gets a batch of $N$ initial observations (pronounced "next observation"). PPO also initializes an environment `done` flag variable next_done (pronounced "next done") to an $N$-length array of zeros, where its i-th element `next_done[i]` has values of 0 or 1 which corresponds to the $i$-th sub-environment being *not done* and *done*, respectively.""")
+
+    st.markdown(r"""
 Use `layer_init` to initialize each `Linear`, overriding the standard deviation according to the diagram. What is the benefit of using a small standard deviation for the last actor layer?
 """)
 
@@ -393,7 +400,7 @@ class Agent(nn.Module):
     def __init__(self, envs: gym.vector.SyncVectorEnv):
         pass
 
-if MAIN and RUNNING_FROM_FILE:
+if MAIN:
     utils.test_agent(Agent)
 ```
 
@@ -436,7 +443,7 @@ def compute_advantages(
     '''
     pass
 
-if MAIN and RUNNING_FROM_FILE:
+if MAIN:
     tests.test_compute_advantages(compute_advantages)
 ```""")
 
@@ -501,13 +508,8 @@ We mentioned above that `returns = advantages + values`. They are used for calcu
         st.markdown(r"""
 `values` are the outputs of our `agent.critic` network.
 
-They are required for calculating `advantages`, in our clipped surrogate objective function.
+They are required for calculating `advantages`, in our clipped surrogate objective function (see equation $(7)$ on page page 3 in the [PPO Algorithms paper](https://arxiv.org/pdf/1707.06347.pdf)).
 """)
-    st.markdown(r"""
-
-A few notes, either to help with this exercise or provide some more context for the things we're tracking:
-* 
-* `logprobs` will be the same shape as `actions`. It stores the log probabilities of those corresponding actions (i.e. `logprobs` will be the max of the `actor` network's output, and `actions` will be the argmax of that same output).""")
     
     st.markdown(r"""
 
@@ -529,7 +531,7 @@ def minibatch_indexes(batch_size: int, minibatch_size: int) -> list[np.ndarray]:
     assert batch_size % minibatch_size == 0
     pass
 
-if MAIN and RUNNING_FROM_FILE:
+if MAIN:
     test_minibatch_indexes(minibatch_indexes)
 
 def make_minibatches(
@@ -557,7 +559,7 @@ The convention we've used in these exercises for signs is that **your function o
 
 ### Clipped Surrogate Loss
 
-For each minibatch, calculate $L^{CLIP}$ from Eq 7 in the paper. This will allow us to improve the parameters of our actor.
+For each minibatch, calculate $L^{CLIP}$ from equation $(7)$ in the paper. We will refer to this function as `policy_loss`. This will allow us to improve the parameters of our actor.
 
 Note - in the paper, don't confuse $r_{t}$ which is reward at time $t$ with $r_{t}(\theta)$, which is the probability ratio between the current policy (output of the actor) and the old policy (stored in `mb_logprobs`).
 
@@ -578,12 +580,10 @@ def calc_policy_loss(
     probs: a distribution containing the actor's unnormalized logits of shape (minibatch, num_actions)
 
     clip_coef: amount of clipping, denoted by epsilon in Eq 7.
-
-    normalize: if true, normalize mb_advantages to have mean 0, variance 1
     '''
     pass
 
-if MAIN and RUNNING_FROM_FILE:
+if MAIN:
     test_calc_policy_loss(calc_policy_loss)
 ```
 
@@ -603,7 +603,7 @@ def calc_value_function_loss(critic: nn.Sequential, mb_obs: t.Tensor, mb_returns
     '''
     pass
 
-if MAIN and RUNNING_FROM_FILE:
+if MAIN:
     tests.test_calc_value_function_loss(calc_value_function_loss)
 ```""")
 
@@ -641,7 +641,7 @@ def calc_entropy_loss(probs: Categorical, ent_coef: float):
     '''
     pass
 
-if MAIN and RUNNING_FROM_FILE:
+if MAIN:
     tests.test_calc_entropy_loss(calc_entropy_loss)
 ```
 
@@ -708,10 +708,9 @@ This is the part of the code where you bring everything together. You will need 
 * Calculate your three loss functions, using the elements in your minibatch `mb`.
 * Perform a gradient ascent step (or descent, depending on how you've defined the loss functions).
 * Follow [detail #11](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Global%20Gradient%20Clipping), on global gradient clipping. You will find `nn.utils.clip_grad_norm_` helpful here.
-
-Note - you **shouldn't** step your scheduler; this is done for you in the next line.
 """)
         st.markdown("")
+        st.markdown("Note - you **shouldn't** step your scheduler; this is done for you outside the loop.")
 
     st.markdown(r"""
 
@@ -725,7 +724,7 @@ class PPOArgs:
     track: bool = True
     wandb_project_name: str = "PPOCart"
     wandb_entity: str = None
-    capture_video: bool = False
+    capture_video: bool = True
     env_id: str = "CartPole-v1"
     total_timesteps: int = 500000
     learning_rate: float = 0.00025
@@ -755,11 +754,6 @@ def train_ppo(args):
             monitor_gym=True,
             save_code=True,
         )
-    writer = SummaryWriter(f"runs/{run_name}")
-    writer.add_text(
-        "hyperparameters",
-        "|param|value|\n|-|-|\n%s" % "\n".join([f"|{key}|{value}|" for (key, value) in vars(args).items()]),
-    )
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -781,36 +775,40 @@ def train_ppo(args):
     dones = torch.zeros((args.num_steps, args.num_envs)).to(device)
     values = torch.zeros((args.num_steps, args.num_envs)).to(device)
     global_step = 0
-    old_approx_kl = 0.0
-    approx_kl = 0.0
+    old_approx_kl = approx_kl= 0.0
     value_loss = t.tensor(0.0)
     policy_loss = t.tensor(0.0)
     entropy_loss = t.tensor(0.0)
-    clipfracs = []
-    info = []
+    clipfracs = info = []
     start_time = time.time()
     next_obs = torch.Tensor(envs.reset()).to(device)
     next_done = torch.zeros(args.num_envs).to(device)
-    for _ in range(num_updates):
+    progress_bar = tqdm(range(num_updates))
+    
+    for _ in progress_bar:
         for i in range(0, args.num_steps):
+
+            global_step += args.num_envs
 
             "(1) YOUR CODE: Rollout phase (see detail #1)"
 
-            for item in info:
-                if "episode" in item.keys():
-                    print(f"global_step={global_step}, episodic_return={item['episode']['r']}")
-                    writer.add_scalar("charts/episodic_return", item["episode"]["r"], global_step)
-                    writer.add_scalar("charts/episodic_length", item["episode"]["l"], global_step)
-                    if args.track:
-                        pass
-                        "YOUR CODE (optional): log to wandb"
-
-                    break
-
-        next_value = rearrange(agent.critic(next_obs), "env 1 -> 1 env")
-        advantages = compute_advantages(
-            next_value, next_done, rewards, values, dones, device, args.gamma, args.gae_lambda
-        )
+            if args.track:
+                for item in info:
+                    if "episode" in item.keys():
+                        vars = dict(
+                            episodic_return = item["episode"]["r"],
+                            episodic_length = item["episode"]["l"],
+                        )
+                        wandb.log(vars, step=global_step)
+                        progress_bar.set_description(f"global_step={global_step}, episodic_return={int(item['episode']['r'])}")
+            else:
+                progress_bar.set_description(f"global_step={global_step}")
+        
+        with t.inference_mode():
+            next_value = rearrange(agent.critic(next_obs), "env 1 -> 1 env")
+            advantages = compute_advantages(
+                next_value, next_done, rewards, values, dones, device, args.gamma, args.gae_lambda
+            )
         clipfracs.clear()
         for _ in range(args.update_epochs):
             minibatches = make_minibatches(
@@ -826,31 +824,35 @@ def train_ppo(args):
             )
             for mb in minibatches:
 
-                "(2) YOUR CODE: compute loss on the minibatch and step the optimizer (not the scheduler)."
+                "(2) YOUR CODE: compute loss on the minibatch and step the optimizer."
 
         scheduler.step()
-        (y_pred, y_true) = (mb.values.cpu().numpy(), mb.returns.cpu().numpy())
-        var_y = np.var(y_true)
-        explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
-        with torch.no_grad():
-            newlogprob: t.Tensor = probs.log_prob(mb.actions)
-            logratio = newlogprob - mb.logprobs
-            ratio = logratio.exp()
-            old_approx_kl = (-logratio).mean().item()
-            approx_kl = (ratio - 1 - logratio).mean().item()
-            clipfracs += [((ratio - 1.0).abs() > args.clip_coef).float().mean().item()]
-        writer.add_scalar("charts/learning_rate", optimizer.param_groups[0]["lr"], global_step)
-        writer.add_scalar("losses/value_loss", value_loss.item(), global_step)
-        writer.add_scalar("losses/policy_loss", policy_loss.item(), global_step)
-        writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
-        writer.add_scalar("losses/old_approx_kl", old_approx_kl, global_step)
-        writer.add_scalar("losses/approx_kl", approx_kl, global_step)
-        writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
-        writer.add_scalar("losses/explained_variance", explained_var, global_step)
-        writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
-        if global_step % 10 == 0:
-            print("steps per second (SPS):", int(global_step / (time.time() - start_time)))
-    
+
+        if args.track:
+            y_pred = mb.values.cpu().numpy()
+            y_true = mb.returns.cpu().numpy()
+            var_y = np.var(y_true)
+            explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
+            with torch.no_grad():
+                newlogprob: t.Tensor = probs.log_prob(mb.actions)
+                logratio = newlogprob - mb.logprobs
+                ratio = logratio.exp()
+                old_approx_kl = (-logratio).mean().item()
+                approx_kl = (ratio - 1 - logratio).mean().item()
+                clipfracs += [((ratio - 1.0).abs() > args.clip_coef).float().mean().item()]
+            vars = dict(
+                learning_rate = optimizer.param_groups[0]["lr"],
+                value_loss = value_loss.item(),
+                policy_loss = policy_loss.item(),
+                entropy = entropy_loss.item(),
+                old_approx_kl = old_approx_kl,
+                approx_kl = approx_kl,
+                clipfrac = np.mean(clipfracs),
+                explained_variance = explained_var,
+                SPS = int(global_step / (time.time() - start_time)),
+            )
+            wandb.log(vars, step=global_step)
+
     "If running one of the Probe environments, will test if the learned q-values are\n    sensible after training. Useful for debugging."
     obs_for_probes = [[[0.0]], [[-1.0], [+1.0]], [[0.0], [1.0]], [[0.0]], [[0.0], [1.0]]]
     expected_value_for_probes = [[[1.0]], [[-1.0], [+1.0]], [[args.gamma], [1.0]], [[-1.0, 1.0]], [[1.0, -1.0], [-1.0, 1.0]]]
@@ -865,17 +867,11 @@ def train_ppo(args):
         t.testing.assert_close(value, expected_value, atol=tolerances[probe_idx], rtol=0)
 
     envs.close()
-    writer.close()
     if args.track:
         wandb.finish()
 
 if MAIN:
-    if "ipykernel_launcher" in os.path.basename(sys.argv[0]):
-        filename = globals().get("__file__", "<filename of this script>")
-        print(f"Try running this file from the command line instead: python {os.path.basename(filename)} --help")
-        args = PPOArgs()
-    else:
-        args = ppo_parse_args()
+    args = PPOArgs()
     train_ppo(args)
 ```
 
@@ -920,7 +916,15 @@ You could also try using e.g. $|\theta / \theta_{\text{max}}|$ rather than $(\th
 
     with st.expander("Help - my agent's episodic return is smaller than it was in the original CartPole environment."):
         st.markdown(r"""
-This is to be expected, because your reward function is no longer always 1 when the agent is upright. Both your time-discounted reward estimates and your actual realised rewards will be less than they were in the cartpole environment. For a fairer test, measure the length of your episodes - hopefully your agent learns how to stay upright for the entire 500 timestep interval as fast as or faster than it did previously.
+This is to be expected, because your reward function is no longer always 1 when the agent is upright. Both your time-discounted reward estimates and your actual realised rewards will be less than they were in the cartpole environment. 
+
+For a fairer test, measure the length of your episodes - hopefully your agent learns how to stay upright for the entire 500 timestep interval as fast as or faster than it did previously. For instance, you can replace the line:
+
+```python
+progress_bar.set_description(f"global_step={global_step}, episodic_return={int(item['episode']['r'])}")
+```
+
+in the `train_ppo` function with `item['episode']['l']`, which is episode length.
 """)
 
     st.markdown(r"""
