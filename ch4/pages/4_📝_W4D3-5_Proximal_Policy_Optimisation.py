@@ -418,9 +418,11 @@ If we just randomly sampled the minibatch each time, some of our experiences mig
 
 Implement the following functions so that each experience appears exactly once.
 
-A few notes, either to help with this exercise or provide some more context:
-    * `Minibatch` stores the returns, which are just advantages + values.
-    * 
+A few notes, either to help with this exercise or provide some more context for the things we're tracking:
+* `Minibatch` stores the returns, which are just advantages + values.
+* `logprobs` will be the same shape as `actions`. It stores the log probabilities of those corresponding actions (i.e. `logprobs` will be the max of the `actor` network's output, and `actions` will be the argmax of that same output).""")
+    
+    st.markdown(r"""
 
 ```python
 @dataclass
@@ -545,7 +547,7 @@ def calc_entropy_loss(probs: Categorical, ent_coef: float):
 
 Even though Adam is already an adaptive learning rate optimizer, empirically it's still beneficial to decay the learning rate.
 
-Implement a linear decay from `initial_lr` to `end_lr` over num_updates steps.
+Implement a linear decay from `initial_lr` to `end_lr` over num_updates steps. Also, make sure you read details #3 and #4 so you don't miss any of the Adam details.
 
 ```python
 class PPOScheduler:
@@ -572,6 +574,15 @@ Again, we've provided the boilerplate for you. It looks worse than it is - a lot
     with st.expander("Help - I don't know how to get probs."):
         st.markdown(r"""
 Your `agent.actor` takes the observations from your minibatch as inputs, and returns a `logits` item. This can be passed into the PyTorch `Categorical` function to create your `probs` object.""")
+
+    with st.expander("Help - I get the error 'AssertionError: tensor(1, device='cuda:0') (<class 'torch.Tensor'>) invalid'."):
+        st.markdown(r"""
+The actions passed into `envs.step` should probably be numpy arrays, not tensors. Convert them using `.detach().cpu().numpy()`.
+""")
+
+    with st.expander("Help - I get 'RuntimeError: Trying to backward through the graph a second time...'."):
+        st.markdown(r"""
+You should be doing part 1 of coding (the **rollout phase**) in inference mode. This is just designed to sample actions, not for actual network updates.""")
 
     st.markdown(r"""
 
@@ -769,47 +780,6 @@ Try optimizing away the for-loop in your advantage calculation. It's tricky, so 
 
 Details coming soon!
 """)
-
-def section_2():
-    st.markdown(r"""
-# PPO: Implementation
-
-In this section, you'll be implementing the Proximal Policy Gradient algorithm!""")
-
-    st.info(r"""
-## Learning Objectives
-
-* Understand some of the core implementational details of PPO.
-* Understand Actor-Critic networks and why they're used. Implement them.
-* Compute Generalised Advantage Estimation (GAE).
-* Compute the loss function from the PPO paper (clipped surrogate loss with entropy bonus).
-* Put all the parts together, into a working implementation of PPO.
-* Shape the rewards to make the task easier to learn
-* Design a reward function to incentivise novel behaviour
-""")
-    st.markdown(r"""
-
-## Readings
-
-* [Spinning Up in Deep RL - PPO](https://spinningup.openai.com/en/latest/algorithms/ppo.html)
-    * You don't need to follow all the derivations, but try to have a qualitative understanding of what all the symbols represent.
-    * You might also prefer reading the section **1️⃣ PPO: Mathematical Background** instead.
-* [The 37 Implementation Details of Proximal Policy Optimization](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#solving-pong-in-5-minutes-with-ppo--envpool)
-    * he good news is that you won't need all 37 of these today, so no need to read to the end.
-    * We will be tackling the 13 "core" details, not in the same order as presented here. Some of the sections below are labelled with the number they correspond to in this page (e.g. **Minibatch Update (detail #6)**).
-
-You might find it helpful to make a physical checklist of the 13 items and marking them as you go with how confident you are in your implementation. If things aren't working, this will help you notice if you missed one, or focus on the sections most likely to be bugged.
-
-## Optional Reading
-
-* [Spinning Up in Deep RL - Vanilla Policy Gradient](https://spinningup.openai.com/en/latest/algorithms/vpg.html#background)
-    * PPO is a fancier version of vanilla policy gradient, so if you're struggling to understand PPO it may help to look at the simpler setting first.
-* [Andy Jones - Debugging RL, Without the Agonizing Pain](https://andyljones.com/posts/rl-debugging.html)
-    * You've already read this previously but it will come in handy again.
-    * You'll want to reuse your probe environments from yesterday, or you can import them from the solution if you didn't implement them all.""")
-
-def section_3():
-    st.markdown("Coming soon!")
 
 func_list = [section_home, section_1, section_2, section_3]
 
