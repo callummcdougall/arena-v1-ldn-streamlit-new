@@ -217,7 +217,7 @@ def section_1():
        <li><a class="contents-el" href="#proof-part-2">Proof - part 2</a></li>
    </ul></li>
    <li><a class="contents-el" href="#gae">GAE</a></li>
-   <li><a class="contents-el" href="#okay,-so-what-actually-is-ppo?">Okay, so what actually is PPO?</a></li>
+   <li><a class="contents-el" href="#okay-so-what-actually-is-ppo">Okay, so what actually is PPO?</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#loss-function">Loss function</a></li>
        <li><ul class="contents">
