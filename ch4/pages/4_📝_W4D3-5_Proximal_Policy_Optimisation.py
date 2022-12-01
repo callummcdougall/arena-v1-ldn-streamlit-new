@@ -209,7 +209,7 @@ def section_1():
 ## Table of Contents
 
 <ul class="contents">
-   <li><a class="contents-el" href="#why-is-ppo-different-to-dqn?-high-level">Why is PPO different to DQN? (high-level)</a></li>
+   <li><a class="contents-el" href="#why-is-ppo-different-to-dqn-high-level">Why is PPO different to DQN? (high-level)</a></li>
    <li><a class="contents-el" href="#important-definitions">Important Definitions</a></li>
    <li><a class="contents-el" href="#policy-gradients">Policy Gradients</a></li>
    <li><ul class="contents">
