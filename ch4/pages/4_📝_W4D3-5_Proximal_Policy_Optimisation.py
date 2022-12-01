@@ -56,7 +56,7 @@ These exercises make up the bulk of the section. We'll walk through an implement
 A fwe exercises are suggested here, that go beyond basic implementations. You might find yourselves working on one of these for the rest of the RL week.
 """)
 
-def section_1():
+def section_1_old():
     st.info("""
 This section will be filled in soon. In the meantime, here's my rough notes, based on the [OpenAI Spinning Up](https://spinningup.openai.com/en/latest/algorithms/ppo.html) documentation. Feel free to skip past this section and start reading the material in section 2.
 """)
@@ -202,6 +202,264 @@ $$
 - We don't want to converge to deterministic policies quickly, this would be bad!
 - We incentivise exploration by providing a bonus term for having higher entropy
 	- e.g. in CartPole environment, entropy is just the entropy of a Bernoulli distribution (since there are two possible actions, left and right)
+""")
+
+def section_1():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#why-is-ppo-different-to-dqn?-high-level">Why is PPO different to DQN? (high-level)</a></li>
+   <li><a class="contents-el" href="#important-definitions">Important Definitions</a></li>
+   <li><a class="contents-el" href="#policy-gradients">Policy Gradients</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#proof-part-1">Proof - part 1</a></li>
+       <li><a class="contents-el" href="#proof-part-2">Proof - part 2</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#gae">GAE</a></li>
+   <li><a class="contents-el" href="#okay,-so-what-actually-is-ppo?">Okay, so what actually is PPO?</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#loss-function">Loss function</a></li>
+       <li><ul class="contents">
+           <li><a class="contents-el" href="#value-function-loss">Value Function Loss</a></li>
+           <li><a class="contents-el" href="#entropy-bonus">Entropy bonus</a></li>
+       </ul></li>
+       <li><a class="contents-el" href="#actor-and-critic">Actor and Critic</a></li>
+       <li><a class="contents-el" href="#on-vs-off-policy">On vs Off-Policy</a></li>
+</ul>
+""", unsafe_allow_html=True)
+    st.markdown(r"""
+
+## Why is PPO different to DQN? (high-level)
+
+- DQN:
+	- What do we learn?
+		- We learn the Q-function $Q(s, a)$
+	- What networks do we have?
+		- Our network `q_network` takes $s$ as inputs, and outputs the Q-values for each possible action $a$
+	- Where do our gradients come from?
+		- We do grad descent on the squared **Bellman residual**, i.e. the residual of an equation which is only satisfied if we've found the true Q-function
+	- Techniques to improve stability?
+		- We use a "lagged copy" of our network to sample actions from; in this way we don't update too fast after only having seen a small number of possible states. In the DQN code, this was `q_network` and `target_network`
+- PPO
+	- What do we learn?
+		- We learn the policy function $\pi(a \mid s)$
+	- What networks do we have?
+		- We have two networks: `actor` which learns the policy function, and `critic` which learns the value function $V(s)$
+		- These two work in tandem:
+			- The `actor` requires the `critic`'s value function estimate in order to estimate the policy gradient and perform gradient ascent
+			- The `critic` tries to learn the value function corresponding to the current policy function parameterized by the `actor`
+	- Where do our gradients come from?
+		- We do grad ascent on an estimate of the time-discounted future reward stream (i.e. we're directly moving up the **policy gradient**; changing our policy in a way which will lead to higher expected reward)
+	- Techniques to improve stability?
+		- We use a "lagged copy" of our network to sample actions from; in this way we don't update too fast after only having seen a small number of possible states. In the mathematical notation, this is $\theta$ and $\theta_{\text{old}}$
+		- We clip the objective function to make sure large policy changes aren't incentivied past a certain point
+
+## Important Definitions
+
+#### **Infinite-horizon discounted return**
+- $R(\tau)=\sum_{t=0}^{\infty} \gamma^t r_t$ 
+- Or we can use the **undiscounted return** and assume the time-horizon is finite, which we often will since it makes derivations easier
+
+#### **Log-derivative trick**
+- $\nabla_\theta P(\tau \mid \theta)=P(\tau \mid \theta) \nabla_\theta \log P(\tau \mid \theta)$ where tau is the tuple of states and actions $(s_0, a_0, ..., s_{T+1}$)
+- This is useful because $P$ can be factored as the product of a bunch of probabilities
+
+#### **On-Policy Action-Value Function**
+- $Q_\pi(s, a)=\underset{\tau \sim \pi}{\mathrm{E}}\big[R(\tau) \mid s_0=s, a_0=a\big]$
+- Bellman equation is: $Q_\pi(s, a)=\underset{s^{\prime} \sim P}{\mathrm{E}}\left[r(s, a)+\gamma \underset{a^{\prime} \sim \pi}{\mathrm{E}}\left[Q_\pi\left(s^{\prime}, a^{\prime}\right)\right]\right]$
+
+#### **On-Policy Value Function**
+- $V_\pi(s)=\underset{a \sim \pi}{\mathrm{E}}\left[Q^\pi(s, a)\right]$
+- Bellman equation is: $V_\pi(s)=\underset{\substack{a \sim \pi \\ s^{\prime} \sim P}}{\mathrm{E}}\left[r(s, a)+\gamma V_\pi\left(s^{\prime}\right)\right]$
+
+#### **Advantage Function**
+- $A_\pi(s, a)=Q_\pi(s, a)-V_\pi(s)$
+- i.e. *how much better action $a$ is than what you would do by default with policy $\pi$*
+
+## Policy Gradients
+- We define $J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}[R(\tau)]$; the policy gradient is $\nabla_\theta J(\pi_\theta)$
+- If we have an estimate of $\nabla_\theta J(\pi_\theta)$, then we can perform **policy gradient ascent** via $\theta_{k+1}=\theta_k+\left.\alpha \nabla_\theta J\left(\pi_\theta\right)\right|_{\theta_k}$
+- PPO (and all other policy gradient methods) basically boils down to "how can we estimate the policy gradient $\nabla_\theta J(\pi_\theta)$?"
+- Probably the most important theorem is:
+$$
+\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) A^{\pi_\theta}\left(s_t, a_t\right)\right]
+$$
+- Why does this matter? Because if we have a way to estimate the advantage function $A^{\pi_\theta}$, then we have a way to estimate the policy gradient, and we're done!
+- Let's now go through the proof of this theorem, starting from the definition of the policy gradient in the previous section
+
+### Proof - part 1
+- We can express the policy gradient in terms of the transition probabilities:$$\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) R(\tau)\right]$$ - in other words, we learn a policy parameterized by $\theta$, and perform gradient updates on $\theta$.
+- Why does this work? 
+	- Derivation: write out $J$ as an intergral over $\tau$, swap integral and derivative, do the log-derivative trick, then drop out state transition probabilities because those aren't a function of our policy
+- Intuition?
+	- If there's a trajectory with positive reward, then we increase the probabilities of taking all actions in that trajectory
+	- The change in each $\pi_\theta (a_t | s_t)$ is a weighted sum of their impact on the reward across all transitions in which this particular state-action pair appears
+
+### Proof - part 2
+
+- Lemma
+	- If we swap out $R(\tau)$ in the expression for policy gradient above,
+	- replacing it with a function that doesn't depend on the trajectory,
+	- then the expected value of that expression is zero.
+- Intuition
+	- It's just like the expression above, but the reward is just constant, so there's no policy direction!
+- Corollary
+	- We can swap out $R(\tau)$ in the expresson above with $\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)$, because terms before this will drop out
+	- We call this the **reward-to-go policy gradient**
+	- We can also subtract a function $b(s_t)$, which (when used in this way) we refer to as a **baseline**:$$\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right)\left(\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)-b\left(s_t\right)\right)\right]$$
+- Proof
+	- The proof involves factoring expectations as follows:
+    
+    $$
+    \begin{align}
+    \nabla_\theta J\left(\pi_\theta\right)&=\sum_{t=0}^T\underset{\tau_{:t} \sim \pi_\theta}{\mathrm{E}}\left[ \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) \underset{\tau_{t:}\sim \pi_\theta}{\mathrm{E}} \bigg[\;\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)-b\left(s_t\right) \;\bigg|\; \tau_{:t}\;\bigg]\right]\\&=\sum_{t=0}^T\underset{\tau_{:t} \sim \pi_\theta}{\mathrm{E}}\bigg[ \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) \;\Phi_t\bigg]
+    \end{align}
+    $$
+
+	- It remains to show that we can take $\Phi_t$ to be the advantage function
+	- But this is pretty simple, because we can clearly take $\Phi_t$ to be the Q-function $Q^{\pi_\theta}\left(s_t, a_t\right)$ (since the Q-function is defined as the expected sum of rewards), and we get from the Q-function to the advantage by subtracting the **baseline** $V^{\pi_\theta}(s_t)$
+
+## GAE
+- How to estimate our advantage function?
+	- This isn't specific to PPO; all kinds of policy gradient algorithms can use this same method
+- Define the **temporally discounted residual** of the value function $\delta_t^V = r_t + \gamma V(s_{t+1}) - V(s_t)$
+	- Lemma: $A_{\pi, \gamma}(s_t, a_t) = \mathbb{E}_{s_{t+1}}\big[\delta_t^{V_{\pi, \gamma}}\big]$
+	- Proof: follows from $Q(s_t, a_t) = \gamma V(s_{t+1}) + r_t$ (when conditioned on next state $s_{t+1}$)
+	- Intuition?
+		- Note that this looks a lot like the TD error term we used to update  $Q$ in Q-learning; it told us in what direction we should bump our estimate of $Q^*$
+		- $\delta_t^V$ will be zero when no value is lost from going to state $s_t$ to $s_{t+1}$, which is only true in expectation when the advantage of our policy is zero (i.e. there's no more advantage to take!)
+- $\delta_t^V$ expresses the notion *what will my (time-discounted) advantage be if I take one greedy step before re-evaluating at my new state?* 
+	- But we want to look further ahead than this!
+	- How can we express the notion *what will my (time-discounted) advantage be if I take one greedy step before re-evaluating at my new state?*
+	- Answer - with **GAE**
+- Consider the following terms:
+    $$
+    \begin{array}{ll}
+    \hat{A}_t^{(1)}:=\delta_t^V & =-V\left(s_t\right)+r_t+\gamma V\left(s_{t+1}\right) \\
+    \hat{A}_t^{(2)}:=\delta_t^V+\gamma \delta_{t+1}^V & =-V\left(s_t\right)+r_t+\gamma r_{t+1}+\gamma^2 V\left(s_{t+2}\right) \\
+    \hat{A}_t^{(3)}:=\delta_t^V+\gamma \delta_{t+1}^V+\gamma^2 \delta_{t+2}^V & =-V\left(s_t\right)+r_t+\gamma r_{t+1}+\gamma^2 r_{t+2}+\gamma^3 V\left(s_{t+3}\right)
+    \end{array}
+    $$
+    and
+    $$
+    \hat{A}_t^{(k)}:=\sum_{l=0}^{k-1} \gamma^l \delta_{t+l}^V=-V\left(s_t\right)+r_t+\gamma r_{t+1}+\cdots+\gamma^{k-1} r_{t+k-1}+\gamma^k V\left(s_{t+k}\right)
+    $$
+- We call these the **k-step advantages**, because they answer the question *"how much better off I am if I sequentially take the $n$ best actions available (by my current estimate) and then reevaluate things from this new state?"*
+- The limit is $\hat{A}_t^{(\infty)}=\sum_{l=0}^{\infty} \gamma^l \delta_{t+l}^V=-V\left(s_t\right)+\sum_{l=0}^{\infty} \gamma^l r_{t+l}$, which is just the empirical returns minus the function value baseline
+- It also seems impractical to use this as our estimate, because we have to compute an infinity of steps ahead for this to work
+- We take the **Generalised Advantage Estimator** $\text{GAE}(\gamma, \lambda)$, which is the exponentially-weighted average of these $k$-step advantages
+    $$
+    \begin{aligned}
+    \hat{A}_t^{\mathrm{GAE}(\gamma, \lambda)}:&=(1-\lambda)\left(\hat{A}_t^{(1)}+\lambda \hat{A}_t^{(2)}+\lambda^2 \hat{A}_t^{(3)}+\ldots\right) \\
+    &=\sum_{l=0}^{\infty}(\gamma \lambda)^l \delta_{t+l}^V
+    \end{aligned}
+    $$
+- $\lambda$ is the **discount factor**
+- If it is higher, then you put more weight on the later advantages, i.e. "what happens when I take a large number of greedy steps before computing my value function"
+
+## Okay, so what actually is PPO?
+- So far, our discussion hasn't been specific to PPO
+	- There are a family of methods that work in the way we've described: estimate the policy gradient by trying to estimate the advantage function
+	- This family includes PPO, but also  the **Vanilla Policy Gradient Algorithm**, and **Trust Region Policy Optimisation**
+	- We got more specific when we discussed the GAE, but again this is a techique that can be used for any method in the policy gradient algorithm family; it doesn't have to be associated with PPO
+- The specific features of PPO are:
+	1.  A particular trick in the **loss function** (either PPO-Clip or PPO-Penalty) which limits the amount $\theta$ changes from $\theta_{\text{old}}$
+		- In this way, **PPO allows you to run multiple epochs of gradient ascent on your samples without causing destructively large policy updates**
+		- This one is the key defining feature of PPO
+			- The word "roximal" literally means "close"
+			- Also it has a special meaning in maths; the proximal operator is an operator which minimises a convex function subject to a penalty term which keeps it close to its previous iterate:$$x_{n+1}:=\operatorname{prox}_f(x_{n})=\arg \min _{x \in \mathcal{X}}\left(f(x)+\frac{1}{2}\|x-x_n\|_{\mathcal{X}}^2\right)$$
+	2. **On-policy learning** by first generating a bunch of data from a fixed point in time ($\theta_{\text{old}}$) then use these samples to train against (updating $\theta$)
+	3. Having an **actor and critic network**
+	- We'll discuss each of these three features below
+
+### Loss function
+- As a first pass, we might want to use a loss function like this:
+    $$
+    \theta_{k+1}:=\arg \max _\theta \underset{s, a \sim \pi_{\theta_k}}{\mathrm{E}}\left[\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \hat{A}^{\text{GAE}}(a, s)\right]
+    $$
+    where $\theta_{\text{old}}$  represents some near-past value of $\theta$ which we're using to sample actions and observations from (and storing in our `minibatch` object).
+- Why would this work? Here is a derivation, showing that the gradient of this function is exactly the policy gradient:
+    $$
+    \begin{aligned}
+    L(\theta) &=\underset{a, s \sim \pi_{\theta_\text{old}}}{\mathbb{E}}\left[\frac{\pi_\theta(a \mid s)}{\pi_{\theta_{01 d}}(a \mid s)} \hat{A}(a, s)\right] \\
+    \nabla_\theta L(\theta) &=\underset{a, s \sim \pi_{\theta_\text{old}}}{\mathbb{E}}\left[\frac{\nabla_\theta \pi_\theta(a \mid s)}{\pi_{\theta_{old}}(a \mid s)} \hat{A}(a, s)\right] \\
+    &=\underset{a, s \sim \pi_{\theta_\text{old}}}{\mathbb{E}}\left[\frac{\pi_\theta(a \mid s)}{\pi_{\theta_{\text {old }}}(a \mid s)} \nabla_\theta \log \pi_\theta(a \mid s) \hat{A}(a, s)\right] \\
+    &=\underset{a, s \sim \pi_\theta}{\mathbb{E}}\left[\nabla_\theta \log \pi_\theta(a \mid s) \hat{A}(a, s)\right] \\
+    &= \nabla_\theta J\left(\pi_\theta\right)
+    \end{aligned}
+    $$
+    - Explanation for the second-last step - we changed the distribution of $(a, s)$ in the outside expectation, from being over $\theta_\text{old}$ to being over $\theta$. We used the following result, which is based on an idea called **importance sampling**:
+    $$
+    \begin{align*}\text{Lemma: }\quad\text{if } f, g \text{ are both }&\text{PDFs, then }\mathbb{E}_{x \sim g}\left[\frac{f(x)}{g(x)} h(x)\right]=\mathbb{E}_{x \sim f}[h(x)]\\\text{Proof:}\quad
+    \mathbb{E}_{x \sim g}\left[\frac{f(x)}{g(x)} h(x)\right] &=\int_x g(x) \times \frac{f(x)}{g(x)} h(x) d x \\
+    &=\int_x f(x) h(x) \\
+    &=\mathbb{E}_{x \sim f}[h(x)]
+    \end{align*}
+    $$
+    - (Note - you could also use intuition to see why $\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \hat{A}^{\text{GAE}}(a, s)$ is something we want to maximise: making it larger is equivalent to proportionally increasing the transition probabilities which correspond to larger advantage function values)
+- Problem - this often leads to *"destructively large policy updates"*
+- Two possible solutions: **PPO-Penalty** and **PPO-Clip**
+    $$
+    \begin{align*}
+    r_t(\theta) &:= \frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \\
+    \\
+    \text{No clipping or penalty} &: \quad L_t(\theta)=r_t(\theta) \hat{A}_t \\
+    \text{PPO-Clip} &: \quad L_t(\theta)=\min \left(r_t(\theta) \hat{A}_t, \operatorname{clip}\left(r_t(\theta)\right), 1-\epsilon, 1+\epsilon\right) \hat{A}_t \\
+    \text{PPO-Penalty} &: \quad L_t(\theta)=r_t(\theta) \hat{A}_t-\beta D_{KL}(\pi_{\theta_{\text {old }}} || \pi_\theta)\\
+    \\
+    \theta_{k+1}&:=\arg \max _\theta \underset{s_t, a_t \sim \pi_{\theta_k}}{\mathrm{E}}\left[L_t(\theta)\right]
+    \end{align*}
+    $$
+	- **PPO-Penalty** adds a KL-divergence penalty term to make sure the new policy $\pi_\theta$ doesn't deviate too far from $\pi_{\theta_\text{old}}$
+		- It can do this in a smart way; the KL-div coefficient $\beta$ automatically adjusts throughout training so it's scaled appropriately
+	- **PPO-Clip** clips the objective function, to remove incentives for the new policy to move far away from the old
+		- We'll be implementing PPO-Clip
+		- Intuition?
+			- We are positively weighting things by their probability, but we're also making sure that we don't stray too far from our previous policy with each step
+			- If the estimated advantage $\hat{A}$ is positive, this reduces to:
+            $$
+            L\left(s, a, \theta_k, \theta\right)=\min \left(\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}, 1+\epsilon\right)\hat{A}(a, s)
+            $$ 
+            - so we disincentivise $\pi_{\theta}(a \mid s)$ from making too positive an update from its old value. If the estimated average $\hat{A}$ is negative, the converse applies.
+- **Trust Region Policy Optimisation** works in a similar way to PPO-Penalty
+	- The difference is that, in TRPO, KL-divergence is made a hard constraint, whereas in PPO-Penalty rather than included in the loss function
+	- Also TRPO doesn't automatically vary its constraint
+    - So PPO-Penalty is basically better, and people tend to prefer it to TRPO
+
+#### Value Function Loss
+- The loss function above is how we get our `actor` to improve via policy gradient ascent
+- But how do we get our `critic` to produce better estimates of the value function, which we can use to get our estimates $\hat{A}$ of the advantage function?
+- Answer: we penalise the squared difference between our critic's estimate for the value, and the realised value
+
+#### Entropy bonus
+- We don't want to converge to deterministic policies quickly, this would be bad!
+- We incentivise exploration by providing a bonus term for having higher entropy
+	- e.g. in CartPole environment, entropy is just the entropy of a Bernoulli distribution (since there are two possible actions, left and right)
+
+### Actor and Critic
+- We have two different networks: an actor and a critic
+- The `actor` learns the policy, i.e. its parameters are the $\theta$ in all the equations we've discussed so far
+	- It takes in observations $s$ and outputs logits, which we turn into a probability distribution $\pi(\;\cdot\;|s)$ over actions
+	- Updates are via gradient ascent on the function described below
+	- But we need a way to estimate the advantages in order to perform these updates
+	- We've discussed above how we can estimate the advantage function take estimates for the value function $V(s)$ and convert this into 
+- The `critic` learns the value
+	- It takes observations $s_t$ and returns estimates for $V(s_t)$, from which we can compute our GAEs which are used to update the actor
+	- Updates are via gradient descent on the MSE loss between its estimates and the actual observed returns
+
+### On vs Off-Policy
+- **Off-policy** = learning the value of the optimal policy independently of the agent's actions
+- **On-policy** = learning the value of the policy being carried out by the agent
+- Examples:
+	- Q-learning is off-policy, since it updates its Q-values using the Q-values of the next state and the *greedy action* (i.e. the action that would be taken assuming a greedy policy is followed)
+	- SARSA is on-policy, since it updates its Q-values using the Q-values of the next state and the *current policy's action*
+		- The distinction disappears if the current policy is a greedy policy. However, such an agent would not be good since it never explores.
+	- PPO is on-policy, since it only learns from experiences that were generated from the current policy (or at least from a policy $\theta_{\text{old}}$ which $\theta$ is penalised to remain close to!)
+- Although these aren't hard boundaries, you could dispute them
+	- e.g. for PPO, you could argue that $\theta_{\text{old}}$ and $\theta$ being different means it's off-policy
+
+
 """)
 
 def section_2():
@@ -605,7 +863,12 @@ def calc_value_function_loss(critic: nn.Sequential, mb_obs: t.Tensor, mb_returns
 
 if MAIN:
     tests.test_calc_value_function_loss(calc_value_function_loss)
-```""")
+```
+
+Empirical observation - it seems you can drop the value function loss term in the CartPole environment, and still get a solution. Can you propose an explanation 
+""")
+
+
 
     st.markdown(r"""
 ### Entropy Bonus ([detail #10](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Overall%20Loss%20and%20Entropy%20Bonus))
