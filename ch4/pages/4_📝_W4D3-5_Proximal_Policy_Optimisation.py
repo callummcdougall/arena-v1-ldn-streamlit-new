@@ -289,9 +289,19 @@ $$
 - Let's now go through the proof of this theorem, starting from the definition of the policy gradient in the previous section
 
 ### Proof - part 1
-- We can express the policy gradient in terms of the transition probabilities:$$\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) R(\tau)\right]$$ - in other words, we learn a policy parameterized by $\theta$, and perform gradient updates on $\theta$.
-- Why does this work? 
-	- Derivation: write out $J$ as an intergral over $\tau$, swap integral and derivative, do the log-derivative trick, then drop out state transition probabilities because those aren't a function of our policy
+- Lemma
+    - We can express the policy gradient in terms of the transition probabilities:
+    $$
+    \nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) R(\tau)\right]
+    $$
+- Proof
+	- Write out $J$ as an intergral over $\tau$, swap integral and derivative, do the log-derivative trick, then drop out state transition probabilities $p(s_{t+1}, r_{t+1} \mid s_t, a_t)$""")
+
+    with st.expander("Click to see full proof"):
+        st_image("policy-grad-proof.png", 700)
+        st.markdown("")
+
+    st.markdown(r"""
 - Intuition?
 	- If there's a trajectory with positive reward, then we increase the probabilities of taking all actions in that trajectory
 	- The change in each $\pi_\theta (a_t | s_t)$ is a weighted sum of their impact on the reward across all transitions in which this particular state-action pair appears
