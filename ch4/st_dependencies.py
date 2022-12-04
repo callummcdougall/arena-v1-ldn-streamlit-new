@@ -69,7 +69,7 @@ pre code {
     font-size:13px !important;
 }
 .katex {
-    font-size:17px;
+    font-size:18px;
 }
 h2 .katex, h3 .katex, h4 .katex {
     font-size: unset;

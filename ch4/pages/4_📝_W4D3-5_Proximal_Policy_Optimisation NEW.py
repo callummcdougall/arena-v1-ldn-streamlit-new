@@ -31,21 +31,27 @@ def read_from_html(filename):
         fig = pio.from_json(json.dumps(plotly_json))
     return fig
 
-# def get_fig_dict():
-#     names = [f"rosenbrock_{i}" for i in range(1, 5)]
-#     return {name: read_from_html(name) for name in names}
+def get_fig_dict():
+    names = ["cartpole_experiences"]
+    return {name: read_from_html(name) for name in names}
 
-# if "fig_dict" not in st.session_state:
-#     fig_dict = get_fig_dict()
-#     st.session_state["fig_dict"] = fig_dict
-# else:
-#     fig_dict = st.session_state["fig_dict"]
+if "fig_dict" not in st.session_state:
+    fig_dict = get_fig_dict()
+    st.session_state["fig_dict"] = fig_dict
+else:
+    fig_dict = st.session_state["fig_dict"]
+
+def render_svg(svg, width):
+    """Renders the given svg string."""
+    b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+    html = f'<img style="max-width:{width}px"' + r' src="data:image/svg+xml;base64,%s"/>' % b64
+    st.write(html, unsafe_allow_html=True)
 
 def section_home():
     st.markdown(r"""
-## 1️⃣ PPO: Mathematical Background
+## 1️⃣ PPO: Background
 
-In this section, we'll be discussing some of the mathematical derivations behind PPO. This section isn't absolutely essential to understand in its entirity, so feel free to skim over this section. 
+In this section, we'll be discussing some of the mathematical derivations behind PPO. This section isn't absolutely essential to understand in its entirity, so we've provided two different versions of it, one with heavier mathematical content. 
 
 ## 2️⃣ PPO: Implementation
 
@@ -56,87 +62,174 @@ These exercises make up the bulk of the section. We'll walk through an implement
 A fwe exercises are suggested here, that go beyond basic implementations. You might find yourselves working on one of these for the rest of the RL week.
 """)
 
-def section_1_old():
-    st.info("""
-This section will be filled in soon. In the meantime, here's my rough notes, based on the [OpenAI Spinning Up](https://spinningup.openai.com/en/latest/algorithms/ppo.html) documentation. Feel free to skip past this section and start reading the material in section 2.
+def section_1():
+
+    st.info(r"""
+You have the option to choose between math-heavy and math-light for this section. You can swap between the two modes by using the checkbox below.
 """)
+
+    checkbox = st.checkbox(label="Activate math-heavy mode!")
+    if checkbox:
+        section_1_math_heavy()
+    else:
+        section_1_math_light()
+
+
+def section_1_math_light():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#why-is-ppo-different-to-dqn-high-level">Why is PPO different to DQN? (high-level)</a></li>
+   <li><a class="contents-el" href="#important-definitions">Important Definitions</a></li>
+   <li><a class="contents-el" href="#policy-gradients">Policy Gradients</a></li>
+   <li><a class="contents-el" href="#gae">GAE</a></li>
+   <li><a class="contents-el" href="#okay-so-what-actually-is-ppo">Okay, so what actually is PPO?</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#loss-function">Loss function</a></li>
+       <li><ul class="contents">
+           <li><a class="contents-el" href="#value-function-loss">Value Function Loss</a></li>
+           <li><a class="contents-el" href="#entropy-bonus">Entropy bonus</a></li>
+       </ul></li>
+       <li><a class="contents-el" href="#actor-and-critic">Actor and Critic</a></li>
+       <li><a class="contents-el" href="#on-vs-off-policy">On vs Off-Policy</a></li>
+</ul>
+""", unsafe_allow_html=True)
     st.markdown(r"""
-## Why is PPO different to DQN?
-- DQN (or Q-learning more broadly) is about learning the function $Q$, and then we can derive the policy by e.g. argmaxing
-	- Relevant implementation questions are "what model do we have for $Q$ (e.g. tabular or NN)" and "how do we perform updates"
-- PPO (or policy gradient algs more broadly) is about learning the policy function $\pi$
-	- Relevant implementational questions are "how do we estimate the policy gradient" and "how do we perform gradient steps"
-## Core Definitions
-==**Finite-horizon discounted return**==
+
+## Why is PPO different to DQN? (high-level)
+
+---
+""")
+
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+### DQN
+
+##### **What do we learn?**
+
+We learn the Q-function $Q(s, a)$.""")
+    with cols[1]:
+        st.markdown(r"""
+### PPO
+
+##### **What do we learn?**
+
+We learn the policy function $\pi(a \mid s)$.""")
+
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+##### **What networks do we have?**
+
+Our network `q_network` takes $s$ as inputs, and outputs the Q-values for each possible action $a$.
+
+We also had a `target_network`, although this was just a lagged version of `q_network` rather than one that actually gets trained.
+""")
+    with cols[1]:
+        st.markdown(r"""
+##### **What networks do we have?**
+We have two networks: `actor` which learns the policy function, and `critic` which learns the value function $V(s)$. These two work in tandem:
+- The `actor` requires the `critic`'s value function estimate in order to estimate the policy gradient and perform gradient ascent.
+- The `critic` tries to learn the value function corresponding to the current policy function parameterized by the `actor`.""")
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+##### **Where do our gradients come from?**
+We do gradient descent on the squared **Bellman residual**, i.e. the residual of an equation which is only satisfied if we've found the true Q-function.
+""")
+    with cols[1]:
+        st.markdown(r"""
+##### **Where do our gradients come from?**
+We do grad ascent on an estimate of the time-discounted future reward stream (i.e. we're directly moving up the **policy gradient**; changing our policy in a way which will lead to higher expected reward).
+""")
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+##### **Techniques to improve stability?**
+We use a "lagged copy" of our network to sample actions from; in this way we don't update too fast after only having seen a small number of possible states. In the DQN code, this was `q_network` and `target_network`.
+""")
+    with cols[1]:
+        st.markdown(r"""
+##### **Techniques to improve stability?**
+We use a "lagged copy" of our network to sample actions from; in this way we don't update too fast after only having seen a small number of possible states. In the mathematical notation, this is $\theta$ and $\theta_{\text{old}}$. In the code, we won't actually need to make a different network for this.
+
+We clip the objective function to make sure large policy changes aren't incentivied past a certain point
+""")
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+##### **Suitable for continuous action spaces?**
+
+No. Our Q-function $Q$ is implemented as a network which takes in states and returns Q-values for each discrete action.
+""")
+    with cols[1]:
+        st.markdown(r"""
+##### **Suitable for continuous action spaces?**
+
+Yes. Our policy function $\pi$ can take continuous argument $a$.
+""")
+    
+    st.markdown(r"""
+---
+""")
+
+    st.info(r"""
+A quick note on the distinction between **states** and **observations**.
+
+In reality these are two different things (denoted $s_t$ and $o_t$), because our agent might not be able to see all relevant information. However, the games we'll be working with for the rest of this section make no distinction between them. Thus, we will only refer to $s_t$ going forwards.
+""")
+
+    st.markdown(r"""
+## Important Definitions
+
+#### **Infinite-horizon discounted return**
 - $R(\tau)=\sum_{t=0}^{\infty} \gamma^t r_t$ 
-- Or we can use the ==**undiscounted return**== and assume the time-horizon is finite, which we often will since it makes derivations easier
-==**Policy gradient**==
-- $\nabla_\theta J(\pi_\theta)$, where we have $J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}[R(\tau)]$
-- We can perform ==**policy gradient ascent**== via $\theta_{k+1}=\theta_k+\left.\alpha \nabla_\theta J\left(\pi_\theta\right)\right|_{\theta_k}$
-==**Log-derivative trick**==
+- Or we can use the **undiscounted return** and assume the time-horizon is finite, which we often will since it makes derivations easier
+
+#### **Log-derivative trick**
 - $\nabla_\theta P(\tau \mid \theta)=P(\tau \mid \theta) \nabla_\theta \log P(\tau \mid \theta)$ where tau is the tuple of states and actions $(s_0, a_0, ..., s_{T+1}$)
-- This is useful because $P$ can be factored as the product of a bunch of probabilities, i.e. it's very small
-==**On-Policy Action-Value Function**==
-- $Q_\pi(s, a)=\underset{\tau \sim \pi}{\mathrm{E}}\big[R(\tau) \mid s_0=s, a_0=a\big]$
-- Bellman equation is: $Q_\pi(s, a)=\underset{s^{\prime} \sim P}{\mathrm{E}}\left[r(s, a)+\gamma \underset{a^{\prime} \sim \pi}{\mathrm{E}}\left[Q_\pi\left(s^{\prime}, a^{\prime}\right)\right]\right]$
-==**On-Policy Value Function**==
-- $V_\pi(s)=\underset{a \sim \pi}{\mathrm{E}}\left[Q^\pi(s, a)\right]$
-- Bellman equation is: $V_\pi(s)=\underset{\substack{a \sim \pi \\ s^{\prime} \sim P}}{\mathrm{E}}\left[r(s, a)+\gamma V_\pi\left(s^{\prime}\right)\right]$
-==**Advantage Function**==
+- This is useful because $P$ can be factored as the product of a bunch of probabilities
+
+#### **On-Policy Action-Value Function**
+- $Q_\pi(s, a)=\underset{\tau \sim \pi}{\mathbb{E}}\big[R(\tau) \mid s_0=s, a_0=a\big]$
+
+#### **On-Policy Value Function**
+- $V_\pi(s)=\underset{a \sim \pi}{\mathbb{E}}\left[Q^\pi(s, a)\right]$
+
+#### **Advantage Function**
 - $A_\pi(s, a)=Q_\pi(s, a)-V_\pi(s)$
-- i.e. *how much better action $a$ is than others*
+- i.e. *how much better action $a$ is than what you would do by default with policy $\pi$*
 
-## Vanilla Policy Gradient
-- Introduce the definitions above
-- We can express the policy gradient in terms of the transition probabilities:$$\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) R(\tau)\right]$$ - in other words, we learn a policy parameterized by $\theta$, and perform gradient updates on $\theta$.
-- Why does this work? 
-	- Derivation: write out $J$ as an intergral over $\tau$, swap integral and derivative, do the log-derivative trick, then drop out state transition probabilities because those aren't a function of our policy
-- Intuition?
-	- If there's a trajectory with positive reward, then we increase the probabilities of taking all actions in that trajectory
-	- The change in each $\pi_\theta (a_t | s_t)$ is a weighted sum of their impact on the reward across all transitions in which this particular state-action pair appears
-- How does this help us? 
-	- We can use the ==**Vanilla Policy Gradient Algorithm**== - estimating the gradient by:$$\hat{g}=\frac{1}{|\mathcal{D}|} \sum_{\tau \in \mathcal{D}} \sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) R(\tau)$$ where $\mathcal{D}$ is some set of trajectories that we choose to measure.
-
-### Expected Grad-Log-Prob Lemma
-- Lemma
-	- If we swap out $R(\tau)$ in the expression for policy gradient above,
-	- replacing it with a function that doesn't depend on the trajectory,
-	- then the expected value of that expression is zero.
-- Intuition
-	- It's just like the expression above, but the reward is just constant, so there's no policy direction!
-- Corollary
-	- We can swap out $R(\tau)$ in the expresson above with $\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)$, because terms before this will drop out
-	- We call this the ==**reward-to-go policy gradient**==
-	- We can also subtract a function $b(s_t)$, which (when used in this way) we refer to as a ==**baseline**==:$$\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right)\left(\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)-b\left(s_t\right)\right)\right]$$
-
-### Some rewriting
-- Let's first rewrite our policy gradient in a different way, by separating past and future:
-
+## Policy Gradients
+- We define $J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathbb{E}}[R(\tau)]$; the policy gradient is $\nabla_\theta J(\pi_\theta)$
+- If we have an estimate of $\nabla_\theta J(\pi_\theta)$, then we can perform **policy gradient ascent** via $\theta_{k+1}=\theta_k+\left.\alpha \nabla_\theta J\left(\pi_\theta\right)\right|_{\theta_k}$
+- PPO (and all other policy gradient methods) basically boils down to "how can we estimate the policy gradient $\nabla_\theta J(\pi_\theta)$?"
+- Probably the most important theorem is:
 $$
-\begin{align*}\nabla_\theta J\left(\pi_\theta\right)&=\sum_{t=0}^T\underset{\tau_{:t} \sim \pi_\theta}{\mathrm{E}}\left[ \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) \underset{\tau_{t:}\sim \pi_\theta}{\mathrm{E}} \bigg[\;\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)-b\left(s_t\right) \;\bigg|\; \tau_{:t}\;\bigg]\right]\\&=\sum_{t=0}^T\underset{\tau_{:t} \sim \pi_\theta}{\mathrm{E}}\bigg[ \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) \;\Phi_t\bigg]\end{align*}
+\begin{equation}
+\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathbb{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) A^{\pi_\theta}\left(s_t, a_t\right)\right]
+\end{equation}
 $$
-where $\tau_{:t}$ is the trajectory up to $t$, and $\tau_{t:}$ is the trajectory beyond.
-- Up to a constant, $\Phi_t$ is equal to the ==**On-Policy Action-Value Function**== $Q_{\pi_\theta}(s_t, a_t)$
-- We can actually use this for $\Phi_t$, but a more common choice is the ==**Advantage Function**== $\Phi_t=A_{\pi_\theta}\left(s_t, a_t\right)=Q_{\pi_\theta}\left(s_t, a_t\right)-V_{\pi_\theta}(s_t)$
-- Why? These both have the same expected value, but we're trying to **reduce variance**
-	- It's reasonable to guess that $\Phi_t$ has the lowest variance
-- So we've now basically reduced the problem to trying to find not-too-biased, low-variance estimators for the advantage function
-	- Then we can construct a policy gradient estimator of the same form as $\hat{g}$ above, but swapping out $R(\tau)$ with our estimate
-- We do this via ==**Generalized Average Estimation**==, or GAE
-
+- Why does this matter? Because if we have a way to estimate the advantage function $A^{\pi_\theta}$, then we have a way to estimate the policy gradient, and we're done!
+- Intuition for this result?
+    - We are taking an expectation over all possible trajectories $\tau$, i.e. a average over all possible ways the episode could play out, weighted by their probabilities.
+    - If the advantage function $A^{\pi_\theta}(s, a)$ is large, then increasing $\pi_\theta(a \mid s)$ will increase the right hand side expression.
+        - This makes sense, because $A^{\pi_\theta}(s, a)$ being large means *in state $s$, taking action $a$ is much better than what you would have done otherwise.
+    - If the state and action pair $(s, a)$ is likely to appear many times in the trajectory, then $\pi_\theta(a_t \mid s_t)$ will appear more times on the right hand side, so changing it will have a larger effect on expected reward.
+        - This makes sense, because the more often a particular situation comes up, the larger effect we should expect changing our action in this situation will have on our reward stream.
+- For a full proof of this theorem, see the math-heavy section.
 
 ## GAE
-- Let's now move back to temporal discounting (TD)
-- Define the ==**temporally discounted residual**== of the value function $\delta_t^V = r_t + \gamma V(s_{t+1}) - V(s_t)$
-	- Lemma: $A_{\pi, \gamma}(s_t, a_t) = \mathbb{E}_{s_{t+1}}\big[\delta_t^{V_{\pi, \gamma}}\big]$
-	- Proof: follows from $Q(s_t, a_t) = \gamma V(s_{t+1}) + r_t$ (when conditioned on next state $s_{t+1}$)
-	- Intuition?
-		- Note that this looks a lot like the TD error term we used to update  $Q$ in Q-learning; it told us in what direction we should bump our estimate of $Q^*$
-		- $\delta_t^V$ will be zero when no value is lost from going to state $s_t$ to $s_{t+1}$, which is only true in expectation when the advantage of our policy is zero (i.e. there's no more advantage to take!)
-- $\delta_t^V$ expresses the notion *what will my (time-discounted) advantage be if I take one greedy step before re-evaluating at my new state?* 
+- How to estimate our advantage function? We use the **[generalised advantage estimator](https://arxiv.org/pdf/1506.02438.pdf)**
+	- This isn't specific to PPO; all kinds of policy gradient algorithms can use this same method
+- Define the **temporally discounted residual** of the value function $\delta_t^V = r_t + \gamma V(s_{t+1}) - V(s_t)$
+    - This can be considered as an estimate of the advantage of taking action $a_t$ (since it's the difference between our time-discounted value after taking some action, and our value right now).
+- $\delta_t^V$ answers the question ***"what approximately will my (time-discounted) advantage be if I take one step before re-evaluating at my new state?"*** 
 	- But we want to look further ahead than this!
-	- How can we express the notion *what will my (time-discounted) advantage be if I take one greedy step before re-evaluating at my new state?*
-	- Answer - with ==**GAE**==
+	- How can we express the notion ***"what will my (time-discounted) advantage be if I take one step before re-evaluating at my new state?"***
+	- Answer - with **GAE**
 - Consider the following terms:
     $$
     \begin{array}{ll}
@@ -145,66 +238,122 @@ where $\tau_{:t}$ is the trajectory up to $t$, and $\tau_{t:}$ is the trajectory
     \hat{A}_t^{(3)}:=\delta_t^V+\gamma \delta_{t+1}^V+\gamma^2 \delta_{t+2}^V & =-V\left(s_t\right)+r_t+\gamma r_{t+1}+\gamma^2 r_{t+2}+\gamma^3 V\left(s_{t+3}\right)
     \end{array}
     $$
-    and
+    with general term:
     $$
     \hat{A}_t^{(k)}:=\sum_{l=0}^{k-1} \gamma^l \delta_{t+l}^V=-V\left(s_t\right)+r_t+\gamma r_{t+1}+\cdots+\gamma^{k-1} r_{t+k-1}+\gamma^k V\left(s_{t+k}\right)
     $$
-    - We call these the ==**k-step advantages**==, because they answer the question *"how much better off I am if I sequentially take the $n$ best actions available (by my current estimate) and then reevaluate things from this new state?"*
-    - The limit is $\hat{A}_t^{(\infty)}=\sum_{l=0}^{\infty} \gamma^l \delta_{t+l}^V=-V\left(s_t\right)+\sum_{l=0}^{\infty} \gamma^l r_{t+l}$, which is just the empirical returns minus the function value baseline
-    - It also seems impractical to use this as our estimate, because we have to compute an infinity of steps ahead for this to work
-    - We take the ==**Generalised Advantage Estimator**== $\text{GAE}(\gamma, \lambda)$, which is the exponentially-weighted average of these $k$-step advantages
+- We call these the **k-step advantages**, because they answer the question ***"how much better off I am if I sequentially take the $n$ best actions available (by my current estimate) and then reevaluate things from this new state?"***
+- We take the **Generalised Advantage Estimator** $\text{GAE}(\gamma, \lambda)$, which is the exponentially-weighted average of these $k$-step advantages
     $$
     \begin{aligned}
     \hat{A}_t^{\mathrm{GAE}(\gamma, \lambda)}:&=(1-\lambda)\left(\hat{A}_t^{(1)}+\lambda \hat{A}_t^{(2)}+\lambda^2 \hat{A}_t^{(3)}+\ldots\right) \\
     &=\sum_{l=0}^{\infty}(\gamma \lambda)^l \delta_{t+l}^V
     \end{aligned}
     $$
-* $\lambda$ is the ==**discount factor**==
-    * If it is higher, then you put more weight on the later advantages, i.e. "what happens when I take a large number of greedy steps before computing my value function"
+- $\lambda$ is the **discount factor**
+    - If it is higher, then you put more weight on the later advantages, i.e. *"what happens when I take a large number of greedy steps before computing my value function"*
+    - It is the lever we use to control the **bias/variance tradeoff**
+        - $\lambda = 0$ gives us the 1-step advantage, which has high bias (we can't look far ahead) but low variance (we only sample one action)
+        - $\lambda \to 1$ gives us the infinite discounted sum of returns, which has low bias (we're looking an infinite number of terms ahead) but high variance (we're sampling many different actions sequentially)""")
 
-# PPO
-- We've basically covered everything that goes into PPO now, the rest is just a few more [details](https://arxiv.org/pdf/1707.06347.pdf)
-	- I'll discuss a couple of them below
+    st.markdown("")
+    st_image("gae.png", 400)
+    st.markdown("")
+
+    st.markdown(r"""
+
+## Okay, so what actually is PPO?
+- So far, our discussion hasn't been specific to PPO
+	- There are a family of methods that work in the way we've described: estimate the policy gradient by trying to estimate the advantage function
+	- This family includes PPO, but also  the **Vanilla Policy Gradient Algorithm**, and **Trust Region Policy Optimisation** (TRPO)
+	- We got more specific when we discussed the GAE, but again this is a techique that can be used for any method in the policy gradient algorithm family; it doesn't have to be associated with PPO
+- The specific features of PPO are:
+	1.  A particular trick in the **loss function** (either PPO-Clip or PPO-Penalty) which limits the amount $\theta$ changes from $\theta_{\text{old}}$
+		- In this way, **PPO allows you to run multiple epochs of gradient ascent on your samples without causing destructively large policy updates**
+		- This one is the key defining feature of PPO (the word **"proximal"** literally means "close")
+	2. **On-policy learning** by first generating a bunch of data from a fixed point in time ($\theta_{\text{old}}$) then use these samples to train against (updating $\theta$)
+	3. Having an **actor and critic network**
+- We'll discuss each of these three features below
+
+### Loss function
+- We start with a loss function that looks like this:
+    $$
+    \theta_{k+1}:=\arg \max _\theta \underset{s, a \sim \pi_{\theta_k}}{\mathbb{E}}\left[\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \hat{A}^{\text{GAE}}(a, s)\right]
+    $$
+    where $\theta_{\text{old}}$  represents some near-past value of $\theta$ which we're using to sample actions and observations from (and storing in our `minibatch` object).
+- At first this might look confusing, because the $\log$ terms have dropped out of the expression, and now we have ratios instead
+    - But in fact, we can prove (using the [log-derivative trick](https://spinningup.openai.com/en/latest/spinningup/rl_intro3.html#:~:text=2.-,The%20Log%2DDerivative%20Trick,-.%20The%20log), plus an idea called importance sampling) that the gradient of this function is equal to $\nabla_\theta J(\pi_\theta)$ from equation $(1)$, so it's exactly what we want.
+- Intuition?
+    - Maximizing $\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \hat{A}^{\text{GAE}}(a, s)$ is equivalent to proportionally increasing the transition probabilities which have larger advantage function values
+- Problem - this often leads to *"destructively large policy updates"*
+    - i.e. $\theta$ changes a large amount from $\theta_{\text{old}}$
+    - Why is this a bad thing? Because we don't want to completely change our policy after only observing a small sample of possible actions and states
+    - Analogy:
+        - Imagine if you had a complex accurate algorithm you used to choose optimal chess moves (e.g. factoring in piece advantage, king safety, central control), but then you completely changed your strategy after observing the outcome of just 10 moves in 10 different games
+        - You might be getting a distorted, inaccurate picture of what good chess moves are, because your sample is too small!
+        - You can fix this by limiting the amount your policy function changes during each phase of training
+- Two possible solutions: **PPO-Penalty** and **PPO-Clip**
+    - We will focus on **PPO-Clip**, which we'll be implementing today (you can read about the other version in the math-heavy section)
+	- **PPO-Clip** clips the objective function, to remove incentives for the new policy to move far away from the old policy
+    - We iterate as follows:
+    $$
+    \begin{align*}
+    r_t(\theta) &:= \frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \\
+    \\
+    L_t(\theta)&=\min \left(r_t(\theta) \hat{A}_t, \operatorname{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t\right)  \\
+    \\
+    \theta_{k+1}&:=\arg \max _\theta \underset{s_t, a_t \sim \pi_{\theta_k}}{\mathbb{E}}\left[L_t(\theta)\right]
+    \end{align*}
+    $$
+    - Intuition?
+        - We are positively weighting things by their probability, but we're also making sure that we don't stray too far from our previous policy with each step
+        - If the estimated advantage $\hat{A}$ is positive, this reduces to:
+            $$
+            L\left(s, a, \theta_k, \theta\right)=\min \left(\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}, 1+\epsilon\right)\hat{A}(a, s)
+            $$ 
+            so we disincentivise $\pi_{\theta}(a \mid s)$ from making too positive an update from its old value. If the estimated average $\hat{A}$ is negative, the converse applies.
+
+#### Value Function Loss
+- The loss function above is how we get our `actor` to improve via policy gradient ascent
+- But how do we get our `critic` to produce better estimates of the value function, which we can use to get our estimates $\hat{A}$ of the advantage function?
+- Answer: we penalise the squared difference between our critic's estimate for the value, and the realised value
+
+#### Entropy bonus
+- We don't want to converge to deterministic policies quickly, this would be bad!
+- We incentivise exploration by providing a bonus term for having higher entropy
+	- e.g. in CartPole environment, entropy is just the entropy of a Bernoulli distribution (since there are two possible actions, left and right)
+
+### Actor and Critic
+- We have two different networks: an actor and a critic
+- The `actor` learns the policy, i.e. its parameters are the $\theta$ in all the equations we've discussed so far
+	- It takes in observations $s$ and outputs logits, which we turn into a probability distribution $\pi(\;\cdot\;|s)$ over actions
+    - We can sample from this probability distribution to generate actions
+	- Updates are via gradient ascent on the clipped loss function described above
+	- But we need a way to estimate the advantages in order to perform these updates - this is where the `critic` comes in
+- The `critic` learns the value
+	- It takes observations $s_t$ and returns estimates for $V(s_t)$, from which we can compute our GAEs which are used to update the actor
+	- Updates are via gradient descent on the MSE loss between its estimates and the actual observed returns""")
+
+    st_image("actor-critic-alg.png", 800)
+    st.markdown("")
+    st.markdown(r"""
+
 ### On vs Off-Policy
-- ==**Off-policy**== = learning the value of the optimal policy independently of the agent's actions
-- ==**On-policy**== = learning the value of the policy being carried out by the agent
+- **Off-policy** = learning the value of the optimal policy independently of the agent's actions
+- **On-policy** = learning the value of the policy being carried out by the agent
 - Examples:
 	- Q-learning is off-policy, since it updates its Q-values using the Q-values of the next state and the *greedy action* (i.e. the action that would be taken assuming a greedy policy is followed)
 	- SARSA is on-policy, since it updates its Q-values using the Q-values of the next state and the *current policy's action*
 		- The distinction disappears if the current policy is a greedy policy. However, such an agent would not be good since it never explores.
-	- PPO is on-policy, since it only learns from experiences that were generated from the current policy
-### Actor and Critic
-- We have two different networks: an actor and a critic
-- The ==**actor**== learns the policy, i.e. its parameters are the $\theta$ in all the equations we've discussed so far
-	- It takes in observations $s_t$ and outputs logits, which we turn into a probability distribution $\pi(\;\cdot\;|s_t)$
-	- Updates are via gradient ascent on the function described below
-- The ==**critic**== learns the value
-	- It takes observations $s_t$ and returns estimates for $V(s_t)$, from which we can compute our GAEs which are used to update the actor
-	- Updates are via gradient descent on the MSE loss between its estimates and the actual observed returns
-### Loss function
-- Given discussions so far, we might expect to perform gradient ascent on a function approximation that looks like this:
-$$
-\begin{align*}
-\theta_{k+1}&=\arg \max _\theta \underset{s, a \sim \pi_{\theta_k}}{\mathbb{E}_t}\Big[L(s_t, a_t, \theta)\Big]\\ L(s_t, a_t, \theta)&=\mathbb{E}_t\left[\log \pi_\theta\left(a_t \mid s_t\right) \hat{A}_t\right] \end{align*}
-$$
-- Problem - this often leads to *"destructively large policy updates"*
-- Instead, we perform ==**clipping**==. We do the following:
-$$
-\begin{align*}\theta_{k+1}&=\arg \max _\theta \underset{s, a \sim \pi_{\theta_k}}{\mathrm{E}}\left[L\left(s, a, \theta_k, \theta\right)\right]\\L\left(s, a, \theta_k, \theta\right)&=\min \left(\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \hat{A}_t, \; \operatorname{clip}\left(\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}, 1-\epsilon, 1+\epsilon\right) \hat{A}_t\right)\end{align*}
-$$
-- Intuition?
-	- We are positively weighting things by their probability, but we're also making sure that we don't stray too far from our previous policy with each step
-	- If the estimated advantage is positive, this reduces to:$$L\left(s, a, \theta_k, \theta\right)=\min \left(\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}, 1+\epsilon\right)\hat{A}_t$$which means we stop this from being too positive an update. If the estimated average is negative, the converse applies.
-- It's similar to ==**Trust Region Policy Optimisation**==
-	- That's when we perform constrained optimisation; maximising $\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \hat{A}_t$ within some ==**trust region**== for the likelihood ratio
-	- Yet another option is to perform unconstrained optimisation, but with a KL divergence penalty term for $\pi_\theta$ and $\pi_{\theta_k}$
-### Entropy bonus
-- We don't want to converge to deterministic policies quickly, this would be bad!
-- We incentivise exploration by providing a bonus term for having higher entropy
-	- e.g. in CartPole environment, entropy is just the entropy of a Bernoulli distribution (since there are two possible actions, left and right)
+	- PPO is on-policy, since it only learns from experiences that were generated from the current policy (or at least from a policy $\theta_{\text{old}}$ which $\theta$ is penalised to remain close to!)
+- These aren't hard boundaries, you could dispute them
+	- e.g. for PPO, you could argue that $\theta_{\text{old}}$ and $\theta$ being different means it's off-policy, even if this isn't really off-policy in the sense we care about
+
+
 """)
 
-def section_1():
+
+def section_1_math_heavy():
     st.sidebar.markdown("""
 ## Table of Contents
 
@@ -232,29 +381,89 @@ def section_1():
 
 ## Why is PPO different to DQN? (high-level)
 
-- DQN:
-	- What do we learn?
-		- We learn the Q-function $Q(s, a)$
-	- What networks do we have?
-		- Our network `q_network` takes $s$ as inputs, and outputs the Q-values for each possible action $a$
-	- Where do our gradients come from?
-		- We do grad descent on the squared **Bellman residual**, i.e. the residual of an equation which is only satisfied if we've found the true Q-function
-	- Techniques to improve stability?
-		- We use a "lagged copy" of our network to sample actions from; in this way we don't update too fast after only having seen a small number of possible states. In the DQN code, this was `q_network` and `target_network`
-- PPO
-	- What do we learn?
-		- We learn the policy function $\pi(a \mid s)$
-	- What networks do we have?
-		- We have two networks: `actor` which learns the policy function, and `critic` which learns the value function $V(s)$
-		- These two work in tandem:
-			- The `actor` requires the `critic`'s value function estimate in order to estimate the policy gradient and perform gradient ascent
-			- The `critic` tries to learn the value function corresponding to the current policy function parameterized by the `actor`
-	- Where do our gradients come from?
-		- We do grad ascent on an estimate of the time-discounted future reward stream (i.e. we're directly moving up the **policy gradient**; changing our policy in a way which will lead to higher expected reward)
-	- Techniques to improve stability?
-		- We use a "lagged copy" of our network to sample actions from; in this way we don't update too fast after only having seen a small number of possible states. In the mathematical notation, this is $\theta$ and $\theta_{\text{old}}$
-		- We clip the objective function to make sure large policy changes aren't incentivied past a certain point
+---
+""")
 
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+### DQN
+
+##### **What do we learn?**
+
+We learn the Q-function $Q(s, a)$.""")
+    with cols[1]:
+        st.markdown(r"""
+### PPO
+
+##### **What do we learn?**
+
+We learn the policy function $\pi(a \mid s)$.""")
+
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+##### **What networks do we have?**
+
+Our network `q_network` takes $s$ as inputs, and outputs the Q-values for each possible action $a$.
+
+We also had a `target_network`, although this was just a lagged version of `q_network` rather than one that actually gets trained.
+""")
+    with cols[1]:
+        st.markdown(r"""
+##### **What networks do we have?**
+We have two networks: `actor` which learns the policy function, and `critic` which learns the value function $V(s)$. These two work in tandem:
+- The `actor` requires the `critic`'s value function estimate in order to estimate the policy gradient and perform gradient ascent.
+- The `critic` tries to learn the value function corresponding to the current policy function parameterized by the `actor`.""")
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+##### **Where do our gradients come from?**
+We do gradient descent on the squared **Bellman residual**, i.e. the residual of an equation which is only satisfied if we've found the true Q-function.
+""")
+    with cols[1]:
+        st.markdown(r"""
+##### **Where do our gradients come from?**
+We do grad ascent on an estimate of the time-discounted future reward stream (i.e. we're directly moving up the **policy gradient**; changing our policy in a way which will lead to higher expected reward).
+""")
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+##### **Techniques to improve stability?**
+We use a "lagged copy" of our network to sample actions from; in this way we don't update too fast after only having seen a small number of possible states. In the DQN code, this was `q_network` and `target_network`.
+""")
+    with cols[1]:
+        st.markdown(r"""
+##### **Techniques to improve stability?**
+We use a "lagged copy" of our network to sample actions from; in this way we don't update too fast after only having seen a small number of possible states. In the mathematical notation, this is $\theta$ and $\theta_{\text{old}}$. In the code, we won't actually need to make a different network for this.
+
+We clip the objective function to make sure large policy changes aren't incentivied past a certain point
+""")
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown(r"""
+##### **Suitable for continuous action spaces?**
+
+No. Our Q-function $Q$ is implemented as a network which takes in states and returns Q-values for each discrete action.
+""")
+    with cols[1]:
+        st.markdown(r"""
+##### **Suitable for continuous action spaces?**
+
+Yes. Our policy function $\pi$ can take continuous argument $a$.
+""")
+    
+    st.markdown(r"""
+---
+""")
+
+    st.info(r"""
+A quick note on the distinction between **states** and **observations**.
+
+In reality these are two different things (denoted $s_t$ and $o_t$), because our agent might not be able to see all relevant information. However, the games we'll be working with for the rest of this section make no distinction between them. Thus, we will only refer to $s_t$ going forwards.
+""")
+
+    st.markdown(r"""
 ## Important Definitions
 
 #### **Infinite-horizon discounted return**
@@ -266,33 +475,41 @@ def section_1():
 - This is useful because $P$ can be factored as the product of a bunch of probabilities
 
 #### **On-Policy Action-Value Function**
-- $Q_\pi(s, a)=\underset{\tau \sim \pi}{\mathrm{E}}\big[R(\tau) \mid s_0=s, a_0=a\big]$
-- Bellman equation is: $Q_\pi(s, a)=\underset{s^{\prime} \sim P}{\mathrm{E}}\left[r(s, a)+\gamma \underset{a^{\prime} \sim \pi}{\mathrm{E}}\left[Q_\pi\left(s^{\prime}, a^{\prime}\right)\right]\right]$
+- $Q_\pi(s, a)=\underset{\tau \sim \pi}{\mathbb{E}}\big[R(\tau) \mid s_0=s, a_0=a\big]$
+- Bellman equation is: $Q_\pi(s, a)=\underset{s^{\prime} \sim P}{\mathbb{E}}\left[r(s, a)+\gamma \underset{a^{\prime} \sim \pi}{\mathbb{E}}\left[Q_\pi\left(s^{\prime}, a^{\prime}\right)\right]\right]$
 
 #### **On-Policy Value Function**
-- $V_\pi(s)=\underset{a \sim \pi}{\mathrm{E}}\left[Q^\pi(s, a)\right]$
-- Bellman equation is: $V_\pi(s)=\underset{\substack{a \sim \pi \\ s^{\prime} \sim P}}{\mathrm{E}}\left[r(s, a)+\gamma V_\pi\left(s^{\prime}\right)\right]$
+- $V_\pi(s)=\underset{a \sim \pi}{\mathbb{E}}\left[Q^\pi(s, a)\right]$
+- Bellman equation is: $V_\pi(s)=\underset{\substack{a \sim \pi \\ s^{\prime} \sim P}}{\mathbb{E}}\left[r(s, a)+\gamma V_\pi\left(s^{\prime}\right)\right]$
 
 #### **Advantage Function**
 - $A_\pi(s, a)=Q_\pi(s, a)-V_\pi(s)$
 - i.e. *how much better action $a$ is than what you would do by default with policy $\pi$*
 
 ## Policy Gradients
-- We define $J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}[R(\tau)]$; the policy gradient is $\nabla_\theta J(\pi_\theta)$
+- We define $J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathbb{E}}[R(\tau)]$; the policy gradient is $\nabla_\theta J(\pi_\theta)$
 - If we have an estimate of $\nabla_\theta J(\pi_\theta)$, then we can perform **policy gradient ascent** via $\theta_{k+1}=\theta_k+\left.\alpha \nabla_\theta J\left(\pi_\theta\right)\right|_{\theta_k}$
 - PPO (and all other policy gradient methods) basically boils down to "how can we estimate the policy gradient $\nabla_\theta J(\pi_\theta)$?"
 - Probably the most important theorem is:
 $$
-\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) A^{\pi_\theta}\left(s_t, a_t\right)\right]
+\begin{equation}
+\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathbb{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) A^{\pi_\theta}\left(s_t, a_t\right)\right]
+\end{equation}
 $$
 - Why does this matter? Because if we have a way to estimate the advantage function $A^{\pi_\theta}$, then we have a way to estimate the policy gradient, and we're done!
+- Intuition for this result?
+    - We are taking an expectation over all possible trajectories $\tau$, i.e. a average over all possible ways the episode could play out, weighted by their probabilities.
+    - If the advantage function $A^{\pi_\theta}(s, a)$ is large, then increasing $\pi_\theta(a \mid s)$ will increase the right hand side expression.
+        - This makes sense, because $A^{\pi_\theta}(s, a)$ being large means *in state $s$, taking action $a$ is much better than what you would have done otherwise.
+    - If the state and action pair $(s, a)$ is likely to appear many times in the trajectory, then $\pi_\theta(a_t \mid s_t)$ will appear more times on the right hand side, so changing it will have a larger effect on expected reward.
+        - This makes sense, because the more often a particular situation comes up, the larger effect we should expect changing our action in this situation will have on our reward stream.
 - Let's now go through the proof of this theorem, starting from the definition of the policy gradient in the previous section
 
 ### Proof - part 1
 - Lemma
     - We can express the policy gradient in terms of the transition probabilities:
     $$
-    \nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) R(\tau)\right]
+    \nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathbb{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) R(\tau)\right]
     $$
 - Proof
 	- Write out $J$ as an intergral over $\tau$, swap integral and derivative, do the log-derivative trick, then drop out state transition probabilities $p(s_{t+1}, r_{t+1} \mid s_t, a_t)$""")
@@ -302,10 +519,6 @@ $$
         st.markdown("")
 
     st.markdown(r"""
-- Intuition?
-	- If there's a trajectory with positive reward, then we increase the probabilities of taking all actions in that trajectory
-	- The change in each $\pi_\theta (a_t | s_t)$ is a weighted sum of their impact on the reward across all transitions in which this particular state-action pair appears
-
 ### Proof - part 2
 
 - Lemma
@@ -317,13 +530,13 @@ $$
 - Corollary
 	- We can swap out $R(\tau)$ in the expresson above with $\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)$, because terms before this will drop out
 	- We call this the **reward-to-go policy gradient**
-	- We can also subtract a function $b(s_t)$, which (when used in this way) we refer to as a **baseline**:$$\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathrm{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right)\left(\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)-b\left(s_t\right)\right)\right]$$
+	- We can also subtract a function $b(s_t)$, which (when used in this way) we refer to as a **baseline**:$$\nabla_\theta J\left(\pi_\theta\right)=\underset{\tau \sim \pi_\theta}{\mathbb{E}}\left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right)\left(\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)-b\left(s_t\right)\right)\right]$$
 - Proof
 	- The proof involves factoring expectations as follows:
     
     $$
     \begin{align}
-    \nabla_\theta J\left(\pi_\theta\right)&=\sum_{t=0}^T\underset{\tau_{:t} \sim \pi_\theta}{\mathrm{E}}\left[ \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) \underset{\tau_{t:}\sim \pi_\theta}{\mathrm{E}} \bigg[\;\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)-b\left(s_t\right) \;\bigg|\; \tau_{:t}\;\bigg]\right]\\&=\sum_{t=0}^T\underset{\tau_{:t} \sim \pi_\theta}{\mathrm{E}}\bigg[ \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) \;\Phi_t\bigg]
+    \nabla_\theta J\left(\pi_\theta\right)&=\sum_{t=0}^T\underset{\tau_{:t} \sim \pi_\theta}{\mathbb{E}}\left[ \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) \underset{\tau_{t:}\sim \pi_\theta}{\mathbb{E}} \bigg[\;\sum_{t^{\prime}=t}^T R\left(s_{t^{\prime}}, a_{t^{\prime}}, s_{t^{\prime}+1}\right)-b\left(s_t\right) \;\bigg|\; \tau_{:t}\;\bigg]\right]\\&=\sum_{t=0}^T\underset{\tau_{:t} \sim \pi_\theta}{\mathbb{E}}\bigg[ \nabla_\theta \log \pi_\theta\left(a_t \mid s_t\right) \;\Phi_t\bigg]
     \end{align}
     $$
 
@@ -331,17 +544,17 @@ $$
 	- But this is pretty simple, because we can clearly take $\Phi_t$ to be the Q-function $Q^{\pi_\theta}\left(s_t, a_t\right)$ (since the Q-function is defined as the expected sum of rewards), and we get from the Q-function to the advantage by subtracting the **baseline** $V^{\pi_\theta}(s_t)$
 
 ## GAE
-- How to estimate our advantage function? We use the **generalised advantage estimator**
+- How to estimate our advantage function? We use the **[generalised advantage estimator](https://arxiv.org/pdf/1506.02438.pdf)**
 	- This isn't specific to PPO; all kinds of policy gradient algorithms can use this same method
 - Define the **temporally discounted residual** of the value function $\delta_t^V = r_t + \gamma V(s_{t+1}) - V(s_t)$
-	- Lemma: $A_{\pi, \gamma}(s_t, a_t) = \mathbb{E}_{s_{t+1}}\big[\delta_t^{V_{\pi, \gamma}}\big]$
-	- Proof: follows from $Q(s_t, a_t) = \gamma V(s_{t+1}) + r_t$ (when conditioned on next state $s_{t+1}$)
-	- Intuition?
-		- Note that this looks a lot like the TD error term we used to update  $Q$ in Q-learning; it told us in what direction we should bump our estimate of $Q^*$
-		- $\delta_t^V$ will be zero when no value is lost from going to state $s_t$ to $s_{t+1}$, which is only true in expectation when the advantage of our policy is zero (i.e. there's no more advantage to take!)
-- $\delta_t^V$ answers the question ***"what will my (time-discounted) advantage be if I take one greedy step before re-evaluating at my new state?"*** 
+    - This can be considered as an estimate of the advantage of taking action $a_t$ (since it's the difference between our time-discounted value after taking some action, and our value right now). In fact, we have:
+	- Lemma:
+        - $A_{\pi, \gamma}(s_t, a_t) = \mathbb{E}_{s_{t+1}}\big[\delta_t^{V_{\pi, \gamma}}\big]$
+	- Proof:
+        - Follows immediately from $\mathbb{E}_{s_{t+1}}[Q(s_t, a_t)] = \mathbb{E}_{s_{t+1}}[\gamma V(s_{t+1}) + r_t]$ (since when we fix $s_{t+1}$, both these things are the same)
+- $\delta_t^V$ answers the question ***"what approximately will my (time-discounted) advantage be if I take one step before re-evaluating at my new state?"*** 
 	- But we want to look further ahead than this!
-	- How can we express the notion *what will my (time-discounted) advantage be if I take one greedy step before re-evaluating at my new state?*
+	- How can we express the notion ***"what will my (time-discounted) advantage be if I take one step before re-evaluating at my new state?"***
 	- Answer - with **GAE**
 - Consider the following terms:
     $$
@@ -398,7 +611,7 @@ $$
 ### Loss function
 - As a first pass, we might want to use a loss function like this:
     $$
-    \theta_{k+1}:=\arg \max _\theta \underset{s, a \sim \pi_{\theta_k}}{\mathrm{E}}\left[\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \hat{A}^{\text{GAE}}(a, s)\right]
+    \theta_{k+1}:=\arg \max _\theta \underset{s, a \sim \pi_{\theta_k}}{\mathbb{E}}\left[\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \hat{A}^{\text{GAE}}(a, s)\right]
     $$
     where $\theta_{\text{old}}$  represents some near-past value of $\theta$ which we're using to sample actions and observations from (and storing in our `minibatch` object).
 - Why would this work?
@@ -422,7 +635,7 @@ $$
     $$
     - (Note - you could also use intuition to see why $\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \hat{A}^{\text{GAE}}(a, s)$ is something we want to maximise: making it larger is equivalent to proportionally increasing the transition probabilities which correspond to larger advantage function values)
 - Problem - this often leads to *"destructively large policy updates"*
-    - i.e. $\theta$ changes a large amount from $\theta_{\old}$
+    - i.e. $\theta$ changes a large amount from $\theta_{\text{old}}$
     - Why is this a bad thing? Because we don't want to completely change our policy after only observing a small sample of possible actions and states
     - Analogy:
         - Imagine if you had a complex accurate algorithm you used to choose optimal chess moves (e.g. factoring in piece advantage, king safety, central control), but then you completely changed your strategy after observing the outcome of just 10 moves in 10 different games
@@ -434,23 +647,23 @@ $$
     r_t(\theta) &:= \frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} \\
     \\
     \text{No clipping or penalty} &: \quad L_t(\theta)=r_t(\theta) \hat{A}_t \\
-    \text{PPO-Clip} &: \quad L_t(\theta)=\min \left(r_t(\theta) \hat{A}_t, \operatorname{clip}\left(r_t(\theta)\right), 1-\epsilon, 1+\epsilon\right) \hat{A}_t \\
+    \text{PPO-Clip} &: \quad L_t(\theta)=\min \left(r_t(\theta) \hat{A}_t, \operatorname{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t\right)  \\
     \text{PPO-Penalty} &: \quad L_t(\theta)=r_t(\theta) \hat{A}_t-\beta D_{KL}(\pi_{\theta_{\text {old }}} || \pi_\theta)\\
     \\
-    \theta_{k+1}&:=\arg \max _\theta \underset{s_t, a_t \sim \pi_{\theta_k}}{\mathrm{E}}\left[L_t(\theta)\right]
+    \theta_{k+1}&:=\arg \max _\theta \underset{s_t, a_t \sim \pi_{\theta_k}}{\mathbb{E}}\left[L_t(\theta)\right]
     \end{align*}
     $$
 	- **PPO-Penalty** adds a KL-divergence penalty term to make sure the new policy $\pi_\theta$ doesn't deviate too far from $\pi_{\theta_\text{old}}$
 		- It can do this in a smart way; the KL-div coefficient $\beta$ automatically adjusts throughout training so it's scaled appropriately
-	- **PPO-Clip** clips the objective function, to remove incentives for the new policy to move far away from the old
+	- **PPO-Clip** clips the objective function, to remove incentives for the new policy to move far away from the old policy
 		- We'll be implementing PPO-Clip
 		- Intuition?
 			- We are positively weighting things by their probability, but we're also making sure that we don't stray too far from our previous policy with each step
 			- If the estimated advantage $\hat{A}$ is positive, this reduces to:
-            $$
-            L\left(s, a, \theta_k, \theta\right)=\min \left(\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}, 1+\epsilon\right)\hat{A}(a, s)
-            $$ 
-            - so we disincentivise $\pi_{\theta}(a \mid s)$ from making too positive an update from its old value. If the estimated average $\hat{A}$ is negative, the converse applies.
+                $$
+                L\left(s, a, \theta_k, \theta\right)=\min \left(\frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}, 1+\epsilon\right)\hat{A}(a, s)
+                $$ 
+                so we disincentivise $\pi_{\theta}(a \mid s)$ from making too positive an update from its old value. If the estimated average $\hat{A}$ is negative, the converse applies.
 - **Trust Region Policy Optimisation** works in a similar way to PPO-Penalty
 	- The difference is that, in TRPO, KL-divergence is made a hard constraint, whereas in PPO-Penalty rather than included in the loss function
 	- Also TRPO doesn't automatically vary its constraint
@@ -470,12 +683,16 @@ $$
 - We have two different networks: an actor and a critic
 - The `actor` learns the policy, i.e. its parameters are the $\theta$ in all the equations we've discussed so far
 	- It takes in observations $s$ and outputs logits, which we turn into a probability distribution $\pi(\;\cdot\;|s)$ over actions
-	- Updates are via gradient ascent on the function described below
-	- But we need a way to estimate the advantages in order to perform these updates
-	- We've discussed above how we can estimate the advantage function take estimates for the value function $V(s)$ and convert this into 
+    - We can sample from this probability distribution to generate actions
+	- Updates are via gradient ascent on the clipped loss function described above
+	- But we need a way to estimate the advantages in order to perform these updates - this is where the `critic` comes in
 - The `critic` learns the value
 	- It takes observations $s_t$ and returns estimates for $V(s_t)$, from which we can compute our GAEs which are used to update the actor
-	- Updates are via gradient descent on the MSE loss between its estimates and the actual observed returns
+	- Updates are via gradient descent on the MSE loss between its estimates and the actual observed returns""")
+
+    st_image("actor-critic-alg.png", 800)
+    st.markdown("")
+    st.markdown(r"""
 
 ### On vs Off-Policy
 - **Off-policy** = learning the value of the optimal policy independently of the agent's actions
@@ -496,34 +713,45 @@ def section_2():
 ## Table of Contents
 
 <ul class="contents">
-   <li><a class="contents-el" href="#learning-objectives">Learning Objectives</a></li>
-   <li><a class="contents-el" href="#readings">Readings</a></li>
-   <li><a class="contents-el" href="#optional-reading">Optional Reading</a></li>
-   <li><a class="contents-el" href="#on-policy-vs-off-policy">On-Policy vs Off-Policy</a></li>
-   <li><a class="contents-el" href="#actor-critic-methods">Actor-Critic Methods</a></li>
-   <li><a class="contents-el" href="#notes-on-todays-workflow">Notes on today's workflow</a></li>
-   <li><a class="contents-el" href="#references-not-required-reading">References (not required reading)</a></li>
-   <li><a class="contents-el" href="#actor-critic-agent-implementation-detail-2">Actor-Critic Agent Implementation (detail #2)</a></li>
-   <li><a class="contents-el" href="#generalized-advantage-estimation-detail-5">Generalized Advantage Estimation (detail #5)</a></li>
-   <li><a class="contents-el" href="#minibatch-update-detail-6">Minibatch Update (detail #6)</a></li>
-   <li><a class="contents-el" href="#loss-function">Loss Function</a></li>
-   <li><ul class="contents">
-       <li><a class="contents-el" href="#gradient-ascent">Gradient Ascent</a></li>
-       <li><a class="contents-el" href="#clipped-surrogate-loss">Clipped Surrogate Loss</a></li>
-       <li><a class="contents-el" href="#minibatch-advantage-normalization-detail-7">Minibatch Advantage Normalization (detail #7)</a></li>
-       <li><a class="contents-el" href="#value-function-loss-detail-10">Value Function Loss (detail #9)</a></li>
-       <li><a class="contents-el" href="#entropy-bonus-detail-10">Entropy Bonus (detail #10)</a></li>
-       <li><a class="contents-el" href="#entropy-diagnostic">Entropy Diagnostic</a></li>
-   </ul></li>
-   <li><a class="contents-el" href="#putting-it-all-together">Putting It All Together</a></li>
-   <li><a class="contents-el" href="#debug-variables-detail-12">Debug Variables (detail #12)</a></li>
-   <li><ul class="contents">
-       <li><a class="contents-el" href="#update-frequency">Update Frequency</a></li>
-   </ul></li>
-   <li><a class="contents-el" href="#reward-shaping">Reward Shaping</a></li>
+    <li><a class="contents-el" href="#learning-objectives">Learning Objectives</a></li>
+    <li><a class="contents-el" href="#readings">Readings</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#optional-reading">Optional Reading</a></li>
+        <li><a class="contents-el" href="#references-not-required-reading">References (not required reading)</a></li>
+    </ul></li>
+    <li><a class="contents-el" href="#notes-on-todays-workflow">Notes on today's workflow</a></li>
+    <li><a class="contents-el" href="#ppo-overview">PPO Overview</a></li>
+    <li><a class="contents-el" href="#ppo-arguments">PPO Arguments</a></li>
+    <li><a class="contents-el" href="#actor-critic-agent-implementation-detail-2">Actor-Critic Agent Implementation (detail #2)</a></li>
+    <li><a class="contents-el" href="#generalized-advantage-estimation-detail-5">Generalized Advantage Estimation (detail #5)</a></li>
+    <li><a class="contents-el" href="#rollout-phase">Rollout phase</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#memory">Memory</a></li>
+        <li><a class="contents-el" href="#minibatches-detail-6">Minibatches (detail #6)</a></li>
+        <li><a class="contents-el" href="#rollout">Rollout</a></li>
+        <li><a class="contents-el" href="#testing">Testing</a></li>
+    </ul></li>
+    <li><a class="contents-el" href="#loss-function">Learning Phase</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#clipped-surrogate-objective">Clipped Surrogate Objective</a></li>
+        <li><a class="contents-el" href="#value-function-loss-detail-9">Value Function Loss (detail #9)</a></li>
+        <li><a class="contents-el" href="#entropy-bonus-detail-10">Entropy Bonus (detail #10)</a></li>
+    </ul></li>
+    <li><a class="contents-el" href="#adam-optimizer-and-scheduler-details-3-and-4">Adam Optimizer and Scheduler (details #3 and #4)</a></li>
+    <li><a class="contents-el" href="#putting-it-all-together">Putting It All Together</a></li>
+    <li><a class="contents-el" href="#debug-variables-detail-12">Debug Variables (detail #12)</a></li>
+    <li><a class="contents-el" href="#reward-shaping">Reward Shaping</a></li>
 </ul>
+<br><br>
 """, unsafe_allow_html=True)
+
+    st.error("""TODO - 
+
+* Split this page into multiple parts (maybe in accordance with the overview, rollout, learning, and putting together sections)
+* This page is currently structured way better than the DQN page was, but maybe some of this stuff should be shifted to the DQN section instead. I think DQN is still good because it eases you into certain concepts. But things like the buffer and plotly graph can be moved back to the DQN section (I want to give people the choice of how to implement it rather than forcing them to use `ReplayBuffer` and `ReplayBufferSamples`).""")
+
     st.markdown(r"""
+
 # PPO: Implementation
 
 In this section, you'll be implementing the Proximal Policy Gradient algorithm!""")
@@ -559,13 +787,15 @@ from einops import rearrange
 
 from w4d3_chapter4_ppo.utils import make_env, ppo_parse_args
 from w4d3_chapter4_ppo import tests
+
+MAIN = __name__ == "__main__"
 ```
 
 ## Readings
 
 * [Spinning Up in Deep RL - PPO](https://spinningup.openai.com/en/latest/algorithms/ppo.html)
     * You don't need to follow all the derivations, but try to have a qualitative understanding of what all the symbols represent.
-    * You might also prefer reading the section **1️⃣ PPO: Mathematical Background** instead.
+    * You might also prefer reading the section **1️⃣ PPO: Background** instead.
 * [The 37 Implementation Details of Proximal Policy Optimization](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#solving-pong-in-5-minutes-with-ppo--envpool)
     * he good news is that you won't need all 37 of these today, so no need to read to the end.
     * We will be tackling the 13 "core" details, not in the same order as presented here. Some of the sections below are labelled with the number they correspond to in this page (e.g. **Minibatch Update ([detail #6](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Mini%2Dbatch%20Updates))**).
@@ -574,7 +804,7 @@ from w4d3_chapter4_ppo import tests
 
 You might find it helpful to make a physical checklist of the 13 items and marking them as you go with how confident you are in your implementation. If things aren't working, this will help you notice if you missed one, or focus on the sections most likely to be bugged.
 
-## Optional Reading
+### Optional Reading
 
 * [Spinning Up in Deep RL - Vanilla Policy Gradient](https://spinningup.openai.com/en/latest/algorithms/vpg.html#background)
     * PPO is a fancier version of vanilla policy gradient, so if you're struggling to understand PPO it may help to look at the simpler setting first.
@@ -582,25 +812,20 @@ You might find it helpful to make a physical checklist of the 13 items and marki
     * You've already read this previously but it will come in handy again.
     * You'll want to reuse your probe environments from yesterday, or you can import them from the solution if you didn't implement them all.
 
-## On-Policy vs Off-Policy
+### References (not required reading)
 
-Broadly, RL algorithms can be categorized as off-policy or on-policy. DQN learns from a replay buffer of old experiences that could have been generated by an old policy quite different than the current one. This means it is off-policy.
+- [The Policy of Truth](http://www.argmin.net/2018/02/20/reinforce/) - a contrarian take on why Policy Gradients are actually a "terrible algorithm" that is "legitimately bad" and "never a good idea".
+- [Tricks from Deep RL Bootcamp at UC Berkeley](https://github.com/williamFalcon/DeepRLHacks/blob/master/README.md) - more debugging tips that may be of use.
+- [What Matters In On-Policy Reinforcement Learning? A Large-Scale Empirical Study](https://arxiv.org/pdf/2006.05990.pdf) - Google Brain researchers trained over 250K agents to figure out what really affects performance. The answers may surprise you.
+- [Lilian Weng Blog](https://lilianweng.github.io/posts/2018-04-08-policy-gradient/#ppo)
+- [A Closer Look At Deep Policy Gradients](https://arxiv.org/pdf/1811.02553.pdf)
+- [Where Did My Optimum Go?: An Empirical Analysis of Gradient Descent Optimization in Policy Gradient Methods](https://arxiv.org/pdf/1810.02525.pdf)
+- [Independent Policy Gradient Methods for Competitive Reinforcement Learning](https://papers.nips.cc/paper/2020/file/3b2acfe2e38102074656ed938abf4ac3-Supplemental.pdf) - requirements for multi-agent Policy Gradient to converge to Nash equilibrium.
+""")
 
-PPO will only learn from experiences that were generated by the current policy, which is why it's called on-policy. We will generate batch of experiences, train on them once, and then discard them.
-
-## Actor-Critic Methods
-
-In DQN, there was no neural network directly representing the policy; the policy was "sometimes act randomly, otherwise take the action with max q-value". In PPO, we're going to have two neural networks:
-
-- The actor network learns the policy: it takes observations $o$ and outputs logits, which we can normalize into a probability distribution $\pi(\cdot | o)$  which we can sample from to determine our action $a \sim \pi(\cdot | o)$.
-- The critic network learns the value: it takes observations $o$ and outputs an estimate of the optimal value function $\hat{V}^*(o)$. Again, we're going to equivocate between states and observations as is tradition. The critic acts like a movie critic, it just watches what's happening without taking any actions and forms an opinion on whether states are good or bad.""")
-
-    st_image("actor-critic-alg.png", 800)
     st.markdown("")
 
     st.markdown(r"""
-Unlike DQN, PPO can also be used for environments with continuous action spaces.
-
 ## Notes on today's workflow
 
 Your implementation might get huge benchmark scores by the end of the day, but don't worry if it struggles to learn the simplest of tasks. RL can be frustrating because the feedback you get is extremely noisy: the agent can fail even with correct code, and succeed with buggy code. Forming a systematic process for coping with the confusion and uncertainty is the point of today, more so than producing a working PPO implementation.
@@ -612,47 +837,41 @@ Some parts of your process could include:
 - Getting a sense for the meaning of various logged metrics, and what this implies about the training process
 - Noticing confusion and sections that don't make sense, and investigating this instead of hand-waving over it.
 
-## References (not required reading)
+## PPO Overview
 
-- [The Policy of Truth](http://www.argmin.net/2018/02/20/reinforce/) - a contrarian take on why Policy Gradients are actually a "terrible algorithm" that is "legitimately bad" and "never a good idea".
-- [Tricks from Deep RL Bootcamp at UC Berkeley](https://github.com/williamFalcon/DeepRLHacks/blob/master/README.md) - more debugging tips that may be of use.
-- [What Matters In On-Policy Reinforcement Learning? A Large-Scale Empirical Study](https://arxiv.org/pdf/2006.05990.pdf) - Google Brain researchers trained over 250K agents to figure out what really affects performance. The answers may surprise you.
-- [Lilian Weng Blog](https://lilianweng.github.io/posts/2018-04-08-policy-gradient/#ppo)
-- [A Closer Look At Deep Policy Gradients](https://arxiv.org/pdf/1811.02553.pdf)
-- [Where Did My Optimum Go?: An Empirical Analysis of Gradient Descent Optimization in Policy Gradient Methods](https://arxiv.org/pdf/1810.02525.pdf)
-- [Independent Policy Gradient Methods for Competitive Reinforcement Learning](https://papers.nips.cc/paper/2020/file/3b2acfe2e38102074656ed938abf4ac3-Supplemental.pdf) - requirements for multi-agent Policy Gradient to converge to Nash equilibrium.
+The diagram below shows everything you'll be implementing today. Don't worry if this seems overwhelming - we'll be breaking it down into bite-size pieces as we go through the exercises. You might find it helpful to rever back to this diagram as we proceed.
+""")
+    st.markdown("")
+    # with open("images/ppo-alg.svg", "r") as f:
+    #     svg = f.read()
+    # render_svg(svg, 800)
+    st_image("ppo-alg.png", 850)
+    st.error("TODO - give more of an overview of the diagram, rather than dumping it and moving on.")
+    st.markdown(r"""
+## PPO Arguments
 
+Just like for DQN, we've provided you with a dataclass containing arguments for your `train_ppo` function. We've also given you a function from `utils` to display all these arguments (including which ones you've changed). For example, you can run:
 
 ```python
-import argparse
-import os
-import random
-import time
-import sys
-from distutils.util import strtobool
-from dataclasses import dataclass
-from typing import Optional
-import numpy as np
-import torch
-import torch as t
-import gym
-import torch.nn as nn
-import torch.optim as optim
-from torch.distributions.categorical import Categorical
-from torch.utils.tensorboard import SummaryWriter
-from gym.spaces import Discrete
-from typing import Any, List, Optional, Union, Tuple, Iterable
-from einops import rearrange
-from w4d3_chapter4_ppo.utils import ppo_parse_args, make_env
-import part4_dqn_solution
-
-MAIN = __name__ == "__main__"
-RUNNING_FROM_FILE = "ipykernel_launcher" in os.path.basename(sys.argv[0])
+args = PPOArgs()
+args.track = False # this disables wandb tracking; useful when fixing bugs
+arg_help(args)
 ```
+
+which displays the following table:""")
+
+    st_image("params1.png", 700)
+    st.markdown("")
+    st.markdown(r"""
+You should read through this table now. Not all of the arguments will be clear to you yet, but hopefully they should all make sense bu the time you have to use them.
+
+If you find this doesn't display correctly in VSCode, then you can use `arg_help(args, print_df=True)` to print out the dataframe in text form.
 
 ## Actor-Critic Agent Implementation ([detail #2](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Orthogonal%20Initialization%20of%20Weights%20and%20Constant%20Initialization%20of%20biases))
 
-Implement the `Agent` class according to the diagram, inspecting `envs` to determine the observation shape and number of actions. We are doing separate Actor and Critic networks because [detail #13](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Shared%20and%20separate%20MLP%20networks%20for%20policy%20and%20value%20functions) notes that is performs better than a single shared network in simple environments. Note that today `envs` will actually have multiple instances of the environment inside, unlike yesterday's DQN which had only one instance inside. From the **37 implementation details** post:""")
+Implement the `Agent` class according to the diagram, inspecting `envs` to determine the observation shape and number of actions. We are doing separate Actor and Critic networks because [detail #13](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Shared%20and%20separate%20MLP%20networks%20for%20policy%20and%20value%20functions) notes that is performs better than a single shared network in simple environments. 
+
+Note that today `envs` will actually have multiple instances of the environment inside, unlike yesterday's DQN which had only one instance inside. From the **37 implementation details** post:""")
 
     cols = st.columns([1, 15, 1])
     with cols[1]:
@@ -662,9 +881,8 @@ Implement the `Agent` class according to the diagram, inspecting `envs` to deter
     st.markdown(r"""
 Use `layer_init` to initialize each `Linear`, overriding the standard deviation according to the diagram. 
 
-Don't worry about the `learn` function yet; we'll return to that later.
+Don't worry about the `rollout` and `learn` methods yet; we'll return to that later.
 """)
-
     st.write("""<figure style="max-width:510px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNqNkU9LAzEQxb_KMicLW-3W0sOihWC9CR7sbVPKbDJ1A012yZ-DlH53s8buqhV0IMnk8QZ-LzmCaCVBCa8WuybbrLnJYrlQJ-HBKq9EEvt6UobQFhWH1F21tdu5BjvKs-ViwmGbTaerbIOmKap-T_dkno9jy8WFf37hv_3uLyZ3tb1ZOS_vi_Pgc_DcJDwy8gc8E761Izv7Jzz7Qv9x_4ueJXwO_TmIv2YwQe9QeNUaN6aZXc-GQCwmquLaDqEgB01Wo5Lxm469zME3pIlDGVtJewwHz4GbU7SGTqKnR6lidCj3eHCUAwbfvrwZAaW3gc6mtcL4TvrTdXoHrTShmw" /></figure>""", unsafe_allow_html=True)
     # graph TD
     #     subgraph Critic
@@ -688,7 +906,10 @@ class Agent(nn.Module):
     def __init__(self, envs: gym.vector.SyncVectorEnv):
         pass
 
-    def learn(self, minibatch):
+    def rollout(self):
+        pass
+
+    def learn(self):
         pass
 
 if MAIN:
@@ -761,18 +982,50 @@ When calculating the advantages from the deltas, it might help to work backwards
 """)
     st.markdown(r"""
 
-## Minibatch Update ([detail #6](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Mini%2Dbatch%20Updates))
+## Rollout Phase
 
-After generating our experiences that have `(t, env)` dimensions, we need to:
+### Memory
 
-- Flatten the `(t, env)` dimensions into one batch dimension
+Here, you should create an object to store past experiences (which we've called `memory` in the diagram).
+
+This should store episodes of the form $s_t, a_t, \log{\pi(a_t\mid s_t)}, d_t, r_{t+1}, V_\pi(s_t)$ for $t = 1, ..., T-1$, where $T =$ `arg.num_steps`.
+
+It will also need to store the terms $s_T, d_T$ and $V_\pi(s_t)$. **Exercise - can you see why we need all three of these three terms?**""")
+
+    with st.expander("Answer"):
+        st.markdown(r"""
+We need $s_T$ so that we can "pick up where we left off" in the next rollout phase. If we reset each time then we'd never have episodes longer than `arg.num_steps` steps. The default value for `arg.num_steps` is 128, which is smaller than the 500 step maximum for CartPole.
+
+We need $d_T$ and $V_\pi(s_t)$ so that we can calculate the advantages in the GAE section.
+""")
+
+    st.markdown(r"""
+Remember, we are working with multiple environments. So after the rollout phase is complete, you should store (for example) rewards as a tensor of shape `(T, num_envs)`.
+
+The implementation details are left up to you. This can be as simple as a dictionary with keys `"obs"`, `"reward"`, etc, or you can make it a class `Memory` with its own special methods.
+
+Note - you might want to read to the end of this section before you make a decision on how to implement your memory object. Knowing exactly what it will be used for might give you a better sense of what the best implementation strategy might be.
+
+```
+# YOUR CODE HERE: define the memory object
+```
+
+### Minibatches ([detail #6](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Mini%2Dbatch%20Updates))
+
+After generating our experiences that have `(T, num_envs)` dimensions, we need to:
+
+- Flatten the `(T, num_envs)` dimensions into one batch dimension
 - Split the batch into minibatches, so we can take an optimizer step for each minibatch.
 
 If we just randomly sampled the minibatch each time, some of our experiences might not appear in any minibatch due to random chance. This would be wasteful - we're going to discard all these experiences immediately after training, so there's no second chance for the experience to be used, unlike if it was in a replay buffer.
 
 Implement the following functions so that each experience appears exactly once.
 
-Note - `Minibatch` stores the returns, which are just advantages + values.
+Note - `Minibatch` stores the returns, which are just advantages + values.""")
+
+    st.error("TODO - delete or change the section below. Also add a better explanation of why we do `returns = advantages + values`.")
+
+    st.markdown(r"""
 
 **Exercise: read the [PPO Algorithms paper](https://arxiv.org/pdf/1707.06347.pdf) and the [PPO Implementational Details post](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#solving-pong-in-5-minutes-with-ppo--envpool), then try and infer what each of the six items in `MiniBatch` are and why they are necessary.** If you prefer, you can return to these once you've implmemented all the loss functions (when it might make a bit more sense).""")
 
@@ -849,21 +1102,61 @@ def make_minibatches(
     pass
 ```
 
-## Loss Function
+### Rollout
 
-The overall loss function is given by Eq 9 in the paper and is the sum of three terms - we'll implement each term individually.
+As the final task in this section, you should write a function `rollout` which generates experiences and stores them in memory. We've suggested you implement this as a method of your `agent`, but you can do this in a different way if you prefer - it's completely up to you.
 
-### Gradient Ascent
+The essential things this function should do are:
 
-The convention we've used in these exercises for signs is that **your function outputs should be the expressions in equation $(9)$**, in other words you will compute $L_t^{CLIP}(\theta)$, $c_1 L_t^{VF}(\theta)$ and $c_2 S[\pi_\theta](s_t)$. You can then either perform gradient descent on the **negative** of the expression in $(9)$, or perform **gradient ascent** on the expression by passing `maximize=True` into your Adam optimizer when you initialise it.
+- Get our next `obs` and `done` items, which we take as $s_0$ and $d_0$. If this is our first rollout then we do this by resetting the environment (and taking `done` to be false). If this isn't our first rollout then we should have stored `obs` and `done` in our memory object, as $s_T$ and $d_T$.
+- For $t = 0, ..., T-1$:
+    - Generate the following variables: $a_t, \log{\pi(a_t \mid s_t)}, r_{t+1}, V_\pi(s_t)$. We do this as follows:
+        - $a_t$ will be generated by taking the output of your `agent.actor` on $s_t$, and sampling from this distribution
+        - $r_{t+1}, s_{t+1}, d_{t+1}$ will be returned by `envs.step`
+        - $V_\pi(s_t)$ will be returned by your `agent.critic`
+    - Store $s_t, a_t, \log{\pi(a_t\mid s_t)}, d_t, r_{t+1}, V_\pi(s_t)$ in memory
+- Generate $V_\pi(s_T)$, and store $(s_T, d_T, V_\pi(s_T))$ in memory (see the **Memory** section above for an explanation of why we need to do this)
 
-### Clipped Surrogate Loss
+You can also store episode information while this function runs. For example, the `envs.step` method returns `info`, which is a list of info dictionaries (one for each env). If one of those dictionaries contains the key `"episode"`, then the corresponding value will contain information about the episode, e.g. its total duration and return. These can be very useful outputs to print to a progress bar as your function is running.""")
+
+    st.info(r"""
+A note on the difference between episode length and return. In this case they will be exactly the same, since our return is just `+1` as long as the episode lasts for (note that return means actual accumulated return rather than discounted return). However, when we get to reward shaping later on, these two will be different, and both of them are useful to track.
+""")
+
+    st.markdown(r"""
+### Testing
+
+Because the implementation details are left up to you, we haven't provided specific tests that your code has to pass. However, we have given you a plotting function in `utils`:
+
+```python
+def plot_cartpole_obs_and_dones(obs: t.Tensor, done: t.Tensor):
+'''
+obs: shape (n_steps, n_envs, n_obs)
+dones: shape (n_steps, n_envs)
+
+Plots the observations and the dones.
+'''
+```
+You should be able to use this function to generate output like the graph below.""")
+    st.plotly_chart(fig_dict["cartpole_experiences"], use_container_width=True)
+    st.markdown(r"""
+Explanation for the graph: each of the dotted lines (the values $t^*$ where $d_{t^*}=1$) corresponds to a state $s_{t^*}$ where the pole's angle goes over the [bounds](https://www.gymlibrary.dev/environments/classic_control/cart_pole/) of `+=0.2095` (note that it doesn't stay upright nearly long enough to hit the positional bounds). If you zoom in on one of these points, then you'll see that we never actually record observations when the pole is out of bounds. At $s_{t^*-1}$ we are still within bounds, and once we go over bounds the next observation is taken from the reset environment.
+
+Another thing you could check - do the episode lengths returned in the `info` dict seem to make sense?
+
+## Learning Phase
+
+Now, we'll turn to the learning phase. Firstly, we'll work on computing our objective function. This is given by equation $(9)$ in the paper, and is the sum of three terms - we'll implement each term individually.""")
+
+    st.info(r"""
+Note - the convention we've used in these exercises for signs is that **your function outputs should be the expressions in equation $(9)$**, in other words you will compute $L_t^{CLIP}(\theta)$, $c_1 L_t^{VF}(\theta)$ and $c_2 S[\pi_\theta](s_t)$. You can then either perform gradient descent on the **negative** of the expression in $(9)$, or perform **gradient ascent** on the expression by passing `maximize=True` into your Adam optimizer when you initialise it.""")
+
+    st.markdown(r"""
+### Clipped Surrogate Objective
 
 For each minibatch, calculate $L^{CLIP}$ from equation $(7)$ in the paper. We will refer to this function as `policy_loss`. This will allow us to improve the parameters of our actor.
 
 Note - in the paper, don't confuse $r_{t}$ which is reward at time $t$ with $r_{t}(\theta)$, which is the probability ratio between the current policy (output of the actor) and the old policy (stored in `mb_logprobs`).
-
-### Minibatch Advantage Normalization ([detail #7](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Normalization%20of%20Advantages))
 
 Pay attention to the normalization instructions in [detail #7](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Normalization%20of%20Advantages) when implementing this loss function.
 
@@ -872,10 +1165,10 @@ You can use the `probs.log_prob` method to get the log probabilities that corres
 Note - if you're wondering why we're using a `Categorical` type rather than just using `log_prob` directly, it's because we'll be using them to sample actions later on in our `train_ppo` function. Also, categoricals have a useful method for returning the entropy of a distribution (which will be useful for the entropy term in the loss function).
 
 ```python
-def calc_policy_loss(
+def calc_clipped_surrogate_objective(
     probs: Categorical, mb_action: t.Tensor, mb_advantages: t.Tensor, mb_logprobs: t.Tensor, clip_coef: float
 ) -> t.Tensor:
-    '''Return the policy loss, suitable for maximisation with gradient ascent.
+    '''Return the clipped surrogate objective, suitable for maximisation with gradient ascent.
 
     probs: a distribution containing the actor's unnormalized logits of shape (minibatch, num_actions)
 
@@ -889,14 +1182,24 @@ if MAIN:
 
 ### Value Function Loss ([detail #9](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Value%20Function%20Loss%20Clipping))
 
-The value function loss lets us improve the parameters of our critic. Today we're going to implement the simple form: this is just 1/2 the mean squared difference between the **critic's prediction** ($V_\theta(s_t)$ in the paper) and the **observed returns** ($V_t^\text{targ}$ in the paper). We're defining returns as `returns = advantages + values`. We can view this as a more accurate estimate for `values`, which takes into account the rewards $r_{t+1}, r_{t+2}, ...$ which our agent actually accumulated (these are stored inside our generalised advantage estimates `advantage`).
+The value function loss lets us improve the parameters of our critic. Today we're going to implement the simple form: this is just 1/2 the mean squared difference between the following two terms:
+
+* The **critic's prediction**
+    * This is $V_\theta(s_t)$ in the paper, and `values` in the diagram earlier (colored blue). 
+* The **observed returns**
+    * This is $V_t^\text{targ}$ in the paper, and `returns` in the diagram earlier (colored yellow).
+    * We defined it as `advantages + values`, where in this case `values` is the item stored in memory rather than the one computed by our network during the learning phase. We can interpret `returns` as a more accurate estimate of values, since the `advantages` term takes into account the rewards $r_{t+1}, r_{t+2}, ...$ which our agent actually accumulated.""")
+
+    st.error("TODO - add code to plot your critic's value function. This is informative in cartpole as well as the Probe envs.")
+
+    st.markdown(r"""
 
 The PPO paper did a more complicated thing with clipping, but we're going to deviate from the paper and NOT clip, since [detail #9](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Value%20Function%20Loss%20Clipping) gives evidence that it isn't beneficial.
 
 Implement `calc_value_function_loss` which returns the term denoted $c_1 L_t^{VF}$ in equation $(9)$.
 
 ```python
-def calc_value_function_loss(critic: nn.Sequential, mb_obs: t.Tensor, mb_returns: t.Tensor, v_coef: float) -> t.Tensor:
+def calc_value_function_loss(values: t.Tensor, mb_returns: t.Tensor, vf_coef: float) -> t.Tensor:
     '''Compute the value function portion of the loss function.
 
     v_coef: the coefficient for the value loss, which weights its contribution to the overall loss. Denoted by c_1 in the paper.
@@ -906,11 +1209,8 @@ def calc_value_function_loss(critic: nn.Sequential, mb_obs: t.Tensor, mb_returns
 if MAIN:
     tests.test_calc_value_function_loss(calc_value_function_loss)
 ```
-
-Empirical observation - it seems you can drop the value function loss term in the CartPole environment, and still get a solution. Can you propose an explanation 
 """)
-
-
+    st.error("TODO - add exercise 'you can lose the value function - and indeed the entire critic - and still do fine in CartPole, can you explain?'. I think I have an idea of what the answer is, but not totally sure.")
 
     st.markdown(r"""
 ### Entropy Bonus ([detail #10](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Overall%20Loss%20and%20Entropy%20Bonus))
@@ -930,17 +1230,14 @@ The minimum entropy is zero, under the policy "always move left" or "always move
 The minimum entropy is $\ln(2) \approx 0.693$ under the uniform random policy over the 2 actions.
 """)
     st.markdown(r"""
-### Entropy Diagnostic
-
 Separately from its role in the loss function, the entropy of our action distribution is a useful diagnostic to have: if the entropy of agent's actions is near the maximum, it's playing nearly randomly which means it isn't learning anything (assuming the optimal policy isn't random). If it is near the minimum especially early in training, then the agent might not be exploring enough.
 
-Implement `calc_entropy_loss`.
+Implement `calc_entropy_bonus`.
 
-Tip: make sure the sign is correct; for gradient descent, to actually increase entropy this term needs to be negative.
 
 ```python
-def calc_entropy_loss(probs: Categorical, ent_coef: float):
-    '''Return the entropy loss term.
+def calc_entropy_bonus(probs: Categorical, ent_coef: float):
+    '''Return the entropy bonus term, suitable for gradient ascent.
 
     ent_coef: the coefficient for the entropy loss, which weights its contribution to the overall loss. Denoted by c_2 in the paper.
     '''
@@ -977,55 +1274,35 @@ def make_optimizer(agent: Agent, num_updates: int, initial_lr: float, end_lr: fl
     '''Return an appropriately configured Adam with its attached scheduler.'''
     pass
 ```
+## Learning function
 
-## PPO Arguments
+Finally, we can package this all together into a learn function. Again, you can implement this as a method for your agent (the suggested option) or in any other way you like.
 
-Just like for DQN, we've provided you with a dataclass containing arguments for your `train_ppo` function. We've also given you a function from `utils` to display all these arguments (including which ones you've changed). For example, you can run:
-
-```python
-args = PPOArgs()
-args.track = False # this disables wandb tracking; useful when fixing bugs
-arg_help(args)
-```
-
-which displays the following table:""")
-
-    st_image("params1.png", 700)
-    st.markdown("")
-    st.markdown(r"""
-If you find this doesn't display correctly in VSCode, then you can use `arg_help(args, print_df=True)` to print out the dataframe in text form.
+Your function will need to do the following:
+- For `n = 1, 2, ..., args.update_epochs`, you should:
+    - Use previously-written functions to make minibatches from the data stored in `memory`
+    - For each minibatch:
+        - Use your `agent.actor` to calculate new probabilities $\pi_\theta(a_t \mid s_t)$
+        - Use these (and the data in memory) to calculate your objective function
+        - Perform a gradient ascent step on your total objective function
+            - Here, you should also clip gradients, in the way suggested by [detail #11](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Global%20Gradient%20Clipping)
+- Step your scheduler
+- Take the last minibatch, and log variables for debugging in accordance with [detail #12](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Debug%20variables) (see the next section for more on this explanation. You can skip this point for now until the rest of your code is working)
 
 ## Putting it all together
 
-Again, we've provided the boilerplate for you. It looks worse than it is - a lot of it is just tracking metrics for debugging. Implement the sections marked with placeholders.""")
+Now, you should be ready to write your `train_PPO` function!
 
-    st.markdown(r"""
+We've given you a basic template below. It might look very long, but the stuff we've included is pretty boring boilerplate stuff, such as:
+* Setting random seeds to ensure reproducibility
+* Initialising to weights and biases in a way which captures video
+* Initialising the vectorized gym environments
+* Adding code to test the probe environments at the end (just like we did for DQN)
 
-If you need more detailed instructions for what to do in some of the code sections, then you can look at the dropdowns. You should attempt each section of code for at least 20-30 mins before you look at these dropdowns.""")
+The important parts (namely the rollout and learning phases) we've left for you to fill in.
 
-    with st.expander("Guidance for (1)"):
-        st.markdown(r"""
-For each value of `i in range(0, args.num_envs)`, you need to fill in the `i`th row of your tensors `obs`, `dones`, `values`, `actions`, `logprobs` and `rewards`. You get each of these items in the following ways (and in the following order):
-* Values are found from inputting `next_obs` to your critic.
-* You can get the logits for your policy $\pi_\theta$ by inputting `next_obs` to your actor, and from these you can get:
-    * A distribution object, via using `Categorical`.
-    * Actions, using the `sample` method of `Categorical` objects.
-    * Logprobs, which are the log-probabilities of your distribution object corresponding to the sampled actions.
-    * Rewards, by passing your actions into the `envs.step` function.
+Also, here are some hints for a few more specific bugs you might find yourself getting:
 """)
-        st.markdown("")
-    with st.expander("Guidance for (2)"):
-        st.markdown(r"""
-This is the part of the code where you bring everything together. You will need to:
-
-* Calculate your three loss functions, using the elements in your minibatch `mb`.
-* Perform a gradient ascent step (or descent, depending on how you've defined the loss functions).
-* Follow [detail #11](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Global%20Gradient%20Clipping), on global gradient clipping. You will find `nn.utils.clip_grad_norm_` helpful here.
-""")
-        st.markdown("")
-        st.markdown("Note - you **shouldn't** step your scheduler; this is done for you outside the loop.")
-
-    st.markdown("Also, here are some hints for a few more specific bugs you might find yourself getting:")
     with st.expander("Help - I get the error 'AssertionError: tensor(1, device='cuda:0') (<class 'torch.Tensor'>) invalid'."):
         st.markdown(r"""
 The actions passed into `envs.step` should probably be numpy arrays, not tensors. Convert them using `.cpu().numpy()`.
@@ -1035,151 +1312,47 @@ The actions passed into `envs.step` should probably be numpy arrays, not tensors
         st.markdown(r"""
 You should be doing part 1 of coding (the **rollout phase**) in inference mode. This is just designed to sample actions, not for actual network updates.""")
 
+    st.error("TODO - run the probe environments on this; I suspect my value functions might actually be bad (but that the agent is solving the problem anyway, because having a good critic doesn't actually matter much here).")
+
     st.markdown(r"""
+Good luck!
 
 ```python
-@dataclass
-class PPOArgs:
-    exp_name: str = os.path.basename(globals().get("__file__", "PPO_implementation").rstrip(".py"))
-    seed: int = 1
-    torch_deterministic: bool = True
-    cuda: bool = True
-    track: bool = True
-    wandb_project_name: str = "PPOCart"
-    wandb_entity: str = None
-    capture_video: bool = True
-    env_id: str = "CartPole-v1"
-    total_timesteps: int = 500000
-    learning_rate: float = 0.00025
-    num_envs: int = 4
-    num_steps: int = 128
-    gamma: float = 0.99
-    gae_lambda: float = 0.95
-    num_minibatches: int = 4
-    update_epochs: int = 4
-    clip_coef: float = 0.2
-    ent_coef: float = 0.01
-    vf_coef: float = 0.5
-    max_grad_norm: float = 0.5
-    batch_size: int = 512
-    minibatch_size: int = 128
-
 def train_ppo(args):
+
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
     if args.track:
-        import wandb
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
-            sync_tensorboard=True,
-            config=vars(args),
+            config=vars(args), # vars is equivalent to args.__dict__
             name=run_name,
             monitor_gym=True,
             save_code=True,
         )
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    torch.backends.cudnn.deterministic = args.torch_deterministic
+    set_global_seeds(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
     envs = gym.vector.SyncVectorEnv(
         [make_env(args.env_id, args.seed + i, i, args.capture_video, run_name) for i in range(args.num_envs)]
     )
-    action_shape = envs.single_action_space.shape
-    assert action_shape is not None
+    assert envs.single_action_space.shape is not None
     assert isinstance(envs.single_action_space, Discrete), "only discrete action space is supported"
     agent = Agent(envs).to(device)
     num_updates = args.total_timesteps // args.batch_size
     (optimizer, scheduler) = make_optimizer(agent, num_updates, args.learning_rate, 0.0)
-    obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)
-    actions = torch.zeros((args.num_steps, args.num_envs) + action_shape).to(device)
-    logprobs = torch.zeros((args.num_steps, args.num_envs)).to(device)
-    rewards = torch.zeros((args.num_steps, args.num_envs)).to(device)
-    dones = torch.zeros((args.num_steps, args.num_envs)).to(device)
-    values = torch.zeros((args.num_steps, args.num_envs)).to(device)
-    global_step = 0
-    old_approx_kl = approx_kl= 0.0
-    value_loss = t.tensor(0.0)
-    policy_loss = t.tensor(0.0)
-    entropy_loss = t.tensor(0.0)
-    clipfracs = info = []
-    start_time = time.time()
-    next_obs = torch.Tensor(envs.reset()).to(device)
-    next_done = torch.zeros(args.num_envs).to(device)
+    
+    "YOUR CODE HERE: initialise your memory object"
+
     progress_bar = tqdm(range(num_updates))
     
     for _ in progress_bar:
-        for i in range(0, args.num_steps):
 
-            global_step += args.num_envs
+        "YOUR CODE HERE: perform rollout and learning steps, and optionally log vars"
 
-            "(1) YOUR CODE: Rollout phase (see detail #1)"
-
-            if args.track:
-                for item in info:
-                    if "episode" in item.keys():
-                        vars = dict(
-                            episodic_return = item["episode"]["r"],
-                            episodic_length = item["episode"]["l"],
-                        )
-                        wandb.log(vars, step=global_step)
-                        progress_bar.set_description(f"global_step={global_step}, episodic_return={int(item['episode']['r'])}")
-            else:
-                progress_bar.set_description(f"global_step={global_step}")
-        
-        with t.inference_mode():
-            next_value = rearrange(agent.critic(next_obs), "env 1 -> 1 env")
-            advantages = compute_advantages(
-                next_value, next_done, rewards, values, dones, device, args.gamma, args.gae_lambda
-            )
-        clipfracs.clear()
-        for _ in range(args.update_epochs):
-            minibatches = make_minibatches(
-                obs,
-                logprobs,
-                actions,
-                advantages,
-                values,
-                envs.single_observation_space.shape,
-                action_shape,
-                args.batch_size,
-                args.minibatch_size,
-            )
-            for mb in minibatches:
-
-                "(2) YOUR CODE: compute loss on the minibatch and step the optimizer."
-
-        scheduler.step()
-
-        if args.track:
-            y_pred = mb.values.cpu().numpy()
-            y_true = mb.returns.cpu().numpy()
-            var_y = np.var(y_true)
-            explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
-            with torch.no_grad():
-                newlogprob: t.Tensor = probs.log_prob(mb.actions)
-                logratio = newlogprob - mb.logprobs
-                ratio = logratio.exp()
-                old_approx_kl = (-logratio).mean().item()
-                approx_kl = (ratio - 1 - logratio).mean().item()
-                clipfracs += [((ratio - 1.0).abs() > args.clip_coef).float().mean().item()]
-            vars = dict(
-                learning_rate = optimizer.param_groups[0]["lr"],
-                value_loss = value_loss.item(),
-                policy_loss = policy_loss.item(),
-                entropy = entropy_loss.item(),
-                old_approx_kl = old_approx_kl,
-                approx_kl = approx_kl,
-                clipfrac = np.mean(clipfracs),
-                explained_variance = explained_var,
-                SPS = int(global_step / (time.time() - start_time)),
-            )
-            wandb.log(vars, step=global_step)
-
-    "If running one of the Probe environments, will test if the learned q-values are\n    sensible after training. Useful for debugging."
+    # If running one of the Probe environments, test if learned critic values are sensible after training
     obs_for_probes = [[[0.0]], [[-1.0], [+1.0]], [[0.0], [1.0]], [[0.0]], [[0.0], [1.0]]]
     expected_value_for_probes = [[[1.0]], [[-1.0], [+1.0]], [[args.gamma], [1.0]], [[-1.0, 1.0]], [[1.0, -1.0], [-1.0, 1.0]]]
-    tolerances = [5e-4, 5e-4, 5e-4, 5e-4, 1e-3]
+    tolerances = [5e-4, 5e-4, 5e-4, 5e-4, 1e-3] # Prediction is slower to converge for environment 5
     match = re.match(r"Probe(\d)-v0", args.env_id)
     if match:
         probe_idx = int(match.group(1)) - 1
@@ -1195,17 +1368,22 @@ def train_ppo(args):
 
 if MAIN:
     args = PPOArgs()
+    arg_help(args)
     train_ppo(args)
 ```
 
-## Debug Variables (detail #12)
+## Debug Variables ([detail #12](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/#:~:text=Debug%20variables))
 
 Go through and check each of the debug variables that are logged. Make sure your implementation computes or calculates the values and that you have an understanding of what they mean and what they should look like.
 
-### Update Frequency
+The easiest way to log these variables is probably within your `learn` function. You can either log these variables for the very last minibatch, or their average over all minibatches (you can experiment with both of these).
+""")
 
-Note that the debug values are currently only logged once per update, meaning some are computed from the last minibatch of the last epoch in the update. This isn't necessarily the best thing to do, but if you log too often it can slow down training. You can experiment with logging more often, or tracking the average over the update or even an exponentially moving average.
+    with st.expander("Exercise - can you see why it might not be a good idea to log the variables separately for each minibatch?"):
+        st.markdown(r"""
+Some of the variables you're logging might systematically change during each learning period. For instance, the amount of clipping you do might increase during the learning period as your policy function $\pi_\theta$ changes (recall that the `logprobs` derived from $\pi_{\theta_\text{old}}$ will remain constant).""")
 
+    st.markdown(r"""
 ## Reward Shaping
 
 Recall the [docs](https://www.gymlibrary.dev/environments/classic_control/cart_pole/) and [source code](https://github.com/openai/gym/blob/master/gym/envs/classic_control/cartpole.py) for the `CartPole` environment.
@@ -1293,7 +1471,7 @@ Details coming soon!
 
 func_list = [section_home, section_1, section_2, section_3]
 
-page_list = ["🏠 Home", "1️⃣ PPO: Mathematical Background", "2️⃣ PPO: Implementation", "3️⃣ Bonus"]
+page_list = ["🏠 Home", "1️⃣ PPO: Background", "2️⃣ PPO: Implementation", "3️⃣ Bonus"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 def page():
