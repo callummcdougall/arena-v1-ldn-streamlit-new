@@ -105,10 +105,10 @@ def show_all():
 <ul class="contents">
     <li><a class="contents-el" href="#maths">Maths</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#neural-networks**">Neural Networks**</a></li>
-        <li><a class="contents-el" href="#linear-algebra**">Linear algebra**</a></li>
-        <li><a class="contents-el" href="#probability**">Probability**</a></li>
-        <li><a class="contents-el" href="#calculus**">Calculus**</a></li>
+        <li><a class="contents-el" href="#neural-networks">Neural Networks**</a></li>
+        <li><a class="contents-el" href="#linear-algebra">Linear algebra**</a></li>
+        <li><a class="contents-el" href="#probability">Probability**</a></li>
+        <li><a class="contents-el" href="#calculus">Calculus**</a></li>
         <li><a class="contents-el" href="#statistics*">Statistics*</a></li>
         <li><a class="contents-el" href="#information-theory*">Information theory*</a></li>
     </ul></li>
@@ -363,10 +363,10 @@ def show_single_or_double():
 <ul class="contents">
     <li><a class="contents-el" href="#maths">Maths</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#neural-networks**">Neural Networks**</a></li>
-        <li><a class="contents-el" href="#linear-algebra**">Linear algebra**</a></li>
-        <li><a class="contents-el" href="#probability**">Probability**</a></li>
-        <li><a class="contents-el" href="#calculus**">Calculus**</a></li>
+        <li><a class="contents-el" href="#neural-networks">Neural Networks**</a></li>
+        <li><a class="contents-el" href="#linear-algebra">Linear algebra**</a></li>
+        <li><a class="contents-el" href="#probability">Probability**</a></li>
+        <li><a class="contents-el" href="#calculus">Calculus**</a></li>
         <li><a class="contents-el" href="#statistics*">Statistics*</a></li>
         <li><a class="contents-el" href="#information-theory*">Information theory*</a></li>
     </ul></li>
@@ -601,10 +601,10 @@ def show_double():
 <ul class="contents">
     <li><a class="contents-el" href="#maths">Maths</a></li>
     <li><ul class="contents">
-        <li><a class="contents-el" href="#neural-networks**">Neural Networks**</a></li>
-        <li><a class="contents-el" href="#linear-algebra**">Linear algebra**</a></li>
-        <li><a class="contents-el" href="#probability**">Probability**</a></li>
-        <li><a class="contents-el" href="#calculus**">Calculus**</a></li>
+        <li><a class="contents-el" href="#neural-networks">Neural Networks**</a></li>
+        <li><a class="contents-el" href="#linear-algebra">Linear algebra**</a></li>
+        <li><a class="contents-el" href="#probability">Probability**</a></li>
+        <li><a class="contents-el" href="#calculus">Calculus**</a></li>
     </ul></li>
     <li><a class="contents-el" href="#programming">Programming</a></li>
     <li><ul class="contents">
