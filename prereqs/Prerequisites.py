@@ -3,7 +3,7 @@ import base64
 import platform
 import os
 if not os.path.exists("./images"):
-    os.chdir("./ch4")
+    os.chdir("./prereqs")
 
 is_local = (platform.processor() != "")
 
