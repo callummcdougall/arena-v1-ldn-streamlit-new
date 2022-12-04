@@ -1,6 +1,9 @@
 import streamlit as st
 import base64
 import platform
+import os
+if not os.path.exists("./images"):
+    os.chdir("./ch4")
 
 is_local = (platform.processor() != "")
 
