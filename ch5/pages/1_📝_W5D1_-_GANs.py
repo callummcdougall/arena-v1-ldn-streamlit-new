@@ -724,10 +724,11 @@ Also, you might find [this page](https://github.com/soumith/ganhacks) useful. It
 
 But there are others we haven't discussed here and which might improve training, such as:
 
-* (6) Use Soft and Noisy Labels
-    * "Hard labels" always take the values zero/one for real/fake respectively. We can make noisy labels by swapping these out for uniformly distributed labels centered around 0 or 1 respectively.
 * (7) Use stability tracks from RL
     * For instance, in our DQN implementation we kept a buffer of past experiences (also called an **experience replay**). You can try keeping checkpointed versions of your discriminator and generator networks (i.e. the discriminator is trained on a staggered version of the generator, and vice-versa).
+* (13) Add noise to inputs, decay over time
+    * e.g. adding noise to the inputs to your discriminator, or to each layer of your generator
+    * These can help solve the problem of DCGAN **overconfidence**
 
 ## Final words
 
