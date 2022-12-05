@@ -7,7 +7,7 @@ import pandas as pd
 
 import os
 if not os.path.exists("./images"):
-    os.chdir("./ch5")
+    os.chdir("./ch5") # update_num = 2
 from st_dependencies import *
 # styling()
 

@@ -11,6 +11,7 @@ def st_image(name, width):
     img_html = f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
     st.markdown(img_html, unsafe_allow_html=True)
 
+
 def styling():
     st.set_page_config(layout="wide", page_icon="🔬")
     st.markdown("""
@@ -22,6 +23,9 @@ label.effi0qh3 {
 }
 p {
     line-height:1.48em;
+}
+.st-ae h2 {
+    margin-top: -15px;
 }
 .streamlit-expanderHeader {
     font-size: 1em;
@@ -36,6 +40,12 @@ header {
 code {
     color: red;
     white-space: pre-wrap !important;
+}
+.st-ae code {
+    padding: 4px;
+}
+.css-ffhzg2 .st-ae code {
+    background-color: black;
 }
 code:not(h1 code):not(h2 code):not(h3 code):not(h4 code) {
     font-size: 13px;
@@ -58,7 +68,7 @@ pre code {
     font-size:13px !important;
 }
 .katex {
-    font-size:17px;
+    font-size:18px;
 }
 h2 .katex, h3 .katex, h4 .katex {
     font-size: unset;
@@ -78,7 +88,6 @@ ul.contents a:hover {
     text-decoration: underline;
 }
 </style>""", unsafe_allow_html=True)
-
 
 def check_password():
     """Returns `True` if the user had the correct password."""
