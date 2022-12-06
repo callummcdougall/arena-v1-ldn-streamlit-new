@@ -129,7 +129,7 @@ We've only used linear layers so far, but it's much more natural to use convolut
 
 ### Encoder
 
-Your encoder should consist of two convolutional layers, a flatten, then two linear layers. After each convolution or linear layer (except for the last one) you should have an activation function. The convolutions should have kernel size 4, stride 2, padding 0 (recall from yesterday that this exactly halves the width and height). The number of output channels can be 16 and 32 respectively.
+Your encoder should consist of two convolutional layers, a flatten, then two linear layers. After each convolution or linear layer (except for the last one) you should have an activation function. The convolutions should have kernel size 4, stride 2, padding 1 (recall from yesterday that this exactly halves the width and height). The number of output channels can be 16 and 32 respectively.
 
 After the convolutional layers, you flatten then apply linear layers. Your flattened size will be $32 \times 7 \times 7$. Your first linear layer should have `out_features=128`; the second is up to you (again we recommend playing around with values between 2 and 10).
 
