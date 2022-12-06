@@ -28,10 +28,12 @@ def get_fig_dict():
     return {"gan_output": read_from_html(f"gan_output")}
 
 if "fig_dict" not in st.session_state:
-    fig_dict = get_fig_dict()
-    st.session_state["fig_dict"] = fig_dict
-else:
-    fig_dict = st.session_state["fig_dict"]
+    st.session_state["fig_dict"] = {}
+
+if "gan_output" not in st.session_state["fig_dict"]:
+    st.session_state["fig_dict"] |= get_fig_dict()
+
+fig_dict = st.session_state["fig_dict"]
 
 def section_home():
 
@@ -436,7 +438,7 @@ It is necessary for the generator to be producing perfect outputs, because other
 
 If the generator is producing perfect outputs, then the discriminator never has any ability to distinguish real from fake images, so it has no information. Its job is to minimise the cross entropy between its output distribution $(D(x), 1-D(x))$, and the distribution of real/fake images. Call this $(p, 1-p)$, i.e. $p$ stands for the proportion of images in training which are real. Note how we just used $p$ rather than $p(x)$, because there's no information in the image $x$ which indicates whether it is real or fake. Trying to minimize the cross entropy between $(p, 1-p)$ and $(D(x), 1-D(x))$ gives us the solution $D(x) = p$ for all $x$. In other words, our discriminator guesses real/fake randomly with probability equal to the true underlying frequency of real/fake images in the data. This is 0.5 if and only if the data contains an equal number of real and fake images.
 
-To summarize, the necessary and sufficient conditions for $(\all x) \; D(x) = 0.5$ being the optimal strategy are:
+To summarize, the necessary and sufficient conditions for $(\forall x) \; D(x) = 0.5$ being the optimal strategy are:
 
 * The generator $G$ produces perfect output
 * The underlying frequency of real/fake images in the data is 50/50
