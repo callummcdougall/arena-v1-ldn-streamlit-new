@@ -11,6 +11,15 @@ def st_image(name, width):
     img_html = f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' src='data:image/png;base64,{encoded}' class='img-fluid'>"
     st.markdown(img_html, unsafe_allow_html=True)
 
+def st_excalidraw(name, width):
+    img_html_full = ""
+    for suffix in ["light", "dark"]:
+        with open("images/" + name + "-" + suffix + ".png", "rb") as file:
+            img_bytes = file.read()
+        encoded = base64.b64encode(img_bytes).decode()
+        img_html = f"<img style='width:{width}px;max-width:100%;margin-bottom:25px' class='img-fluid {suffix}Excalidraw' src='data:image/png;base64,{encoded}'>"
+        img_html_full += img_html
+    st.markdown(img_html_full, unsafe_allow_html=True)
 
 def styling():
     st.set_page_config(layout="wide", page_icon="🔬")
@@ -63,6 +72,18 @@ a.contents-el > code {
 }
 .css-ffhzg2 .contents-el {
     color: white !important;
+}
+.lightExcalidraw {
+    display: block
+}
+.darkExcalidraw {
+    display: none
+}
+.css-ffhzg2 .lightExcalidraw {
+    display: none
+}
+.css-ffhzg2 .darkExcalidraw {
+    display: block
 }
 pre code {
     font-size:13px !important;

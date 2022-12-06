@@ -18,10 +18,6 @@ Here, you'll actually implement and train your own GANs, to generate celebrity p
     cols = st.columns([1, 10, 4])
     with cols[1]:
         st_image("gan_output.png", 700)
-    st.markdown("""
----
-This material is expected to take approximately two days. At the end of that time, you'll be able to decide whether you want to keep studying it, or change to the **training at scale** track.
-""")
 
 def section1():
 
@@ -84,8 +80,11 @@ def section2():
 </ul>
 """, unsafe_allow_html=True)
     st.markdown("""
-# Transposed convolutions (and other modules)
-In this section, we'll build all the modules required to implement our DCGAN. """)
+# Transposed convolutions
+
+In this section, we'll build all the modules required to implement our DCGAN. Mainly, this involves transposed convolutions.
+
+The material here should be pretty reminiscent of the module-building you did back in week 0!""")
 
     st.info(r"""
 ## Learning Objectives
@@ -329,6 +328,7 @@ You'll also need to implement a few more modules, which have docstrings provided
 class Tanh(nn.Module):
     def forward(self, x: t.Tensor) -> t.Tensor:
         pass
+
 class LeakyReLU(nn.Module):
     def __init__(self, negative_slope: float = 0.01):
         pass
@@ -336,9 +336,11 @@ class LeakyReLU(nn.Module):
         pass
     def extra_repr(self) -> str:
         pass
+
 class Sigmoid(nn.Module):
     def forward(self, x: t.Tensor) -> t.Tensor:
         pass
+
 w5d1_tests.test_Tanh(Tanh)
 w5d1_tests.test_LeakyReLU(LeakyReLU)
 w5d1_tests.test_Sigmoid(Sigmoid)
@@ -350,6 +352,7 @@ def section3():
 ## Table of Contents
 <ul class="contents">
     <li><a class="contents-el" href="#learning-objectives">Learning Objectives</a></li>
+    <li><a class="contents-el" href="#how-gans-work">How GANs work</a></li>
     <li><a class="contents-el" href="#dcgan-paper">DCGAN paper</a></li>
     <li><ul class="contents">
         <li><a class="contents-el" href="#discriminator-architecture">Discsriminator architecture</a></li>
@@ -387,8 +390,39 @@ def section3():
 """)
 
     st.markdown(r"""
+## How GANs work
+
+The basic idea behind GANs is as follows: you have two networks, the **generator** and the **discriminator**. The generator's job is to produce output realistic enough to fool the discriminator, and the discriminator's job is to try and tell the difference between real and fake output. The idea is for both networks to be trained simultaneously, in a positive feedback loop: as the generator produces better output, the discriminator's job becomes harder, and it has to learn to spot more subtle features distinguishing real and fake images, meaning the generator has to work harder to produce images with those features.
+
+The discriminator works by taking an image (either real, or created by the generator), and outputting a single value between 0 and 1, which is the probability that the discriminator puts on the image being real. The discriminator sees the images, but not the labels (i.e. whether the images are real or fake), and it is trained to distinguish between real and fake images with maximum accuracy. The architecture of discriminators in a GAN setup is generally a mirror image of the generator, with transposed convolutions swapped out for convolutions. This is the case for the DCGAN paper we'll be reading (which is why they only give a diagram of the generator, not both). The discriminator's loss function is the cross entropy between its probability estimates ($D(x)$ for real images, $D(G(z))$ for fake images) and the true labels ($1$ for real images, $0$ for fake images).
+
+The generator works by taking in a vector $z$, whose elements are all normally distributed with mean 0 and variance 1. We call the space $z$ is sampled from the **latent dimension** or **latent space**, and $z$ is a **latent vector**. The formal definition of a latent space is *an abstract multi-dimensional space that encodes a meaningful internal representation of externally observed events.* We'll dive a little deeper into what this means and the overall significance of latent spaces later on, but for now it's fine to understand this vector $z$ as a kind of random seed, which causes the generator to produce different outputs. After all, if the generator only ever produced the same image as output then the discriminator's job would be pretty easy (just subtract the image $g$ always produces from the input image, and see if the result is close to zero!). The generator's objective function is an increasing function of $D(G(z))$, in other words it tries to produce images $G(z)$ which have a high chance of fooling the discriminator (i.e. $D(G(z)) \approx 1$).
+
+The ideal outcome when training a GAN is for the generator to produce perfect output indistringuishable from real images, and the discriminator just guesses randomly. However, the precise nature of the situations when GANs converge is an ongoing area of study (in general, adversarial networks have very unstable training patterns). For example, you can imagine a situation where the discriminator becomes almost perfect at spotting fake outputs, because of some feature that the discriminator spots and that the generator fails to capture in its outputs. It will be very difficult for the generator to get a training signal, because it has to figure out what feature is missing from its outputs, and how it can add that feature to fool the discriminator. And to make matters worse, maybe marginal steps in that direction will only increase the probability of fooling the discriminator from almost-zero to slightly-more-than-almost-zero, which isn't much of a training signal! Later on we will see techniques people have developed to overcome problems like this and others, but in general they can't be solved completely.
+""")
+
+    with st.expander("Optional exercise - what conditions must hold for the discriminator's best strategy to be random guessing with probability 0.5?"):
+        st.markdown(r"""
+It is necessary for the generator to be producing perfect outputs, because otherwise the discriminator could do better than random guessing.
+
+If the generator is producing perfect outputs, then the discriminator never has any ability to distinguish real from fake images, so it has no information. Its job is to minimise the cross entropy between its output distribution $(D(x), 1-D(x))$, and the distribution of real/fake images. Call this $(p, 1-p)$, i.e. $p$ stands for the proportion of images in training which are real. Note how we just used $p$ rather than $p(x)$, because there's no information in the image $x$ which indicates whether it is real or fake. Trying to minimize the cross entropy between $(p, 1-p)$ and $(D(x), 1-D(x))$ gives us the solution $D(x) = p$ for all $x$. In other words, our discriminator guesses real/fake randomly with probability equal to the true underlying frequency of real/fake images in the data. This is 0.5 if and only if the data contains an equal number of real and fake images.
+
+To summarize, the necessary and sufficient conditions for $(\all x) \; D(x) = 0.5$ being the optimal strategy are:
+
+* The generator $G$ produces perfect output
+* The underlying frequency of real/fake images in the data is 50/50
+""")
+        st.markdown("")
+    st.markdown("")
+
+    st_excalidraw("gans", 1500)
+    # st_image("gans-light.png", 1500)
+
+    st.markdown(r"""
 ## DCGAN paper
+
 Now, you're ready to implement and train your own DCGAN! You should do this only using the [DCGAN paper](https://arxiv.org/abs/1511.06434v2) (implementing architectures based on descriptions in papers is an incredibly valuable skill for any would-be research engineer). There are some hints we've provided below if you get stuck while attempting this.
+
 All the details you'll need to build the architecture can be found on page 4 of the paper, or before (in particular, the diagram on page 4 and the description on page 3 should be particularly helpful).
 """)
 
@@ -469,7 +503,7 @@ class DCGAN(nn.Module):
 ```""")
 
     st.info("""
-If it's straining your computer's GPU, you can reduce the model size by halving the number of channels at each intermediate step (e.g. the first shape is `(512, 4, 4)` rather than `(1024, 4, 4)`). This will reduce the cost of forward/backward passes by a factor of 4 (can you see why?).
+If it's straining your computer's GPU (or just resulting in extremely long epochs), you can reduce the model size by halving the number of channels at each intermediate step (e.g. the first shape is `(512, 4, 4)` rather than `(1024, 4, 4)`). This will reduce the cost of forward/backward passes by a factor of 4 (can you see why?). Also, consider terminating your training loop before you see the entire dataset (if you aren't using a service like Lambda Labs to access a more powerful GPU, it can take upwards of 2 hours to get through a single epoch for this dataset).
 """)
 
     st.markdown("""
@@ -478,7 +512,7 @@ If it's straining your computer's GPU, you can reduce the model size by halving 
 
 ```python
 from solutions import celeb_DCGAN
-w5d1_tests.print_param_count(my_Generator, celeb_DCGAN.netG)
+w5d1_utils.print_param_count(my_Generator, celeb_DCGAN.netG)
 ```
 Also, a good way to test your model's architecture if you don't have access to the real thing is to run input through it and check you don't get any errors and the output is the size you expect - this can catch a surprisingly large fraction of all bugs! 
 Lastly, remember that `torchinfo` is a useful library for inspecting the architecture of your model.
@@ -541,13 +575,13 @@ It's worth emphasising that these two functions are both monotonic in opposite d
 """)
     st.info("""Note - PyTorch's [`BCELoss`](https://pytorch.org/docs/stable/generated/torch.nn.BCELoss.html) clamps its log function outputs to be greater than or equal to -100. This is because in principle our loss function could be negative infinity (if we take log of zero). You might find you need to employ a similar trick if you're manually computing the log of probabilities.
     
-You might also want to try using [`nn.w5d1_tests.clip_grad_norm`](https://pytorch.org/docs/stable/generated/torch.nn.w5d1_tests.clip_grad_norm_.html) in your model. Using a value of 1.0 usually works fine for this function.
+You might also want to try using [`nn.utils.clip_grad_norm`](https://pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html) in your model. Using a value of 1.0 usually works fine for this function.
 However, you should probably only try these if your model doesn't work straight away. I found I was able to get decent output on the celebrity database without either of these tricks.""")
 
     st.markdown("""
 ### Implementing your training loop
 Again, we've provided a possible template below, which you're welcome to ignore!
-It can be hard to check your model is working as expected, because the interplay between the loss functions of the discriminator and the generator isn't always interpretable. A better method is to display output from your generator at each step. We've provided you with a function to do this, called `w5d1_tests.display_generator_output`. It takes `netG` and `latent_dim_size` as its first arguments, and `rows` and `cols` as keyword arguments. You can write your own version of this function if you wish. If you do, remember to **set a random seed before creating your latent vectors**.
+It can be hard to check your model is working as expected, because the interplay between the loss functions of the discriminator and the generator isn't always interpretable. A better method is to display output from your generator at each step. We've provided you with a function to do this, called `w5d1_utils.display_generator_output`. It takes `netG` and `latent_dim_size` as its first arguments, and `rows` and `cols` as keyword arguments. You can write your own version of this function if you wish. If you do, remember to **set a random seed before creating your latent vectors**.
 """)
     with st.expander("Question - why do you think it's important to set a random seed?"):
         st.markdown("""
