@@ -5,6 +5,34 @@ if not os.path.exists("./images"):
 from st_dependencies import *
 styling()
 
+import plotly.io as pio
+import re
+import json
+
+def read_from_html(filename):
+    filename = f"images/{filename}.html"
+    with open(filename) as f:
+        html = f.read()
+    call_arg_str = re.findall(r'Plotly\.newPlot\((.*)\)', html)[0]
+    call_args = json.loads(f'[{call_arg_str}]')
+    try:
+        plotly_json = {'data': call_args[1], 'layout': call_args[2]}
+        fig = pio.from_json(json.dumps(plotly_json))
+    except:
+        del call_args[2]["template"]["data"]["scatter"][0]["fillpattern"]
+        plotly_json = {'data': call_args[1], 'layout': call_args[2]}
+        fig = pio.from_json(json.dumps(plotly_json))
+    return fig
+
+def get_fig_dict():
+    return {"gan_output": read_from_html(f"gan_output")}
+
+if "fig_dict" not in st.session_state:
+    fig_dict = get_fig_dict()
+    st.session_state["fig_dict"] = fig_dict
+else:
+    fig_dict = st.session_state["fig_dict"]
+
 def section_home():
 
     st.markdown("""
@@ -15,9 +43,10 @@ In this section, you'll implement the transposed convolution operation. This is 
 ## 3️⃣ GANs
 Here, you'll actually implement and train your own GANs, to generate celebrity pictures. By the time you're done, you'll hopefully have produced positively sexy-looking output like this:
 """)
-    cols = st.columns([1, 10, 4])
-    with cols[1]:
-        st_image("gan_output.png", 700)
+    # cols = st.columns([1, 10, 4])
+    # with cols[1]:
+    #     st_image("gan_output.png", 700)
+    st.plotly_chart(fig_dict["gan_output"], use_container_width=True)
 
 def section1():
 
@@ -528,11 +557,12 @@ Note, this function requires the root directory to contain subdirectories, which
 ```python
 from torchvision import transforms, datasets
 
-transform = transforms.Compose([
-    transforms.Resize(image_size),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-])
+    transform = transforms.Compose([
+        transforms.Resize((image_size)),
+        transforms.CenterCrop(image_size),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    ])
 
 trainset = ImageFolder(
     root="data",
@@ -629,7 +659,7 @@ def train_DCGAN(args: DCGANargs) -> DCGAN:
 If your training works correctly, you should see your discriminator loss consistently low, while your generator loss will start off high (and will be very jumpy) but will slowly come down over time. The details of convergence speed will vary depending on details of the hardware, but I would recommend that if your generator's output doesn't resemble anything like a face after 2 minutes, then something's probably going wrong in your code.
 ### Debugging and Improvements
 GANs are notoriously hard to get exactly right. I ran into quite a few bugs myself building this architecture, and I've tried to mention them somewhere on this page to help particpiants avoid them. If you run into a bug and are able to fix it, please send it to me and I can add it here, for the benefit of everyone else!
-* Make sure you apply the layer normalisation (mean 0, std dev 0.02) to your linear layers as well as your convolutional layers.
+* Make sure you apply the batch normalisation (mean 0, std dev 0.02) to your linear layers as well as your convolutional layers.
     * More generally, in your function to initialise the weights of your network, make sure no layers are being missed out. The easiest way to do this is to inspect your model afterwards (i.e. loop through all the params, printing out their mean and std dev).
 Also, you might find [this page](https://github.com/soumith/ganhacks) useful. It provides several tips and tricks for how to make your GAN work. Some of them we've already covered (or are assumed from the model architecture we're using), for instance:
 * (1) Normalize your inputs
