@@ -353,7 +353,7 @@ class Autoencoder(nn.Module):
 
 ### New loss function
 
-We're no longer calculating loss simply as the reconstruction error between $x$ and our decoder's output $x'$ - now we have a new loss function. Recall from the diagram at the top of the page that our loss function was the sum of two different loss functions: the reconstruction loss between $x$ and $x'$, and the KL-divergence between the distribution of our latent vectors $N(\mu(x), \sigma(x)^2)$ and the target distribution of $N(0, I)$. (As it happens, we didn't just pick this because it seems to have nice properties. Read [this post](https://lilianweng.github.io/posts/2018-08-12-vae/) for a full derivation, if you're interested.)""")
+We're no longer calculating loss simply as the reconstruction error between $x$ and our decoder's output $x'$ - now we have a new loss function. Recall from the diagram at the top of the page that our loss function was the sum of two different loss functions: the reconstruction loss between $x$ and $x'$, and the KL-divergence between the distribution of our latent vectors $N(\mu(x), \sigma(x)^2)$ and the target distribution of $N(0, I)$.""")
 
 #     with st.expander(r"""Dropdown"""):
 #         # Let's denote $\theta$ as the parameters of our encoder, and $\phi$ as the parameters of our decoder (following the convention in [this post](https://lilianweng.github.io/posts/2018-08-12-vae/)). 
@@ -408,7 +408,7 @@ where the expectation is taken over random inputs $x$, and random noise $\boldsy
 
 **The second term** is the KL divergence between $N(\boldsymbol{\mu}, \boldsymbol{\sigma}^2)$ (the distribution of latent vectors produced by your VAE when given inputs $x$) and $N(\mathbf{0},I)$ (the true generative distribution of latent vectors $z$). The formula for the KL divergence between two multinomial normal distributions can get a bit messy, but luckily for us both of these distributions are independent (the covariance matrices are diagonal), and the KL divergence decomposes into the sum of KL divergences for each component:
 $$
-D_{KL}(\,N(\mu, \sigma^2) \,||\, N(0, 1)\,) = \sigma^2 + \mu^2 - \log{\sigma} - \frac{1}{2}
+D_{KL}(\,N(\mu, \sigma^2) \,||\, N(0, 1)\,) = \frac{1}{2}(\sigma^2 + \mu^2 - 1) - \log{\sigma}
 $$
 This is why it was important to output `mu` and `logsigma` in our forward functions, so we could compute this expression! (It's easier to use `logsigma` than `sigma` when evaluating the expression above, for stability reasons).
 
@@ -421,11 +421,88 @@ As we discussed earlier, this second term can be seen as a **regulariser** or **
     st.markdown(r"""
 Once you've computed both of these loss functions, you should perform gradient descent on their sum. **You might need to change the coefficients of the sum before you get your VAE working** (read the section on Beta-VAEs for more on this). For instance, I got very poor results when just taking the sum of the mean of the two loss functions above, but much better results when using a weighting of 0.1 for the mean of the KL-div loss.
 
+### A deeper dive into the maths of VAEs
+
+If you're happy with the loss function as described in the section above, then you can move on from here. If you'd like to take a deeper dive into the mathematical justifications of this loss function, you can read the dropdown below. (Note that this may prove useful when you get to diffusion models tomorrow.)
+
+""")
+
+# *(Eventually we will treat $p_\theta$ as a **probabilistic decoder** and parameterize it as $p_\theta(x \mid z)$, but for now assume this is just a process which we are handed, which we're allowed to evaluate. In other words, given some $z$ and $x$ we can compute the probability $p_\theta(x \mid z)$, and so given some $z$ we can sample $x$ according to this distribution.)*
+    with st.expander("Maths"):
+        st.markdown(r"""
+Firstly, let's flip the model we currently have on its head. Rather than having some method of sampling images $x$ from our image set, then having a function mapping images to latent vectors $z$, we will start with the decoder $p_\theta$ which:
+* first generates the latent vector $z$ from distribution $p(z)$ (which we assume to be the standard normal distribution),
+* then generates $x$ from the conditional distribution $p_\theta(x \mid z)$.
+
+It may help to imagine $z$ as being some kind of efficient encoding of all the information in our image distribution (e.g. if our images were celebrity faces, we could imagine the components of the vector $z$ might correspond to features like gender, hair color, etc).
+
+We can recover the probability distribution of $x$ by integrating over all possible values of the latent vector $z$:
+$$
+\begin{aligned}
+p(x)&=\int_z p_\theta(x \mid z) p(z) \\
+&= \mathbb{E}_{z \sim p(z)}[p_\theta(x \mid z)]
+\end{aligned}
+$$
+We can interpret this as the probability that our decoder produces the image $x$ when we feed it some noise sampled from the standard normal distribution. So all we have to do is maximize the expected value of this expression over our sample of real images $x_i$, then we're training our decoder to produce images like the ones in our set of real images, right?
+
+Unfortunately, it's not that easy. Evaluating this would be computationally intractible, because we would have to sample over all possible values for the latent vectors $z$:
+$$
+\theta^*=\underset{\theta}{\operatorname{argmax}}\; \mathbb{E}_{x \sim \hat{p}(x), z \sim p(z)}\left[\log p_\theta(x \mid z)\right]
+$$
+where $\hat{p}(x)$ denotes our distribution over samples of $x$. This problem gets exponentially harder as we add more latent dimensions, because our samples of $z$ will only cover a tiny fraction of the entire possible latent space. 
+
+Imagine now that we had a function $q_\phi(z \mid x)$, which is high when **the latent vector $z$ is likely to have been produced by $x$**. This function would be really helpful, because for each possible value of $x$ we would have a better idea of where to sample $z$ from. We can represent this situation with the following **graphical model**:
+
+(insert excalidraw)
+
+The seemingly intractible optimization problem above is replaced with a much easier one:
+$$
+\begin{aligned}
+p(x) &=\int q_\phi(z \mid x) \frac{p_\theta(x \mid z) p(z)}{q_\phi(z \mid x)} \\
+\theta^*&=\underset{\theta}{\operatorname{argmax}}\; \mathbb{E}_{x \sim \hat{p}(x), z \sim q_\phi(z\mid x)}\left[\frac{p_\theta(x \mid z)p(z)}{q_\phi(z \mid x)}\right]
+\end{aligned}
+$$
+Note, we've written $\log{p_\theta(x)}$ here because it's usually easier to think about maximizing the log probability than the actual probability.
+
+Why is this problem easier? Because in order to estimate the quantity above, we don't need to sample a huge number of latent vectors $z$ for each possible value of $x$. The probability distribution $q_\phi(z \mid x)$ already concentrates most of our probability mass for where $z$ should be, so we can sample according to this instead.
+
+We now introduce an important quantity, called the **ELBO**, or **evidence lower-bound**. It is defined as:
+$$
+\mathbb{E}_{z \sim q_\phi(\boldsymbol{z} \mid \boldsymbol{x})}\left[\log \frac{p_\theta(\boldsymbol{x} \mid z)p(\boldsymbol{z})}{q_\phi(\boldsymbol{z} \mid \boldsymbol{x})}\right]
+$$
+This is called the ELBO because it's a lower bound for the quantity $p(x)$, which we call the **evidence**. The proof for this being a lower bound comes from **Jensen's inequality**, which states that $\mathbb{E}[f(X)] \geq f(\mathbb{E}[X])$ for any convex function $f$ (and $f(x)=-\log(x)$ is convex). In fact, we can prove the following identity holds:
+$$
+\log{p(x)}=\mathbb{E}_{q_{\boldsymbol{\phi}}(\boldsymbol{z} \mid \boldsymbol{x})}\left[\log \frac{p(\boldsymbol{z}) p_\theta(\boldsymbol{x} \mid \boldsymbol{z})}{q_{\boldsymbol{\phi}}(\boldsymbol{z} \mid \boldsymbol{x})}\right]+D_{\mathrm{KL}}\left(q_{\boldsymbol{\phi}}(\boldsymbol{z} \mid \boldsymbol{x}) \,\|\, p_\theta(\boldsymbol{z} \mid \boldsymbol{x})\right)
+$$
+So the evidence minus the ELBO is equal to the KL divergence between the distribution $q_\phi$ and the **posterior distribution** $p_\theta(z \mid x)$ (the order of $z$ and $x$ have been swapped).
+
+---
+
+Finally, this brings us to VAEs. With VAEs, we treat $p_\theta(x \mid z)$ as our decoder, $q_\phi(z \mid x)$ as our encoder, and we train them jointly to minimise the ELBO. Using the previous identity, we see that maximizing the ELBO is equivalent to maximizing the following:
+$$
+\log{p(x)}-D_{\mathrm{KL}}\left(q_{\boldsymbol{\phi}}(\boldsymbol{z} \mid \boldsymbol{x}) \,\|\, p_\theta(\boldsymbol{z} \mid \boldsymbol{x})\right)
+$$
+In other words, we are maximizing the log-likelihood, and **at the same time** penalising any difference between our approximate posterior $q_\phi(\boldsymbol{z} \mid \boldsymbol{x})$ and our true posterior $p_\theta(\boldsymbol{z} \mid \boldsymbol{x})$.
+
+---
+
+We can rewrite the ELBO in a different way:
+$$
+\begin{aligned}
+\mathbb{E}_{q_\phi(\boldsymbol{z} \mid \boldsymbol{x})}\left[\log \frac{p_{\boldsymbol{\theta}}(\boldsymbol{x} \mid \boldsymbol{z}) p(\boldsymbol{z})}{q_{\boldsymbol{\phi}}(\boldsymbol{z} \mid \boldsymbol{x})}\right] & =\mathbb{E}_{q_{\boldsymbol{\phi}}(\boldsymbol{z} \mid \boldsymbol{x})}\left[\log p_{\boldsymbol{\theta}}(\boldsymbol{x} \mid \boldsymbol{z})\right]+\mathbb{E}_{q_\phi(\boldsymbol{z} \mid \boldsymbol{x})}\left[\log \frac{p(\boldsymbol{z})}{q_{\boldsymbol{\phi}}(\boldsymbol{z} \mid \boldsymbol{x})}\right] \\
+& =\underbrace{\mathbb{E}_{q_\phi(\boldsymbol{z} \mid \boldsymbol{x})}\left[\log p_{\boldsymbol{\theta}}(\boldsymbol{x} \mid \boldsymbol{z})\right]}_{\text {reconstruction loss}}-\underbrace{D_{\mathrm{KL}}\left(q_{\boldsymbol{\phi}}(\boldsymbol{z} \mid \boldsymbol{x}) \| p(\boldsymbol{z})\right)}_{\text {regularisation term}}
+\end{aligned}
+$$
+which is now starting to look a lot more like the loss function we used earlier! The **regularisation term** is recognised as exactly equal to the KL divergence term in our loss function (because our encoder $q_\phi(z \mid x)$ learns a normal distribution with mean $\mu(x)$ and variance $\sigma(x)^2$, and our latent vector $z$ has a standard normal distribution). It might not be immediately obvious why the first term serves as reconstruction loss, but in fact that is what it's doing. We can describe this term as ***"the expected log-likelihood of our decoder reconstructing $x$ from latent vector $z$, given that $z$ was itself a latent vector produced by our encoder on input $x$".***
+
+The decoder used in our VAE isn't actually probabilistic, it's deterministic, but we can pretend that our decoder is actually outputting a probability distribution $p_\theta(\cdot \mid z)$ with mean $\mu_\theta(z)$, and then we take this mean as our final output. This reconstruction loss will be smallest when the decoder's output $\mu_\theta(z)$ is closest to the original input $x$ (since then the probability distribution $p_\theta(\cdot \mid z)$ will be centered on $x$). Although the formula here and the reconstruction loss aren't exactly the same, it turns out that we can swap out the formula for something which also works as reconstruction loss (although the fact that these two things aren't exactly the same might help to motivate why we need to use a different coefficient for the KL divergence loss - see $\beta$-VAEs later).
+""")
+
+    st.markdown(r"""
+
 ### Training loop
 
-You should write and run your training loop below. 
-
-Note that you might need to use a different optimizer than for your autoencoder. I found Adam with standard learning rate and `weight_decay=1e-5` worked well (for the autoencoder I didn't need the weight decay).
+You should write and run your training loop below. Again, most implementational details are left up to you.
 
 ```python
 def train_vae(*args):

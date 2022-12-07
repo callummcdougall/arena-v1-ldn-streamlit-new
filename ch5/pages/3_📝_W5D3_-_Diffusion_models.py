@@ -392,7 +392,6 @@ from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
-import utils
 import wandb
 
 MAIN = __name__ == "__main__"
@@ -428,14 +427,12 @@ def gradient_images(n_images: int, img_size: tuple[int, int, int]) -> t.Tensor:
     assert gradients.shape == (n_images, C, H, W)
     return gradients / 255
 
-
 def plot_img(img: t.Tensor, title: Optional[str] = None) -> None:
-    img = rearrange(img, "c h w -> h w c")
-    plt.imshow(img.numpy())
-    if title:
-        plt.title(title)
-    plt.show()
-
+    img = rearrange(img, "c h w -> h w c").clip(0, 1)
+    img = (255 * img).to(t.uint8)
+    fig = px.imshow(img, title=title)
+    fig.update_layout(height=400, width=400, margin=dict(t=60, l=40, r=40, b=40))
+    fig.show()
 
 if MAIN:
     print("A few samples from the input distribution: ")
@@ -457,10 +454,8 @@ All our computations will operate on normalized images, and we'll denormalize wh
 def normalize_img(img: t.Tensor) -> t.Tensor:
     return img * 2 - 1
 
-
 def denormalize_img(img: t.Tensor) -> t.Tensor:
     return ((img + 1) / 2).clamp(0, 1)
-
 
 if MAIN:
     plot_img(imgs[0], "Original")
@@ -992,7 +987,6 @@ import torch as t
 from einops import rearrange, repeat
 from fancy_einsum import einsum
 from torch import nn
-import utils
 
 MAIN = __name__ == "__main__"
 ```
@@ -1107,7 +1101,7 @@ class SelfAttention(nn.Module):
         pass
 
 if MAIN:
-    utils.test_self_attention(SelfAttention)
+    w5d3_tests.test_self_attention(SelfAttention)
 ```
 
 ## Assembling the UNet
@@ -1128,7 +1122,7 @@ class AttentionBlock(nn.Module):
 
 
 if MAIN:
-    utils.test_attention_block(SelfAttention)
+    w5d3_tests.test_attention_block(SelfAttention)
 
 
 class ResidualBlock(nn.Module):
@@ -1151,7 +1145,7 @@ class ResidualBlock(nn.Module):
 
 
 if MAIN:
-    utils.test_residual_block(ResidualBlock)
+    w5d3_tests.test_residual_block(ResidualBlock)
 
 
 class DownBlock(nn.Module):
@@ -1168,8 +1162,8 @@ class DownBlock(nn.Module):
 
 
 if MAIN:
-    utils.test_downblock(DownBlock, downsample=True)
-    utils.test_downblock(DownBlock, downsample=False)
+    w5d3_tests.test_downblock(DownBlock, downsample=True)
+    w5d3_tests.test_downblock(DownBlock, downsample=False)
 
 
 class UpBlock(nn.Module):
@@ -1185,8 +1179,8 @@ class UpBlock(nn.Module):
 
 
 if MAIN:
-    utils.test_upblock(UpBlock, upsample=True)
-    utils.test_upblock(UpBlock, upsample=False)
+    w5d3_tests.test_upblock(UpBlock, upsample=True)
+    w5d3_tests.test_upblock(UpBlock, upsample=False)
 
 
 class MidBlock(nn.Module):
@@ -1198,7 +1192,7 @@ class MidBlock(nn.Module):
 
 
 if MAIN:
-    utils.test_midblock(MidBlock)
+    w5d3_tests.test_midblock(MidBlock)
 
 
 class Unet(DiffusionModel):
@@ -1231,7 +1225,7 @@ class Unet(DiffusionModel):
         pass
 
 if MAIN:
-    utils.test_unet(Unet)
+    w5d3_tests.test_unet(Unet)
 ```
 
 Now, you're ready to move on to the final section!

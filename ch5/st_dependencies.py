@@ -100,6 +100,9 @@ ul.contents {
     color-black;
     margin-left: -10px;
 }
+ul {
+    margin-bottom: 10px !important;
+}
 ul.contents a, ul.contents a:link, ul.contents a:visited, ul.contents a:active {
     color: black;
     text-decoration: none;
