@@ -160,35 +160,53 @@ One pithy (albeit entirely accurate) way of describing diffusion models is as at
     st.markdown(r"""
 ## The connection to VAEs
 
-If you understand VAEs, then you're well on the way to understanding diffusion models too. In fact, we can view a diffusion model as just a more advanced VAE with a few special additions:
+If you understand VAEs, then you're well on the way to understanding diffusion models too. In fact, we can view a diffusion model as just a more advanced VAE with a few special additions.
 
-#### **More than one layer**
+Recall the following diagram we had for VAEs in the mathematical derivation section:""")
 
-Our VAEs only had one layer: your input was the original image, your output was the parameters of a normal distribution from which you sampled to get a latent vector, then you reconstructed it.
+    st_excalidraw("vae-graphical-2", 500)
 
-But you can construct VAEs with more than one layer - where you repeatedly take your sampled vectors and run them through networks to output a new mean and variance. These are called **hierarchical VAEs**. 
+    st.markdown(r"""
+and we had the loss function derived from the ELBO:
+$$
+\mathbb{E}_{z \sim q_\phi(z \mid x)}\left[\log \frac{p_\theta(x, z)}{q_\phi(z \mid x)}\right] =\underbrace{\mathbb{E}_{q_\phi(\boldsymbol{z} \mid \boldsymbol{x})}\left[\log p_{\boldsymbol{\theta}}(\boldsymbol{x} \mid \boldsymbol{z})\right]}_{\text {reconstruction loss }}-\underbrace{D_{\mathrm{KL}}\left(q_\phi(\boldsymbol{z} \mid \boldsymbol{x}) \| p(\boldsymbol{z})\right)}_{\text {regularisation term }}
+$$
+We can also extend the concept of VAEs into **hierarchical VAEs**, where you learn multiple processes which encode the input as a probability distribution and then sample from that distribution.""")
+    st_excalidraw("vae-graphical-3", 650)
+    st.markdown(r"""
+What would our loss function be in this case? Again, we can start with what would be the equivalent of the ELBO in this situation:
+$$
+\begin{aligned}
+p(x)&=\iint q_\phi\left(z_1, z_2 \mid x\right) \frac{p_\theta\left(x, z_1, z_2\right)}{q_\phi\left(z_1, z_2 \mid x\right)} \\
+&=\mathbb{E}_{z_1, z_2 \sim q_\phi\left(z_1, z_2 \mid x\right)}\left[\frac{p_\theta\left(x, z_1, z_2\right)}{q_\phi\left(z_1, z_2 \mid x\right)}\right]\\
+\\
+\log p(x) &\geq \mathbb{E}_{z_1, z_2 \sim q_\phi\left(z_1, z_2 \mid x\right)}\left[\log \frac{p_\theta\left(x, z_1, z_2\right)}{q_\phi\left(z_1, z_2 \mid x\right)}\right]
+\end{aligned}
+$$
+and then use this lower bound expression to derive our loss function, in a way which looks similar to the last one:
+$$
+\mathbb{E}_{q_\phi\left(z_1, z_2 \mid x\right)}\left[\log \frac{p_\theta\left(x, z_1, z_2\right)}{q_\phi\left(z_1, z_2 \mid x\right)}\right] =\underbrace{\mathbb{E}_{q_\phi\left(z_1 \mid x\right)}\left[\log p_{\theta}(x \mid z_1)\right]}_{\text {reconstruction loss }}-\underbrace{D_{\mathrm{KL}}\left(q_\phi(z_1 \mid x) \,\|\, p_\theta(z_1 \mid z_2)\right)}_{\text{consistency term}} - \underbrace{D_{\mathrm{KL}}\left(q_\phi(z_2 \mid z_1) \,\|\, p(z_2)\right)}_{\text {regularisation term }}
+$$
+Here we still have one reconstruction loss term (the log-probability of reconstructing $x$ from the first-step latent), and the regularisation term which makes sure that the final latent vector $z_2$ has the distribution we want. But we also have a middle term, which we can interpret as the **consistency term** - it tries to make the distribution at $z_1$ consistent in both the processes $q_\phi$ (left to right) and $p_\theta$ (right to left).
 
-Diffusion models can be viewed as a special kind of hierarchical VAE.
+Finally, we come to diffusion models. These can be viewed as a special kind of hierarchical VAE, where the process $q_\phi$ (which we refer to as the **forward process**) is predefined, not learned. We say that our forward process is adding noise to the image, and our **backward process** is where we learn to denoise images.
+""")
+    st_excalidraw("vae-graphical-4", 750)
 
-#### **dim(x) = dim(z)**
+# It might seem a bit of a stretch to equate latent vectors and noised images. After all, we thought about our latent vectors as a compressed representation of the features of our image; is it reasonable to think about noised images as a kind of latent vector? Well, sort of. 
+    st.markdown(r"""
+Just like for the hierarchical VAE, we can decompose our loss into three terms (the learned parameters are coloured $\color{orange}\text{orange}$):
 
-Rather than the latent vector **`z`** being a simplified (lower-dimensional) representation of the features of **`x`**, we have our latent vectors all in the same dimension as the original image.
+$$
+\begin{align*}
+L(\color{orange}\theta\color{black}) &=\mathbb{E}_q\bigg[-\log \color{orange}p_\theta(\mathbf{x}_0 | \mathbf{x}_1)\color{black} + \sum_{t=2}^T D_{\mathrm{KL}}\left(q\left(\mathbf{x}_{t-1} | \mathbf{x}_t, \mathbf{x}_0\right) \| \,\color{orange}p_\theta(\mathbf{x}_{t-1} | \mathbf{x}_t)\color{black}\right) + D_{\mathrm{KL}}\left(q\left(\mathbf{x}_T | \mathbf{x}_0\right) \|\, p\left(\mathbf{x}_T\right)\right)\bigg]\\
+&=\underbrace{L_0}_{\text{reconstruction loss}} + \underbrace{\sum_{t=2}^T L_t}_{\text{consistency terms}} + \underbrace{L_T}_{\text{regularisation term}}
+\end{align*} 
+$$
 
-#### Forward process is pre-defined, not learned
+We assume that our process runs for long enough that $x_T$ is complete random noise (i.e. no trace of the original image is left), so $L_T$ evaluates to basically zero and we can ignore it. We called the other terms consistency and reconstruction loss, but they can all be described as a kind of consistency term, which tries to make sure that the model leans to reverse the random noise process at each step.
 
-In our VAEs, we learned the forward process sending our image **`x`** to our latent vector **`z`** (this was the job of our `model.encoder`). 
-
-By contrast, in diffusion models our forward process is pre-specified as a linear Gaussian model, where at each step we are adding noise to our image, to eventually result in an image with pure Gaussian noise and no signal from the image remaining.
-
----
-
-Despite these differences, it can be helpful to think of diffusion models in the same way as VAEs. In both cases, there exists a forward process which we are trying to recover the backward process of, in order to generate images from random noise. And in both cases, we recover this backward process by minimising the KL divergence between the true distribution and the one implied by our model.
-
-## Forward and backward processes
-
-Now that we've discussed diffusion models in very general terms, it's time to get into specifics.
-
-The linked reading above covers the mathematical derivations in much more detail than I can hope to, so I'll focus on providing some broad intuitions in this section. 
+Now that we've broadly sketched out the connection, let's get into some more specifics like how the noise process is represented, and how our parameters are actually learned.
 
 ### Forward process
 
@@ -242,24 +260,6 @@ $$
 $$
 A note on terminology - any time you see $\theta$ appearing in an expression, this represents the parameters of a neural network. In other words, we are trying to learn the parameters of this backward process distribution so that we can recover the original image. I will use the color $\color{orange}\textbf{orange}$ to indicate learned parameters.
 
-## Loss functions
-
-Recall that, when working with VAEs, we were trying to minimise the following:
-$$
-\begin{equation}
-L(\color{orange}\theta\color{black}, \color{orange}\phi\color{black}) =-\log \color{orange}p_\theta(\mathbf{x})\color{black}+D_{\mathrm{KL}}\left(\color{orange}q_\phi(\mathbf{z} | \mathbf{x})\color{black} \|\, \color{orange}p_\theta(\mathbf{z} | \mathbf{x})\color{black}\right)
-\end{equation}
-$$
-Here, the forward process is pre-specfied (i.e. no $\phi$), and we're dealing with vectors $(\mathbf{x}_0, \mathbf{x}_1, ..., \mathbf{x}_T)$ rather than just $(\mathbf{x}, \mathbf{z})$. So our new loss funcion is:
-$$
-\begin{equation}
-L(\color{orange}\theta\color{black}) = -\log \color{orange}p_\theta\left(\mathbf{x}_0\right)\color{black}+D_{\mathrm{KL}}\left(q\left(\mathbf{x}_{1: T} | \mathbf{x}_0\right) \|\, \color{orange}p_\theta\left(\mathbf{x}_{1: T} | \mathbf{x}_0\right)\color{black}\color{orange}
-\color{black}\right)
-\end{equation}
-$$
-
-At this point, we're pretty much done with all of the confusing conceptual stuff! The remainder of the problem lies in choosing a parameterisation that allows us to find a closed-form expression for this quantity - then we can train against it via gradient descent.
-
 ## Simplifications
 
 At the end of page 2 of the DDPM paper, we see that $q(\mathbf{x}_t | \mathbf{x}_0)$ admits a nice closed-form solution:
@@ -292,30 +292,24 @@ How should we interpret this expression, intuitively? The basic idea is this: we
 
     st_image("noise-sketch.png", 500)
     st.markdown(r"""
-**Why does this trick help us?** Well, it turns out that we can rewrite $L(\color{orange}\theta\color{black})$ from equation $(5)$ in the following way:
+**Why does this trick help us?** Well, let's return to our loss function from earlier:
 $$
 \begin{align}
-L(\color{orange}\theta\color{black}) &= -\log \color{orange}p_\theta\left(\mathbf{x}_0\right)\color{black}+D_{\mathrm{KL}}\left(q\left(\mathbf{x}_{1: T} | \mathbf{x}_0\right) \|\, \color{orange}
-p_\theta\left(\mathbf{x}_{1: T} | \mathbf{x}_0\right)\color{black}\right)\\
-&=\mathbb{E}_q\bigg[D_{\mathrm{KL}}\left(q\left(\mathbf{x}_T | \mathbf{x}_0\right) \|\, p\left(\mathbf{x}_T\right)\right)+\sum_{t=2}^T D_{\mathrm{KL}}\left(q\left(\mathbf{x}_{t-1} | \mathbf{x}_t, \mathbf{x}_0\right) \| \,\color{orange}p_\theta(\mathbf{x}_{t-1} | \mathbf{x}_t)\color{black}\right)-\log \color{orange}p_\theta(\mathbf{x}_0 | \mathbf{x}_1)\color{black}\bigg]\\
-&=:L_T + \sum_{t=2}^T L_t + L_0
-\end{align} 
+L(\color{orange}\theta\color{black}) &=\mathbb{E}_q\bigg[-\log \color{orange}p_\theta(\mathbf{x}_0 | \mathbf{x}_1)\color{black} + \sum_{t=2}^T D_{\mathrm{KL}}\left(q\left(\mathbf{x}_{t-1} | \mathbf{x}_t, \mathbf{x}_0\right) \| \,\color{orange}p_\theta(\mathbf{x}_{t-1} | \mathbf{x}_t)\color{black}\right) + D_{\mathrm{KL}}\left(q\left(\mathbf{x}_T | \mathbf{x}_0\right) \|\, p\left(\mathbf{x}_T\right)\right)\bigg]\\
+&=L_0 + \sum_{t=2}^T L_t + \cancel{L_T}
+\end{align}
 $$
 
-We can look at each of these loss functions separately. 
-
-$L_T$ is just constant (because $q$ has no learnable parameters and $\mathbf{x}_T$ is random noise), so we can ignore it. 
-
-Now consider $L_{t-1}$ for $2 \leq t \leq T$. This is the KL divergence between two normal distributions. Recall in the section on VAEs that we measured the KL divergence between two normal distributions as part of our loss function:
+Consider $L_{t-1}$ for $2 \leq t \leq T$. This is the KL divergence between two normal distributions. Recall in the section on VAEs that we measured the KL divergence between two normal distributions as part of our loss function:
 $$
-D_{K L}\big(\mathcal{N}(\mu, \sigma^2)\,||\, \mathcal{N}(0,1)\big)=\sigma^2+\mu^2-\log \sigma-\frac{1}{2}
+D_{K L}\big(\mathcal{N}(\mu, \sigma^2)\,||\, \mathcal{N}(0,1)\big)=\frac{1}{2}(\mu^2+\sigma^2-1)-\log \sigma
 $$
 Here instead we are measuring the multi-dimensional KL divergence:
 $$
 D_{KL} \big(\, \mathcal{N}\big(\color{blue}\tilde{\boldsymbol{\mu}}(\mathbf{x}_t, \mathbf{x}_0), \color{red}\tilde{\beta}_t \mathbf{I}\,\color{black} \big) \;||\;  \mathcal{N}\left(\color{orange}\boldsymbol{\mu}_\theta\left(\mathbf{x}_t, t\right)\color{black}, \color{orange}\boldsymbol{\Sigma}_\theta(\mathbf{x}_t, t)\right)\color{black} \big)
 $$
 
-This is obviously a bit more complicated! However, we can simplify this a lot. Firstly, we assume $\boldsymbol{\Sigma}_\theta$ is known rather than learned. The most common choice is $\color{orange}\boldsymbol{\Sigma}_\theta\color{black}=\color{red}\tilde{\beta}_t \mathbf{I}$, to match variances (although $\color{orange}\boldsymbol{\Sigma}_\theta\color{black}=\color{red}\beta_t \mathbf{I}\color{black}$ is sometimes used instead). This allows us to simplify the expression a lot. Since we only care about the contribution to the loss function from our mean $\boldsymbol{\mu}_\theta$, we are eventually left with (a scalar multiple of):
+This is obviously a bit more complicated! However, we can simplify this a lot. Firstly, we assume $\color{orange}\boldsymbol{\Sigma}_\theta$ is known rather than learned. The most common choice is $\color{orange}\boldsymbol{\Sigma}_\theta\color{black}=\color{red}\tilde{\beta}_t \mathbf{I}$, to match variances (although $\color{orange}\boldsymbol{\Sigma}_\theta\color{black}=\color{red}\beta_t \mathbf{I}\color{black}$ is sometimes used instead). This allows us to simplify the expression a lot. Since we only care about the contribution to the loss function from our mean $\boldsymbol{\mu}_\theta$, we are eventually left with (a scalar multiple of):
 $$
 \|\color{blue}{\tilde{\boldsymbol{\mu}}_t(\mathbf{x}_t, \mathbf{x}_0) }\color{black}-\color{orange}\boldsymbol{\mu}_\theta(\mathbf{x}_t, t)\color{black}\|^2
 $$
@@ -512,7 +506,7 @@ The beta value indicates the variance of the normal distribution - did you forge
     st.markdown(r"""
 ### Forward (q) function - Equation 4
 
-The equation we used above is very slow, and would be even slower if we went to 1000 steps. Conveniently, the authors chose to use Gaussian noise and a nice closed form expression exists to go directly to step t without needing a for loop. Implement Equation $(4)$ (or equation $(6)$ in the Streamlit page) and verify it looks visually similar to the previous equation.
+The equation we used above is very slow, and would be even slower if we went to 1000 steps. Conveniently, the authors chose to use Gaussian noise and a nice closed form expression exists to go directly to step t without needing a for loop. Implement Equation $(4)$ from the paper (also equation $(4)$ in the Streamlit page) and verify it looks visually similar to the previous equation.
 
 ```python
 def q_forward_fast(x: t.Tensor, num_steps: int, betas: t.Tensor) -> t.Tensor:
@@ -526,7 +520,7 @@ if MAIN:
 ```""")
     with st.expander("Help - I'm not sure where to start."):
         st.markdown(r"Start by constructing a vector of $\alpha_s$ terms from our $\beta_s$, then find $\bar{\alpha}_s$ by taking a product.")
-    st.markdown("""
+    st.markdown(r"""
 Our image reconstruction process will depend on the noise schedule we use during training. So that we can save our noise schedule with our model later, we'll define a `NoiseSchedule` class that subclasses `nn.Module`.
 
 Note that we've indicated the type of `betas`, `alphas` and `alpha_bars` at the start of the class - this means you should define objects `self.betas`, etc (the practical purpose is that it tells the type checker what type these objects are).
@@ -577,6 +571,8 @@ class NoiseSchedule(nn.Module):
     def __len__(self) -> int:
         return self.max_steps
 
+    def extra_repr(self) -> str:
+        return f"max_steps={self.max_steps}"
 ```
 
 Now we'll use this noise schedule to apply noise to our generated images. This will be the batched version of `q_forward_fast`.
@@ -659,7 +655,7 @@ Note - the timestep $t$ is also an input to our model. Here, we will handle this
 
     with st.expander("Question - how many in_features should your first linear layer have?"):
         st.markdown("""
-The image gives us `3 * height * width* in features, and then we add 1 for the `num_steps` array.
+The image gives us `3 * height * width * in features`, and then we add 1 for the `num_steps` array.
 
 So we have:
 
@@ -670,6 +666,20 @@ in_features = 3 * height * width + 1
 
     st.markdown(r"""
 ```python
+@dataclass
+class DiffusionArgs():
+    lr: float = 0.001
+    image_shape: tuple = (3, 4, 5)
+    epochs: int = 10
+    max_steps: int = 100
+    batch_size: int = 128
+    n_image_logs_per_epoch: int = 3
+    n_images_per_to_log: int = 3
+    n_images: int = 50000
+    n_eval_images: int = 1000
+    cuda: bool = True
+    track: bool = True
+
 class DiffusionModel(nn.Module, ABC):
     img_shape: tuple[int, ...]
     noise_schedule: Optional[NoiseSchedule]
@@ -680,9 +690,9 @@ class DiffusionModel(nn.Module, ABC):
 
 @dataclass(frozen=True)
 class TinyDiffuserConfig:
-    img_shape: tuple[int, ...]
-    hidden_size: int
     max_steps: int
+    img_shape: Tuple[int, ...] = (3, 4, 5)
+    hidden_size: int = 128
 
 class TinyDiffuser(DiffusionModel):
     def __init__(self, config: TinyDiffuserConfig):
@@ -717,12 +727,11 @@ if MAIN:
     model = TinyDiffuser(model_config)
     out = model(imgs, n_steps)
     plot_img(out[0].detach(), "Noise prediction of untrained model")
-
 ```
 
 ### Training Loop
 
-After a pile of math, the authors arrive at Equation $(14)$ for the loss function (also equation $(14)$ in the Streamlit page) and $\text{Algorithm 1}$ for the training procedure. We're going to skip over the derivation for now and implement the training loop at the top of Page 4.
+After a pile of math, the authors arrive at Equation $(14)$ for the loss function (equation $(11)$ in the Streamlit page) and $\text{Algorithm 1}$ for the training procedure. We're going to skip over the derivation for now and implement the training loop at the top of Page 4.
 
 Exercise: go through each line of Algorithm 1, explain it in plain English, and describe the shapes of each thing.""")
 
@@ -744,12 +753,11 @@ $\epsilon_\theta$ is our neural network. It takes two arguments: the image with 
 
     st.markdown(r"""
 
-In Line 6 - it's unspecified how we know if the network is converged. We're just going to go until the loss seems to stop decreasing.
+In Line 6, it's unspecified how we know if the network is converged. We're just going to go until the loss seems to stop decreasing.
 
 Now implement the training loop on minibatches of examples, using Adam as the optimizer (with default parameters). Log your results to Weights and Biases. We've given you a function to return a list of images for logging, to help with this.
 
 I recommend starting with a previous training loop you've written, e.g. for your variational autoencoder.
-
 
 ```python
 def log_images(
@@ -764,49 +772,32 @@ def log_images(
     images = [wandb.Image(i) for i in log_img[:num_images]]
     return images
 
-
 def train(
-    model: DiffusionModel, config_dict: dict[str, Any], trainset: TensorDataset, testset: Optional[TensorDataset] = None
+    model: DiffusionModel, 
+    args: DiffusionArgs, 
+    trainset: TensorDataset,
+    testset: Optional[TensorDataset] = None
 ) -> DiffusionModel:
-    wandb.init(project="diffusion_models", config=config_dict, mode="enabled")
-    config = wandb.config
-    print(f"Training with config: {config}")
     pass
 
-
 if MAIN:
-    config: dict[str, Any] = dict(
-        lr=0.001,
-        image_shape=(3, 4, 5),
-        hidden_size=128,
-        epochs=20,
-        max_steps=100,
-        batch_size=128,
-        img_log_interval=200,
-        n_images_to_log=3,
-        n_images=50000,
-        n_eval_images=1000,
-        device=t.device("cuda") if t.cuda.is_available() else t.device("cpu"),
-    )
-    images = normalize_img(gradient_images(config["n_images"], config["image_shape"]))
-    train_set = TensorDataset(images)
-    images = normalize_img(gradient_images(config["n_eval_images"], config["image_shape"]))
-    test_set = TensorDataset(images)
-    model_config = TinyDiffuserConfig(config["image_shape"], config["hidden_size"], config["max_steps"])
-    model = TinyDiffuser(model_config).to(config["device"])
-    model = train(model, config, train_set, test_set)
-
+    args = DiffusionArgs(epochs=2) # This shouldn't take long to train
+    model_config = TinyDiffuserConfig(args.max_steps)
+    model = TinyDiffuser(model_config).to(device).train()
+    trainset = TensorDataset(normalize_img(gradient_images(args.n_images, args.image_shape)))
+    testset = TensorDataset(normalize_img(gradient_images(args.n_eval_images, args.image_shape)))
+    model = train(model, args, trainset, testset)
 ```
 
 ## Sampling from the Model
 
-Our training loss went down, so maybe our model learned something. Implement sampling from the model according to Algorithm 2 so we can see what the images look like.""")
+Our training loss went down, so maybe our model learned something. Implement sampling from the model according to Algorithm 2 so we can see what the images look like. This can be found on the top of page 4:""")
 
     st_image("alg2.png", 400)
+    st.markdown("")
 
     st.markdown(r"""
-
-Note - if your output is coming out a bit noisy, then rather than adding $\sigma_t\mathbf{z}$ in step $(4)$ of the algorithm, you can try adding a smaller multiple (or even adding nothing). This tends to produce smoother gradients for this particular problem (although this won't be true when you train on Fashion MNIST in later sections).""")
+Recall that we use $\sigma_t = \sqrt{\beta_t}$. If your output is coming out a bit noisy, then you can try using $\sigma_t = 0$ for the particular task of gradient denoising. I don't know why this is the case for this particular task (and neither did the folks at MLAB!). One possible theory is that, by omitting the noise term $\sigma_t \mathbb{z}$, we're actually performing maximum likelihood estimation at each step (i.e. setting $\mathbb{x}_{t-1}$ to be its posterior mean rather than sampling it from the distribution), and this works much better when all of your original images are perfectly regular. Adding noise in the later stages is strictly counterproductive, because once we've de-noised our image to the point where it's smooth, adding noise will just make it look worse.""")
 
     with st.expander("Question - what is the mathematical interpretation of performing this algorithm without adding any random noise in step (4)?"):
         st.markdown(r"""

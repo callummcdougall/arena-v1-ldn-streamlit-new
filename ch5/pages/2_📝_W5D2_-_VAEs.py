@@ -408,7 +408,7 @@ where the expectation is taken over random inputs $x$, and random noise $\boldsy
 
 **The second term** is the KL divergence between $N(\boldsymbol{\mu}, \boldsymbol{\sigma}^2)$ (the distribution of latent vectors produced by your VAE when given inputs $x$) and $N(\mathbf{0},I)$ (the true generative distribution of latent vectors $z$). The formula for the KL divergence between two multinomial normal distributions can get a bit messy, but luckily for us both of these distributions are independent (the covariance matrices are diagonal), and the KL divergence decomposes into the sum of KL divergences for each component:
 $$
-D_{KL}(\,N(\mu, \sigma^2) \,||\, N(0, 1)\,) = \frac{1}{2}(\sigma^2 + \mu^2 - 1) - \log{\sigma}
+D_{KL}(\,N(\mu, \sigma^2) \,||\, N(0, 1)\,) = \frac{1}{2}(\mu^2 + \sigma^2 - 1) - \log{\sigma}
 $$
 This is why it was important to output `mu` and `logsigma` in our forward functions, so we could compute this expression! (It's easier to use `logsigma` than `sigma` when evaluating the expression above, for stability reasons).
 
