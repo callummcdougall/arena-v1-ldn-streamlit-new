@@ -204,7 +204,14 @@ L(\color{orange}\theta\color{black}) &=\mathbb{E}_q\bigg[-\log \color{orange}p_\
 \end{align*} 
 $$
 
-We assume that our process runs for long enough that $x_T$ is complete random noise (i.e. no trace of the original image is left), so $L_T$ evaluates to basically zero and we can ignore it. We called the other terms consistency and reconstruction loss, but they can all be described as a kind of consistency term, which tries to make sure that the model leans to reverse the random noise process at each step.
+We assume that our process runs for long enough that $x_T$ is complete random noise (i.e. no trace of the original image is left), so $L_T$ evaluates to basically zero and we can ignore it. We called the other terms consistency and reconstruction loss, but they can all be described as a kind of consistency term, which tries to make sure that the model leans to reverse the random noise process at each step.""")
+
+    st.info(r"""
+**Note about latent spaces and noised images**
+
+It might seem a bit of a stretch to equate latent vectors and noised images. After all, we thought about our latent vectors as a compressed representation of the features of our image; is it reasonable to think about noised images as a kind of latent vector? Well, sort of. Adding noise to the input images in a diffusion model can be thought of as adding random perturbations to the data, which forces the model to learn the underlying structure of the data in the same way that adding noise to our latent vectors forced the VAEs to learn the underlying structure. The main difference between these two cases is that the forward process of our diffusion model always stays in the same basis as the original image, rather than learning a mapping to a latent space with different (usually fewer) dimensions.
+""")
+    st.markdown(r"""
 
 Now that we've broadly sketched out the connection, let's get into some more specifics like how the noise process is represented, and how our parameters are actually learned.
 
@@ -288,7 +295,7 @@ $$
 $$
 and $\boldsymbol{\epsilon}_t$ is the (normalised) noise term which gets us from $\mathbf{x}_0$ to $\mathbf{x}_t$, i.e. we have $\mathbf{x}_t = \sqrt{\bar{\alpha}_t}\mathbf{x}_0 + \sqrt{1-\bar{\alpha}_t}\boldsymbol{\epsilon_t}$, and $\boldsymbol{\epsilon}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$.
 
-How should we interpret this expression, intuitively? The basic idea is this: we know a lot of noise gets added as we go from $\mathbf{x}_0 \to \mathbf{x}_{t-1}$, and a bit of noise gets added as we go from $\mathbf{x}_{t-1} \to \mathbf{x}_t$. Furthermore, we actually know what the noise ratio is between these two steps, because we know the value of the parameters $\beta_t$. So the intuitition behind $(7)$ is as follows: if we know the start point and the end point of the process which adds random noise, then we know the distribution at $\mathbf{x}_{t-1}$ is normal, with mean somewhere in the middle of those two, and variance slightly smaller than $\beta_t$.""")
+How should we interpret this expression, intuitively? The basic idea is this: we know a lot of noise gets added as we go from $\mathbf{x}_0 \to \mathbf{x}_{t-1}$, and a bit of noise gets added as we go from $\mathbf{x}_{t-1} \to \mathbf{x}_t$. Furthermore, we actually know what the noise ratio is between these two steps, because we know the value of the parameters $\beta_t$. So we have an idea of how far along the path from $\mathbf{x}_0$ to $\mathbf{x}_t$ we are likely to find $\mathbf{x}_{t-1}$. As an extreme case, if $\beta_t = 1 - \alpha_t \approx 0$, this means almost no noise is added going from $\mathbf{x}_{t-1}$ to $\mathbf{x}_t$, so we expect to find $\mathbf{x}_{t-1}$ much closer to $\mathbf{x}_t$ than $\mathbf{x}_0$, and the variance of $\mathbf{x}_{t-1}$ is very small.""")
 
     st_image("noise-sketch.png", 500)
     st.markdown(r"""
@@ -401,11 +408,11 @@ A quick note on terminology - when I refer to equation numbers, these are the nu
 
 We'll first generate a toy dataset of random color gradients, and train the model to be able to recover them. This should be an easy task because the structure in the data is simple.
 
+We've also provided you with a bunch of functions below for visualising your plots. We'll provide you with examples of how the plotting functions are used.
 
 ```python
 def gradient_images(n_images: int, img_size: tuple[int, int, int]) -> t.Tensor:
-    '''
-    Generate n_images of img_size, each a color gradient
+    '''Generate n_images of img_size, each a color gradient
     '''
     (C, H, W) = img_size
     corners = t.randint(0, 255, (2, n_images, C))
@@ -422,10 +429,33 @@ def gradient_images(n_images: int, img_size: tuple[int, int, int]) -> t.Tensor:
     return gradients / 255
 
 def plot_img(img: t.Tensor, title: Optional[str] = None) -> None:
+    '''Plots a single image, with optional title.
+    '''
     img = rearrange(img, "c h w -> h w c").clip(0, 1)
     img = (255 * img).to(t.uint8)
     fig = px.imshow(img, title=title)
-    fig.update_layout(height=400, width=400, margin=dict(t=60, l=40, r=40, b=40))
+    fig.update_layout(margin=dict(t=70 if title else 40, l=40, r=40, b=40))
+    fig.show()
+
+def plot_img_grid(imgs: t.Tensor, title: Optional[str] = None, cols: Optional[int] = None) -> None:
+    '''Plots a grid of images, with optional title. Splits according to cols.
+    '''
+    b = imgs.shape[0]
+    imgs = rearrange(imgs, "b c h w -> b h w c")
+    imgs = (255 * imgs).to(t.uint8)
+    if cols is None:
+        cols = int(b**0.5) + 1
+    fig = px.imshow(imgs, facet_col=0, facet_col_wrap=cols, title=title)
+    for annotation in fig.layout.annotations:
+        annotation["text"] = ""
+    fig.show()
+
+def plot_img_slideshow(imgs: t.Tensor, title: Optional[str] = None) -> None:
+    '''Plots slideshow of images (useful for visualising denoising).
+    '''
+    imgs = rearrange(imgs, "b c h w -> b h w c")
+    imgs = (255 * imgs).to(t.uint8)
+    fig = px.imshow(imgs, animation_frame=0, title=title)
     fig.show()
 
 if MAIN:
@@ -673,8 +703,8 @@ class DiffusionArgs():
     epochs: int = 10
     max_steps: int = 100
     batch_size: int = 128
-    n_image_logs_per_epoch: int = 3
-    n_images_per_to_log: int = 3
+    seconds_between_image_logs: int = 10
+    n_images_per_log: int = 3
     n_images: int = 50000
     n_eval_images: int = 1000
     cuda: bool = True
