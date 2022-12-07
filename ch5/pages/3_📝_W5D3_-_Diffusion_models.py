@@ -438,23 +438,25 @@ def plot_img(img: t.Tensor, title: Optional[str] = None) -> None:
     fig.show()
 
 def plot_img_grid(imgs: t.Tensor, title: Optional[str] = None, cols: Optional[int] = None) -> None:
-    '''Plots a grid of images, with optional title. Splits according to cols.
+    '''Plots a grid of images, with optional title.
     '''
     b = imgs.shape[0]
+    imgs = (255 * imgs).to(t.uint8).squeeze()
+    if imgs.ndim == 3:
+        imgs = repeat(imgs, "b h w -> b 3 h w")
     imgs = rearrange(imgs, "b c h w -> b h w c")
-    imgs = (255 * imgs).to(t.uint8)
-    if cols is None:
-        cols = int(b**0.5) + 1
+    if cols is None: cols = int(b**0.5) + 1
     fig = px.imshow(imgs, facet_col=0, facet_col_wrap=cols, title=title)
-    for annotation in fig.layout.annotations:
-        annotation["text"] = ""
+    for annotation in fig.layout.annotations: annotation["text"] = ""
     fig.show()
 
 def plot_img_slideshow(imgs: t.Tensor, title: Optional[str] = None) -> None:
-    '''Plots slideshow of images (useful for visualising denoising).
+    '''Plots slideshow of images.
     '''
+    imgs = (255 * imgs).to(t.uint8).squeeze()
+    if imgs.ndim == 3:
+        imgs = repeat(imgs, "b h w -> b 3 h w")
     imgs = rearrange(imgs, "b c h w -> b h w c")
-    imgs = (255 * imgs).to(t.uint8)
     fig = px.imshow(imgs, animation_frame=0, title=title)
     fig.show()
 
@@ -699,7 +701,7 @@ in_features = 3 * height * width + 1
 @dataclass
 class DiffusionArgs():
     lr: float = 0.001
-    image_shape: tuple = (3, 4, 5)
+    img_shape: tuple = (3, 4, 5)
     epochs: int = 10
     max_steps: int = 100
     batch_size: int = 128
@@ -814,8 +816,8 @@ if MAIN:
     args = DiffusionArgs(epochs=2) # This shouldn't take long to train
     model_config = TinyDiffuserConfig(args.max_steps)
     model = TinyDiffuser(model_config).to(device).train()
-    trainset = TensorDataset(normalize_img(gradient_images(args.n_images, args.image_shape)))
-    testset = TensorDataset(normalize_img(gradient_images(args.n_eval_images, args.image_shape)))
+    trainset = TensorDataset(normalize_img(gradient_images(args.n_images, args.img_shape)))
+    testset = TensorDataset(normalize_img(gradient_images(args.n_eval_images, args.img_shape)))
     model = train(model, args, trainset, testset)
 ```
 
@@ -891,7 +893,12 @@ def section_3():
 """, unsafe_allow_html=True)
 
     st.markdown("""
-The DDPM paper uses a custom architecture which is based on the PixelCNN++ paper with some modifications, which is in turn based on a couple other papers (U-Net and Wide ResNet) which are in turn modified versions of other papers. For today, just follow along with the diagrams and we won't worry if we exactly match the paper as long as it works.
+The DDPM paper uses a custom architecture which is based on the PixelCNN++ paper with some modifications, which is in turn based on a couple other papers (U-Net and Wide ResNet) which are in turn modified versions of other papers.
+
+You have been given some reasonably strict tests which will measure parameter count, shape of your output and in some cases the value of your output. However, in general don't worry if you don't match the architecture exactly. This is going to be the most complicated architecture you've done so far, but the good news is that if you don't do it exactly right, it'll probably still work fine.
+""")
+
+    st.markdown(r"""
 
 ## The U-Net
 
@@ -913,9 +920,7 @@ The model used in the DDPM is shown below and has the same three part structure 
 
 We've got some 2D self-attention in there, new nonlinearities, group normalization, and sinusoidal position embeddings. We'll implement these from scratch so you understand what they are. Once you've done that, assembling the network will be routine work for you at this point.
 
-One complication is that in addition to taking a batch of images, for each image we also have a single integer representing the number of steps of noise added. In the paper, this ranges from 0 to 1000, so the range is too wide to directly pass this as an integer. Instead, these get embedded into a tensor of shape `(batch, emb)` where `emb` is some embedding dimension and passed into the blocks.
-
-This is going to be the most complicated architecture you've done so far, but the good news is that if you don't do it exactly right, it'll probably still work fine.""")
+One complication is that in addition to taking a batch of images, for each image we also have a single integer representing the number of steps of noise added. In the paper, this ranges from 0 to 1000, so the range is too wide to directly pass this as an integer. Instead, these get embedded into a tensor of shape `(batch, emb)` where `emb` is some embedding dimension and passed into the blocks.""")
 
     # ```mermaid
     # graph TD
@@ -1215,25 +1220,24 @@ class MidBlock(nn.Module):
 if MAIN:
     w5d3_tests.test_midblock(MidBlock)
 
-
 class Unet(DiffusionModel):
+    '''
+    img_shape: the input and output image shape, a tuple of (C, H, W)
+    channels: the number of channels after the first convolution.
+    dim_mults: the number of output channels for downblock i is dim_mults[i] * channels. Note that the default arg of (1, 2, 4, 8) will contain one more DownBlock and UpBlock than the DDPM image above.
+    groups: number of groups in the group normalization of each ResnetBlock (doesn't apply to attention block)
+    max_steps: the max number of (de)noising steps. We also use this value as the sinusoidal positional embedding dimension (although in general these do not need to be related).
+    '''
     def __init__(
         self,
-        image_shape: tuple[int, int, int],
-        channels: int = 128,
-        dim_mults: tuple[int, ...] = (1, 2, 4, 8),
-        groups: int = 4,
-        max_steps: int = 1000,
+        image_shape: Tuple[int, ...] = (1, 28, 28)
+        channels: int = 128
+        dim_mults: Tuple[int, ...] = (1, 2, 4, 8)
+        groups: int = 4
+        max_steps: int = 1000
     ):
-        '''
-        image_shape: the input and output image shape, a tuple of (C, H, W)
-        channels: the number of channels after the first convolution.
-        dim_mults: the number of output channels for downblock i is dim_mults[i] * channels. Note that the default arg of (1, 2, 4, 8) will contain one more DownBlock and UpBlock than the DDPM image above.
-        groups: number of groups in the group normalization of each ResnetBlock (doesn't apply to attention block)
-        max_steps: the max number of (de)noising steps. We also use this value as the sinusoidal positional embedding dimension (although in general these do not need to be related).
-        '''
         self.noise_schedule = None
-        self.img_shape = image_shape
+        self.img_shape = img_shape
         pass
 
     def forward(self, x: t.Tensor, num_steps: t.Tensor) -> t.Tensor:
@@ -1330,7 +1334,7 @@ if MAIN:
     config_dict: Dict[str, Any] = dict(
         model_channels=28,
         model_dim_mults=(1, 2, 4),
-        image_shape=(1, 28, 28),
+        img_shape=(1, 28, 28),
         max_steps=200,
         epochs=10,
         lr=0.001,
@@ -1340,7 +1344,7 @@ if MAIN:
         device=device,
     )
     model = Unet(
-        image_shape=config_dict["image_shape"], 
+        img_shape=config_dict["img_shape"], 
         channels=config_dict["model_channels"],
         dim_mults=config_dict["model_dim_mults"],
         max_steps=config_dict["max_steps"]
