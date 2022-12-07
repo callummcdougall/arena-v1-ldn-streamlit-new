@@ -39,10 +39,12 @@ def get_fig_dict():
     return {name: read_from_html(name) for name in names}
 
 if "fig_dict" not in st.session_state:
-    fig_dict = get_fig_dict()
-    st.session_state["fig_dict"] = fig_dict
-else:
-    fig_dict = st.session_state["fig_dict"]
+    st.session_state["fig_dict"] = {}
+
+if "grid_output" not in st.session_state["fig_dict"]:
+    st.session_state["fig_dict"] |= get_fig_dict()
+
+fig_dict = st.session_state["fig_dict"]
 
 arr = np.load(r"images/arr.npy")
 fig_dict["animation_output"] = px.imshow(arr, animation_frame=0, color_continuous_scale="gray")
@@ -378,24 +380,39 @@ def section_2():
 
     st.markdown(r"""
 ```python
-import os
-import time
 from abc import ABC, abstractmethod
+import time
 from dataclasses import dataclass
-from functools import reduce
-from operator import mul
-from typing import Any, Optional, Union
-import matplotlib.pyplot as plt
+from typing import Optional, Union, Tuple, List
 import torch as t
-import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
-from torch.utils.data import DataLoader, TensorDataset
-from tqdm import tqdm
+from torch.utils.data import DataLoader
 import wandb
+from torchvision import transforms
+import torchinfo
+from torch import nn
+import plotly.express as px
+from einops.layers.torch import Rearrange
+from torch.utils.data import TensorDataset
+from tqdm import tqdm
+from torchvision import datasets
+from pathlib import Path
+from fancy_einsum import einsum
 
 MAIN = __name__ == "__main__"
+
+device = "cuda" if t.cuda.is_available() else "cpu"
+
+import sys, os
+p = r"my/path" # CHANGE THIS TO YOUR PATH, TO IMPORT FROM WEEK 0
+sys.path.append(p)
+
+from w0d2_chapter0_convolutions.solutions import Linear, conv2d, force_pair, IntOrPair
+from w0d3_chapter0_resnets.solutions import Sequential
+from w1d1_chapter1_transformer_reading.solutions import GELU, PositionalEncoding
+from w5d1_solutions import ConvTranspose2d
+import w5d3_tests
 ```
 
 ## Implementing the forward process
@@ -408,7 +425,7 @@ A quick note on terminology - when I refer to equation numbers, these are the nu
 
 We'll first generate a toy dataset of random color gradients, and train the model to be able to recover them. This should be an easy task because the structure in the data is simple.
 
-We've also provided you with a bunch of functions below for visualising your plots. We'll provide you with examples of how the plotting functions are used.
+We've also provided you with a bunch of functions below for visualising your plots. These functions should work with both RGB and grayscale images (you will see examples of them being used below).
 
 ```python
 def gradient_images(n_images: int, img_size: tuple[int, int, int]) -> t.Tensor:
@@ -462,9 +479,9 @@ def plot_img_slideshow(imgs: t.Tensor, title: Optional[str] = None) -> None:
 
 if MAIN:
     print("A few samples from the input distribution: ")
-    img_shape = (3, 16, 16)
+    image_shape = (3, 16, 16)
     n_images = 5
-    imgs = gradient_images(n_images, img_shape)
+    imgs = gradient_images(n_images, image_shape)
     for i in range(n_images):
         plot_img(imgs[i])
 ```
@@ -670,13 +687,11 @@ if MAIN:
 $$
 \mathbf{x}_t = \sqrt{\bar{\alpha}_t}\mathbf{x}_0 + \sqrt{1-\bar{\alpha}_t}\boldsymbol{\epsilon}_t
 $$
-You need to rearrange this formula, so that $\mathbf{x}_0$ is written in terms of the other variables.
-
-Note that we can swap out $\boldsymbol{\epsilon}_t$ for our network's output $\boldsymbol{\epsilon}_{\theta}(\mathbf{x}_t, t)$, and we get an estimate for the **reconstructed image** (we'll do this later on, during our training loop).
+You need to rearrange this formula, so that $\mathbf{x}_0$ is written in terms of the other variables. You can then use this to calculate the reconstruction.
 """)
 
 
-    st.markdown("""
+    st.markdown(r"""
 Now, we'll create a tiny model to use as our diffusion model. We'll use a simple two-layer MLP.
 
 Note that we setup our `DiffusionModel` class to subclass `nn.Module` and the abstract base class (ABC). All ABC does for us is raise an error if subclasses forget to implement the abstract method `forward`. Later, we can write our training loop to work with any `DiffusionModel` subclass.
@@ -701,7 +716,7 @@ in_features = 3 * height * width + 1
 @dataclass
 class DiffusionArgs():
     lr: float = 0.001
-    img_shape: tuple = (3, 4, 5)
+    image_shape: tuple = (3, 4, 5)
     epochs: int = 10
     max_steps: int = 100
     batch_size: int = 128
@@ -713,7 +728,7 @@ class DiffusionArgs():
     track: bool = True
 
 class DiffusionModel(nn.Module, ABC):
-    img_shape: tuple[int, ...]
+    image_shape: tuple[int, ...]
     noise_schedule: Optional[NoiseSchedule]
 
     @abstractmethod
@@ -723,7 +738,7 @@ class DiffusionModel(nn.Module, ABC):
 @dataclass(frozen=True)
 class TinyDiffuserConfig:
     max_steps: int
-    img_shape: Tuple[int, ...] = (3, 4, 5)
+    image_shape: Tuple[int, ...] = (3, 4, 5)
     hidden_size: int = 128
 
 class TinyDiffuser(DiffusionModel):
@@ -734,7 +749,7 @@ class TinyDiffuser(DiffusionModel):
         super().__init__()
         self.config = config
         self.hidden_size = config.hidden_size
-        self.img_shape = config.img_shape
+        self.image_shape = config.image_shape
         self.noise_schedule = None
         self.max_steps = config.max_steps
         pass
@@ -751,11 +766,11 @@ class TinyDiffuser(DiffusionModel):
         pass
 
 if MAIN:
-    img_shape = (3, 4, 5)
+    image_shape = (3, 4, 5)
     n_images = 5
-    imgs = gradient_images(n_images, img_shape)
+    imgs = gradient_images(n_images, image_shape)
     n_steps = t.zeros(imgs.size(0))
-    model_config = TinyDiffuserConfig(img_shape, 16, 100)
+    model_config = TinyDiffuserConfig(image_shape, 16, 100)
     model = TinyDiffuser(model_config)
     out = model(imgs, n_steps)
     plot_img(out[0].detach(), "Noise prediction of untrained model")
@@ -763,9 +778,13 @@ if MAIN:
 
 ### Training Loop
 
-After a pile of math, the authors arrive at Equation $(14)$ for the loss function (equation $(11)$ in the Streamlit page) and $\text{Algorithm 1}$ for the training procedure. We're going to skip over the derivation for now and implement the training loop at the top of Page 4.
+After a pile of math, the authors arrive at Equation $(14)$ for the loss function (equation $(11)$ in the Streamlit page) and $\text{Algorithm 1}$ for the training procedure. We're going to skip over the derivation for now and implement the training loop at the top of Page 4.""")
 
-Exercise: go through each line of Algorithm 1, explain it in plain English, and describe the shapes of each thing.""")
+    st_image("alg.png", 400)
+    st.markdown("")
+    st.markdown(r"""
+
+Exercise: go through each line of Algorithm 1, explain it in plain English, and describe the shapes of each thing (in terms of `batch`, `height`, `width` and `channel`).""")
 
     with st.expander("Line 2"):
         st.markdown("""
@@ -816,8 +835,8 @@ if MAIN:
     args = DiffusionArgs(epochs=2) # This shouldn't take long to train
     model_config = TinyDiffuserConfig(args.max_steps)
     model = TinyDiffuser(model_config).to(device).train()
-    trainset = TensorDataset(normalize_img(gradient_images(args.n_images, args.img_shape)))
-    testset = TensorDataset(normalize_img(gradient_images(args.n_eval_images, args.img_shape)))
+    trainset = TensorDataset(normalize_img(gradient_images(args.n_images, args.image_shape)))
+    testset = TensorDataset(normalize_img(gradient_images(args.n_eval_images, args.image_shape)))
     model = train(model, args, trainset, testset)
 ```
 
@@ -831,13 +850,7 @@ Our training loss went down, so maybe our model learned something. Implement sam
     st.markdown(r"""
 Recall that we use $\sigma_t = \sqrt{\beta_t}$. If your output is coming out a bit noisy, then you can try using $\sigma_t = 0$ for the particular task of gradient denoising. I don't know why this is the case for this particular task (and neither did the folks at MLAB!). One possible theory is that, by omitting the noise term $\sigma_t \mathbb{z}$, we're actually performing maximum likelihood estimation at each step (i.e. setting $\mathbb{x}_{t-1}$ to be its posterior mean rather than sampling it from the distribution), and this works much better when all of your original images are perfectly regular. Adding noise in the later stages is strictly counterproductive, because once we've de-noised our image to the point where it's smooth, adding noise will just make it look worse.""")
 
-    with st.expander("Question - what is the mathematical interpretation of performing this algorithm without adding any random noise in step (4)?"):
-        st.markdown(r"""
-When you're adding random noise, you're sampling from the distribution $x_{t-1}\sim p_\theta(x_{t-1}|x_t).
-
-When you're not adding any random noise, you're sampling from a version of this distribution with zero variance. This is equivalent to **taking the mean of this distribution.**""")
-
-    st.markdown("""
+    st.markdown(r"""
 ```python
 def sample(model: DiffusionModel, n_samples: int, return_all_steps: bool = False) -> Union[t.Tensor, list[t.Tensor]]:
     '''
@@ -859,17 +872,16 @@ if MAIN:
     print("Generating multiple images")
     assert isinstance(model, DiffusionModel)
     with t.inference_mode():
-        samples = sample(model, 5)
-    for s in samples:
-        plot_img(denormalize_img(s).cpu())
+        samples = sample(model, 6)
+        samples_denormalized = denormalize_img(samples).cpu()
+    plot_img_grid(samples_denormalized, title="Sample denoised images", cols=3)
 if MAIN:
     print("Printing sequential denoising")
     assert isinstance(model, DiffusionModel)
     with t.inference_mode():
-        samples = sample(model, 1, return_all_steps=True)
-    for (i, s) in enumerate(samples):
-        if i % (len(samples) // 20) == 0:
-            plot_img(denormalize_img(s[0]), f"Step {i}")
+        samples = sample(model, 1, return_all_steps=True)[::10, 0, :]
+        samples_denormalized = denormalize_img(samples).cpu()
+    plot_img_slideshow(samples_denormalized, title="Sample denoised image slideshow")
 ```
 
 Now that we've got the training working, on to the next part!
@@ -1003,19 +1015,8 @@ These are called residual blocks because they're derived from but not identical 
 
     st.write("""<figure style="max-width:420px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNp1kVFrgzAQgP9KyLOluL7JKHRrGQXRMd2TGSOaq4aZRGIyWmr_-0zqWFu6PN3lvvvu4I64UgxwhGtNuwblayJ7W56TN-g5s7R9alX1ReRW0BrQbLYcqk8uA9QMjnhW8rtIX_Ntmqzix1LPl-4HhfvwY2KVNR5OrSESTe-OzPWFhe9e7BcB6ihDoTe-aGW7RGnhs4zH77fuFWM5F7ARJbBiTG7rzvrwvxt5-bzUd-VXiydWZAa6vhgD5COv8ZMZl_W5GUQ5ILdRTA-gC2f1WMwlUH0x4Hr1vzEgGQ6wAC0oZ-N5jq5EsGlAAMHRGDLYUdsagok8jajtGDWwYdwojaMdbXsIMLVGZQdZ4choC7_QmtPxwGKiTj9LDqo6" /></figure>""", unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(r"""
 ---
-
-```python
-from typing import Optional, Union
-import matplotlib.pyplot as plt
-import torch as t
-from einops import rearrange, repeat
-from fancy_einsum import einsum
-from torch import nn
-
-MAIN = __name__ == "__main__"
-```
 
 ## Group Normalization
 
@@ -1037,18 +1038,18 @@ Note - `num_groups` should always evenly divide `num_channels`. As good practice
 Like with BatchNorm, you should use `unbiased=False` in your variance calculation.
 """)
     with st.expander("Help - I'm not sure how to implement GroupNorm."):
-        st.markdown("""
+        st.markdown(r"""
 Use `rearrange` to introduce a 5th group dimension and then compute the mean and variance over the appropriate dimensions. After you subtract and divide the mean and variance, rearrange again back into BCHW before `applying` the learnable parameters.
 """)
 
-    st.markdown("""
+    st.markdown(r"""
 ## Sinusoidal Positional Encodings
 
 We use sinusoidal positional encodings, to embed the num noise steps object. 
 
 You can reuse much of your previous sinusoidal positional encodings code, but you may have to rewrite some of it. In previous exercises, your encoding worked on `x` which had been token-encoded (i.e. the input had shape `(batch, seq_len, embedding_dim)`) but here you need to apply it directly to your `num_steps` object (which is an array of size `(batch,)`, with each element being an integer between `0` and `max_steps-1`).
 
-```
+```python
 class PositionalEncoding(nn.Module):
 
     def __init__(self, max_steps: int, embedding_dim: int):
@@ -1146,7 +1147,6 @@ class AttentionBlock(nn.Module):
     def forward(self, x: t.Tensor) -> t.Tensor:
         pass
 
-
 if MAIN:
     w5d3_tests.test_attention_block(SelfAttention)
 
@@ -1169,7 +1169,6 @@ class ResidualBlock(nn.Module):
         '''
         pass
 
-
 if MAIN:
     w5d3_tests.test_residual_block(ResidualBlock)
 
@@ -1185,7 +1184,6 @@ class DownBlock(nn.Module):
         Return: (downsampled output, full size output to skip to matching UpBlock)
         '''
         pass
-
 
 if MAIN:
     w5d3_tests.test_downblock(DownBlock, downsample=True)
@@ -1203,7 +1201,6 @@ class UpBlock(nn.Module):
     def forward(self, x: t.Tensor, step_emb: t.Tensor, skip: t.Tensor) -> t.Tensor:
         pass
 
-
 if MAIN:
     w5d3_tests.test_upblock(UpBlock, upsample=True)
     w5d3_tests.test_upblock(UpBlock, upsample=False)
@@ -1216,28 +1213,29 @@ class MidBlock(nn.Module):
     def forward(self, x: t.Tensor, step_emb: t.Tensor):
         pass
 
-
 if MAIN:
     w5d3_tests.test_midblock(MidBlock)
 
-class Unet(DiffusionModel):
+
+@dataclass(frozen=True)
+class UnetConfig():
     '''
-    img_shape: the input and output image shape, a tuple of (C, H, W)
+    image_shape: the input and output image shape, a tuple of (C, H, W)
     channels: the number of channels after the first convolution.
     dim_mults: the number of output channels for downblock i is dim_mults[i] * channels. Note that the default arg of (1, 2, 4, 8) will contain one more DownBlock and UpBlock than the DDPM image above.
     groups: number of groups in the group normalization of each ResnetBlock (doesn't apply to attention block)
     max_steps: the max number of (de)noising steps. We also use this value as the sinusoidal positional embedding dimension (although in general these do not need to be related).
     '''
-    def __init__(
-        self,
-        image_shape: Tuple[int, ...] = (1, 28, 28)
-        channels: int = 128
-        dim_mults: Tuple[int, ...] = (1, 2, 4, 8)
-        groups: int = 4
-        max_steps: int = 1000
-    ):
+    image_shape: Tuple[int, ...] = (1, 28, 28)
+    channels: int = 128
+    dim_mults: Tuple[int, ...] = (1, 2, 4, 8)
+    groups: int = 4
+    max_steps: int = 600
+
+class Unet(DiffusionModel):
+    def __init__(self, config: UnetConfig):
         self.noise_schedule = None
-        self.img_shape = img_shape
+        self.image_shape = config.image_shape
         pass
 
     def forward(self, x: t.Tensor, num_steps: t.Tensor) -> t.Tensor:
@@ -1272,31 +1270,15 @@ def section_4():
     </ul></li>
 </ul>
 """, unsafe_allow_html=True)
-    st.markdown("""
+    st.markdown(r"""
 We've already got most of the pieces in place, so setting up this training should be straightforward.
-
-```python
-from pathlib import Path
-from typing import Any, Tuple, Dict
-import torch as t
-from torch.utils.data import TensorDataset
-from torchvision import datasets
-from torchvision import transforms
-from tqdm import tqdm
-import torchinfo
-from typing import Optional
-import plotly.express as px
-
-device = "cuda" if t.cuda.is_available() else "cpu"
-MAIN = __name__ == "__main__"
-```
 
 We're going to start by thinking about the input distribution of images. [FashionMNIST](https://github.com/zalandoresearch/fashion-mnist) is a dataset of 60K training examples and 10K test examples that belong to one of 10 different classes like "t-shirt" or "sandal". Each image is 28x28 pixels and in 8-bit grayscale. We think of those dataset examples as being samples drawn IID from some larger input distribution "the set of all FashionMNIST images".
 
 ## Dataset Loading
 
 ```python
-def get_fashion_mnist(train_transform, test_transform) -> tuple[TensorDataset, TensorDataset]:
+def get_fashion_mnist(train_transform, test_transform) -> Tuple[TensorDataset, TensorDataset]:
     '''Return MNIST data using the provided Tensor class.'''
     mnist_train = datasets.FashionMNIST("../data", train=True, download=True)
     mnist_test = datasets.FashionMNIST("../data", train=False)
@@ -1326,35 +1308,22 @@ if MAIN:
 
 ## Model Creation
 
-Now, set up training, using your implemenations of UNet and calling the training loop from part 1.
-
+Now, set up training, using your implemenations of UNet and calling the training loop from part 1. Note that we are using a smaller number of channels and dim_mults than the default UNetConfig. This is because the default UNetConfig is designed for 256x256 images, and we are using 28x28 images. You can experiment with different values for these hyperparameters (and you might also want to try working with datasets containing larger images - see the bonus exercises below).
 
 ```python
 if MAIN:
-    config_dict: Dict[str, Any] = dict(
-        model_channels=28,
-        model_dim_mults=(1, 2, 4),
-        img_shape=(1, 28, 28),
-        max_steps=200,
-        epochs=10,
-        lr=0.001,
-        batch_size=256,
-        img_log_interval=200,
-        n_images_to_log=3,
-        device=device,
+    model_config = UnetConfig(
+        channels = 28,
+        dim_mults = (1, 2, 4), # Using smaller channels and dim_mults than default
     )
-    model = Unet(
-        img_shape=config_dict["img_shape"], 
-        channels=config_dict["model_channels"],
-        dim_mults=config_dict["model_dim_mults"],
-        max_steps=config_dict["max_steps"]
+    args = DiffusionArgs(
+        image_shape = model_config.image_shape, 
+        max_steps = model_config.max_steps,
     )
-    model.noise_schedule = NoiseSchedule(
-        config_dict["max_steps"], config_dict["device"]
-    )
+    model = Unet(model_config)
 
 if MAIN:
-    model = train(model, config_dict, trainset, testset)
+    model = train(model, args, trainset, testset)
 ```
 
 ## Troubleshooting""")
@@ -1364,8 +1333,11 @@ if MAIN:
         st.markdown("If they look like this:")
 
         st_image("diffusion_highvar.png", 120)
+        st.markdown("")
         st.markdown("""
-    This could indicate that you're adding too much noise near the end of the diffusion process. Check your equations again, in particular that you're not missing a square root anywhere - $\sigma^2$ represents variance and you might be needing a standard deviation instead.""")
+This could indicate that you're adding too much noise near the end of the diffusion process. Check your equations again, in particular that you're not missing a square root anywhere - $\sigma^2$ represents variance and you might be needing a standard deviation instead.
+
+Also, check your `max_steps` argument - for these examples, you should have this somewhere in the range of 500-1000 at least.""")
 
     with st.expander("Ok, what are they 'supposed' to look like?"):
         st.markdown("""
@@ -1376,41 +1348,40 @@ There might be some variance of quality between your samples. Here is a grid of 
         st.markdown("Note - in general, your outputs on `wandb` will look much better than your reconstructions, because even when $t$ is pretty large, $x_t$ won't be fully IID normal, and it'll be easier to reconstruct the original image than it is to come up with a realistic image from pure random noise.")
 
     with st.expander("What values should I expect for my loss function?"):
-        st.markdown("My loss function dropped down to around 0.1 pretty quickly (after the 2nd/3rd epoch), and didn't go much further from there. After 20 epochs, the loss was around 0.85.")
+        st.markdown("""
+While training on a `gpu_1x_a100_sxm4` instance ($1 per hour on Lambda Labs), I got the following results:""")
+
+        st_image("loss-diffusion.png", 650)
+        st.markdown("")
+
+        st.markdown("""
+
+This was after a single epoch of training, which took about 90 seconds. At the end, my model was able to produce samples at the level of those shown above (and judging from the loss curve, I imagine it could have generated images like those even earlier).
+
+The loss was calculated using `F.mse_loss` on the noise and predicted noise.
+""")
 
     st.markdown("""
 ```python
-def plot_img_grid_fashionMNIST(imgs: t.Tensor, cols: int, title: Optional[str] = None) -> None:
-    imgs = (255 * imgs).to(t.uint8)
-    fig = px.imshow(imgs, facet_col=0, facet_col_wrap=cols, title=title, color_continuous_scale="gray")
-    for annotation in fig.layout.annotations: annotation["text"] = ""
-    fig.show()
-
-def plot_img_slideshow_fashionMNIST(imgs: t.Tensor, title: Optional[str] = None) -> None:
-    imgs = (255 * imgs).to(t.uint8)
-    fig = px.imshow(imgs, animation_frame=0, title=title, color_continuous_scale="gray")
-    fig.show()
-
 if MAIN:
     print("Generating multiple images")
     assert isinstance(model, DiffusionModel)
     with t.inference_mode():
         samples = sample(model, 6)
-        samples = denormalize_img(samples).cpu().squeeze()
-    plot_img_grid_fashionMNIST(samples, cols=3)
-
-if MAIN
+        samples_denormalized = denormalize_img(samples).cpu()
+    plot_img_grid(samples_denormalized, title="Sample denoised images", cols=3)
     print("Printing sequential denoising")
+    assert isinstance(model, DiffusionModel)
     with t.inference_mode():
-        samples = sample(model, 1, return_all_steps=True).squeeze()
-        samples = denormalize_img(samples).cpu()[::5]
-    plot_img_slideshow_fashionMNIST(samples)
+        samples = sample(model, 1, return_all_steps=True)[::30, 0, :]
+        samples_denormalized = denormalize_img(samples).cpu()
+    plot_img_slideshow(samples_denormalized, title="Sample denoised image slideshow")
 ```""")
 
     st.markdown(r"""
 ## Bonus
 
-Congratulations on completing this chapter's content!
+Congratulations on completing this chapter's content! Here are a few suggested bonus exercises for you to try.
 
 ### Improving the Diffusion Model
 
@@ -1418,9 +1389,12 @@ As you've seen, it's challenging to determine if a change to your generative mod
 
 - Do a hyperparameter search to find improved sample quality
 - Try using different loss functions (l1_loss, smooth_l1_loss) and see how this changes the samples.
-- Try training on CIFAR10
-- Try to speed up the sampling while preserving sample quality
+- Try training on datasets with larger & more complicted images, like CIFAR10 or celebA. Post your results in the Slack channel!
 - Try to find a more valid automated metric to measure sample quality.
+- [Some papers suggest](https://arxiv.org/abs/2102.09672) cosine annealing the learning rate, rather than a constant learning rate. Try this out and see if it improves your samples.
+- Try to implement the [DDPM+](https://arxiv.org/abs/2102.09672) model, which suggests some improvements to the original DDPM.
+
+A few of these points are discussed in the second half of [this post](https://lilianweng.github.io/posts/2021-07-11-diffusion-models/), which you might find more accessible than reading the papers.
 
 ### Implement IS and FID Metrics
 
