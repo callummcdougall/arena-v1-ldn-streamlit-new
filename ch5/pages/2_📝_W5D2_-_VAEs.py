@@ -452,8 +452,9 @@ $$
 where $\hat{p}(x)$ denotes our distribution over samples of $x$. This problem gets exponentially harder as we add more latent dimensions, because our samples of $z$ will only cover a tiny fraction of the entire possible latent space. 
 
 Imagine now that we had a function $q_\phi(z \mid x)$, which is high when **the latent vector $z$ is likely to have been produced by $x$**. This function would be really helpful, because for each possible value of $x$ we would have a better idea of where to sample $z$ from. We can represent this situation with the following **graphical model**:
-
-(insert excalidraw)
+""")
+        st_excalidraw("vae-graphical-2", 400)
+        st.markdown(r"""
 
 The seemingly intractible optimization problem above is replaced with a much easier one:
 $$
