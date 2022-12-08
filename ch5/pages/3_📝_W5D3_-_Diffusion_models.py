@@ -101,7 +101,7 @@ def section_1():
     <li><a class="contents-el" href="#gradient-descent">Gradient descent</a></li>
 </ul>
 """, unsafe_allow_html=True)
-    st.markdown("""
+    st.markdown(r"""
 ## Introduction
 
 Today you're going to implement and train a tiny diffusion model from scratch on FashionMNIST. Specifically, we'll be following the [2020 paper **Denoising Diffusion Probabilistic Models**](https://arxiv.org/pdf/2006.11239.pdf), which was an influential early paper in the field of realistic image generation. Understanding this paper will give you a solid foundation to understand state of the art diffusion models. I personally believe that diffusion models are an exciting research area and will make other methods like GANs obsolete in the coming years. To get a sense of how diffusion works, you'll first implement and train an even tinier model to generate images of color gradients.
@@ -153,7 +153,7 @@ Now that we know how to generate as much low-probability data as we want, in the
 
 Then we could just repeatedly apply the reverse function to "hill climb" and end up with a final image that has a relatively large probability. We know that deep neural networks are a good way to learn complicated functions, if you can define a loss function suitable for gradient descent and if you can find a suitable parameterization so that learning is smooth.""")
 
-    st.info("""
+    st.info(r"""
 Diffusion models are insired by a branch of maths/physics called **non-equilibrium thermodynamics**. A core idea here is the **second law of thermodynamics**, which is the tendency for an isolated system to increase in entropy (or disorder) over time. 
 
 One pithy (albeit entirely accurate) way of describing diffusion models is as attempts to **reverse the second law of thermodynamics**, i.e. working against entropy. They model the **forward process** of adding Gaussian noise to an image (increasing the entropy), and then use this to learn the **backward process** which allows them to generate images from a random seed. It still seems incredible to me that something like this actually works!
