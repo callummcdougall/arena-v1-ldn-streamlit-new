@@ -737,9 +737,9 @@ class DiffusionModel(nn.Module, ABC):
 
 @dataclass(frozen=True)
 class TinyDiffuserConfig:
-    max_steps: int
     image_shape: Tuple[int, ...] = (3, 4, 5)
     hidden_size: int = 128
+    max_steps: int = 100
 
 class TinyDiffuser(DiffusionModel):
     def __init__(self, config: TinyDiffuserConfig):
@@ -770,7 +770,7 @@ if MAIN:
     n_images = 5
     imgs = gradient_images(n_images, image_shape)
     n_steps = t.zeros(imgs.size(0))
-    model_config = TinyDiffuserConfig(image_shape, 16, 100)
+    model_config = TinyDiffuserConfig(image_shape, hidden_size=16)
     model = TinyDiffuser(model_config)
     out = model(imgs, n_steps)
     plot_img(out[0].detach(), "Noise prediction of untrained model")
