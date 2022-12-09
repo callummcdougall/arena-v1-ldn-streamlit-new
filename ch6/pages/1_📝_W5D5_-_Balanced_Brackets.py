@@ -30,7 +30,7 @@ def read_from_html(filename):
         fig = pio.from_json(json.dumps(plotly_json))
     return fig
 
-NAMES = ["attribution_fig"]
+NAMES = ["attribution_fig", "attribution_fig_2"]
 def get_fig_dict():
     return {name: read_from_html(name) for name in NAMES}
 if "fig_dict" not in st.session_state:
@@ -143,7 +143,7 @@ To refer to attention heads, we'll use a shorthand "layer.head" where both layer
 import functools
 import json
 import os
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Tuple, Union, Optional
 import matplotlib.pyplot as plt
 import torch
 import torch as t
@@ -700,7 +700,7 @@ In the `MAIN` block below, you should compute a `(10, N_SAMPLES)` tensor contain
 The `hists_per_comp` function to plot these histograms has been written for you - all you need to do is calculate the `magnitudes` object and supply it to that function.
 
 ```python
-def hists_per_comp(magnitudes, data):
+def hists_per_comp(magnitudes, data, n_layers=3, xaxis_range=(-1, 1)):
     num_comps = magnitudes.shape[0]
     titles = {
         (1, 1): "embeddings",
@@ -716,17 +716,20 @@ def hists_per_comp(magnitudes, data):
     }
     assert num_comps == len(titles)
 
-    fig = make_subplots(rows=4, cols=3)
+    fig = make_subplots(rows=n_layers+1, cols=3)
     for ((row, col), title), mag in zip(titles.items(), magnitudes):
+        if row == n_layers+2: break
         fig.add_trace(go.Histogram(x=mag[data.isbal].numpy(), name="Balanced", marker_color="blue", opacity=0.5, legendgroup = '1', showlegend=title=="embeddings"), row=row, col=col)
         fig.add_trace(go.Histogram(x=mag[~data.isbal].numpy(), name="Unbalanced", marker_color="red", opacity=0.5, legendgroup = '2', showlegend=title=="embeddings"), row=row, col=col)
-        fig.update_xaxes(title_text=title, range=[-10, 20], row=row, col=col)
-    fig.update_layout(width=1200, height=1200, barmode="overlay", legend=dict(yanchor="top", y=0.92, xanchor="left", x=0.4), title="Histograms of component significance")
+        fig.update_xaxes(title_text=title, row=row, col=col, range=xaxis_range)
+    fig.update_layout(width=1200, height=250*(n_layers+1), barmode="overlay", legend=dict(yanchor="top", y=0.92, xanchor="left", x=0.4), title="Histograms of component significance")
     fig.show()
-    return fig
 
 if MAIN:
     "TODO: YOUR CODE HERE"
+
+    assert "magnitudes" in locals(), "You need to define `magnitudes`"
+    hists_per_comp(magnitudes, data, xaxis_range=[-10, 20])
 ```""")
 
     with st.expander("Click here to see the output you should be getting."):
@@ -876,12 +879,8 @@ We again need to propagate the direction back, this time through the OV matrix o
 
 Remember, we're interested in the 1st sequence position in the residual stream (see the bar chart above). So when fitting our regression to the layernorm before attention head `2.0`, we'll use `seq_pos=1`.
 
-If you're confused by this, then use the dropdown below for a version of the diagram from earlier which includes the contribution from `2.0`.""")
+If you're confused by this, then you can use the diagram below this code to help guide you.
 
-    with st.expander("Diagram"):
-        st_excalidraw("brackets-transformer-tracing-back-output-2", 1500)
-
-    st.markdown(r"""
 ```python
 def get_WV(model: ParenTransformer, layer: int, head: int) -> t.Tensor:
     '''
@@ -908,72 +907,132 @@ if MAIN:
     w5d5_tests.test_get_WV(model, get_WV)
     w5d5_tests.test_get_WO(model, get_WO)
     w5d5_tests.test_get_pre_20_dir(model, data, get_pre_20_dir)
-if MAIN:
-    pre_20_d = get_pre_20_dir(model, data)
-    in_d_20 = t.inner(out_by_components[:7, :, 1, :], pre_20_d).detach()
-    titles = [
-        "embeddings",
-        "head 0.0",
-        "head 0.1",
-        "mlp 0",
-        "head 1.0",
-        "head 1.1",
-        "mlp 1",
-        "head 2.0",
-        "head 2.1",
-        "mlp 2",
-    ]
-    (fig, axs) = plt.subplots(7, 1, figsize=(6, 11), sharex=True)
-    for i in range(7):
-        ax: plt.Axes = axs[i]
-        normed = in_d_20[i] - in_d_20[i, data.isbal].mean(0)
-        ax.hist(normed[data.starts_open & data.isbal.clone()].numpy(), alpha=0.5, bins=75, label="bal")
-        ax.hist(normed[data.starts_open & ~data.isbal.clone()].numpy(), alpha=0.5, bins=75, label="unbal")
-        ax.title.set_text(titles[i])
-    plt.legend(loc="upper right")
-    plt.tight_layout()
-    plt.show()
-```
 
+if MAIN:
+    assert "magnitudes" in locals()
+    hists_per_comp(magnitudes, data, n_layers=2, xaxis_range=(-7, 7))
+```""")
+    st_excalidraw("brackets-transformer-tracing-back-output-2", 1500)
+
+    with st.expander("Click here to see the output you should be getting."):
+        st.plotly_chart(fig_dict["attribution_fig_2"])
+
+    st.markdown(r"""
 What do you observe?""")
 
     with st.expander("Some things to notice"):
         st.markdown(r"""
-We can see that mlp0 and especially mlp1 are very important. This makes sense -- one thing that mlps are especially capable of doing is turning more continious features ('what proportion of characters in this input are open parens?') into sharp discontinious features ('is that proportion exactly 0.5?').
+We can see that `mlp0` and especially `mlp1` are very important. This makes sense -- one thing that mlps are especially capable of doing is turning more continious features ('what proportion of characters in this input are open parens?') into sharp discontinuous features ('is that proportion exactly 0.5?'). For instance, the sum $\operatorname{ReLU}(x-0.5) + \operatorname{ReLU}(0.5-x)$ evaluates to the nonlinear function $|x-0.5|$, which is zero if and only if $x=0.5$.
 
-Head 1.1 also has some importance, although we will not be able to dig into this today. It turns out that one of the main things it does is incorporate information about when there is a negative elevation failure into this overall elevation branch. This allows the heads to agree the prompt is unbalanced when it is obviously so, even if the overall count of opens and closes would allow it to be balanced.""")
+Head `1.1` also has some importance, although we will not be able to dig into this today. It turns out that one of the main things it does is incorporate information about when there is a negative elevation failure into this overall elevation branch. This allows the heads to agree the prompt is unbalanced when it is obviously so, even if the overall count of opens and closes would allow it to be balanced.""")
 
     st.markdown(r"""
-In order to get a better look at what MLPs 0 and 1 are doing more thoughly, we can look at their output as a function of the overall open-proportion.
+In order to get a better look at what `mlp0` and `mlp1` are doing more thoughly, we can look at their output as a function of the overall open-proportion.
 
 ```python
-if MAIN:
-    plt.scatter(data.open_proportion[data.starts_open], in_d_20[3, data.starts_open], s=2)
-    plt.ylabel("amount mlp 0 writes in the unbalanced direction for head 2.0")
-    plt.xlabel("open-proprtion of sequence")
-    plt.show()
+def mlp_attribution_scatter(magnitudes, data, failure_types):
+    for layer in range(2):
+        fig = px.scatter(
+            x=data.open_proportion[data.starts_open], y=magnitudes[3+layer*3, data.starts_open], 
+            color=failure_types[data.starts_open], category_orders={"color": failure_types_dict.keys()},
+            title=f"Amount MLP {layer} writes in unbalanced direction for Head 2.0", 
+            template="simple_white", height=500, width=800,
+            labels={"x": "Open-proportion", "y": "Head 2.0 contribution"}
+        ).update_traces(marker_size=4, opacity=0.5).update_layout(legend_title_text='Failure type')
+        fig.show()
 
 if MAIN:
-    plt.scatter(data.open_proportion[data.starts_open], in_d_20[6, data.starts_open], s=2)
-    plt.ylabel("amount mlp 1 writes in the unbalanced direction for head 2.0")
-    plt.xlabel("open-proprtion of sequence")
-    plt.show()
+    mlp_attribution_scatter(magnitudes, data, failure_types)
 ```
 
 ### Breaking down an MLP's contribution by neuron
 
-Yesterday you learned that an attention layer can be broken down as a sum of separate contributions from each head. It turns out that we can do something similar with MLPs, breaking them down as a sum of per-neuron contributions. I've hidden this decomposition in a dropdown in case you feel motivated to try to discover it for youself; simply opening up the box is fine though.
+We've already learned that an attention layer can be broken down as a sum of separate contributions from each head. It turns out that we can do something similar with MLPs, breaking them down as a sum of per-neuron contributions.
 
-Ignoring biases, let $MLP(\vec x) = A f(B\vec x)$ for matrices $A, B$. Note that $f(B\vec x)$ is what we refer to as the neuron activations, let $n$ be its length (the intermediate size of the MLP). Write $MLP$ as a sum of $n$ functions of $\vec x$.
+Ignoring biases, let $MLP(\vec x) = A f(B\vec x)$ for matrices $A, B$. Note that $f(B\vec x)$ is what we refer to as the neuron activations, let $n$ be its length (the intermediate size of the MLP).
+
+**Exercise: write $MLP$ as a sum of $n$ functions of $\vec x$**.
 """)
 
-    with st.markdown("Answer and discussion"):
-        st.expander(r"""
-One way to conceptualize the matrix-vector multiplication $V \vec y$ is as a weighted sum of the columns of $V$, thus making $y$ the list of coefficients on the columns in this weighted sum. In other words, $MLP(\vec x) = \sum_{i=0}^{n-1}A_{[;,i]}f(B\vec x)_i$. But we can actually simplify further, as $f(B\vec x)_i = f(B_{[i,:]} \vec x)$; i.e. the dot product of $\vec x$ and the $i$-th row of $B$ (and not the rest of $B$!).
+    with st.expander("Answer and discussion"):
 
-Thus $MLP(\vec x) = \sum_{i=0}^{n-1}A_{[;,i]}f(B_{[i,:]}\vec x)$, or $d + \sum_{i=0}^{n-1}A_{[;,i]}f(B_{[i,:]}\vec x + c_i)$ if we include biases on the Linear layers.
+        st.markdown(r"""
+First, we'll pretend that $\vec x$ is the vector of length `emb_dim` corresponding to just a single sequence position, rather than a matrix of shape `(seq_len, emb_dim)`.
 
-We can view the $i$-th row of $B$ as being the "in-direction" of neuron $i$, as the activation of neuron $i$ depends on how high the dot product between $x$ and that row is. And then we can think of the $i$-th column of A as signifying neuron $i$'s special output vector, which it scales by its activation and then adds into the residual stream. So an MLP consists of $n$ neurons, each of whose activations are calculated by comparing $x$ to their individual in-directions, and then each contributes some scaled version of its out-direction to the residual stream. This is a neat-enough equation that Buck jokes he's going to get it tattooed on his arm.
+One way to conceptualize the matrix-vector multiplication $V \vec y$ is as a weighted sum of the columns of $V$:
+
+$$
+V = \left[V_{[:,0]} \;\bigg|\; V_{[:,1]} \;\bigg|\; ... \;\bigg|\; V_{[:,n-1]}\right], \quad V \vec y = \sum_{i=0}^{n-1} y_i V_{[:,i]}
+$$
+
+thus making $y$ the list of coefficients on the columns in this weighted sum. In other words, we have:
+
+$$
+MLP(\vec x) = \sum_{i=0}^{n-1}f(B\vec x)_i A_{[:,i]}
+$$
+
+where $f(B\vec x)_i$ is a scalar, and $A_{[;,i]}$ is a vector.
+
+But we can actually simplify further, as $f(B\vec x)_i = f(B_{[i,:]} \cdot \vec x)$; i.e. the dot product of $\vec x$ and the $i$-th row of $B$ (and not the rest of $B$!). This is because:
+
+$$
+B = \left[\begin{array}{c}
+B_{[0,:]} \\
+\overline{\quad\quad\quad} \\
+B_{[1,:]} \\
+\overline{\quad\quad\quad} \\
+\ldots \\
+\overline{\quad\quad\quad} \\
+B_{[n-1,:]}
+\end{array}\right], \quad B \vec x = \left[\begin{array}{c}
+B_{[0,:]} \cdot \vec x \\
+B_{[1,:]} \cdot \vec x \\
+\ldots \\
+B_{[n-1,:]} \cdot \vec x
+\end{array}\right]
+$$
+
+and because $f$ acts on each element of its input vector independently.
+
+Thus, we can write:
+
+$$
+MLP(\vec x) = \sum_{i=0}^{n-1}f(B_{[i,:]}\cdot \vec x)A_{[;,i]}
+$$
+or if we include biases on the Linear layers:
+
+$$
+d + \sum_{i=0}^{n-1}f(B_{[i,:]}\vec x + c_i) A_{[;,i]}
+$$
+
+---
+
+Finally, let's bring back `seq_len` into this calculation. Now $\vec x$ is a matrix of shape `(seq_len, emb_dim)`, and so $f(B_{[i,:]}\vec x + c_i)$ is a vector. This means we have the formula:
+
+$$
+d + \sum_{i=0}^{n-1} A_{[;,i]} \otimes f(B_{[i,:]}\vec x + c_i)
+$$
+
+where $\otimes$ denotes the **outer product** (and we assume $c, d$ are broadcasted). Remember that MLPs work exactly the same on each position in the sequence, i.e. the biases $c, d$ and the weight matrices $A, B$ are the same for each sequence position.
+
+We can view the $i$-th row of $B$ as being the **"in-direction"** of neuron $i$, as the activation of neuron $i$ depends on how high the dot product between $x$ and that row is. And then we can think of the $i$-th column of $A$ as the **"out-direction"** signifying neuron $i$'s special output vector, which it scales by its activation and then adds into the residual stream.
+
+---
+
+Let's go back to thinking of $\vec x$ as a vector corresponding to a single sequence position, and come up with a few extreme examples to help build intuition:
+
+* If $\vec x$ is orthogonal to all rows of $B$, then all the activations are zero, i.e. the MLP just writes $d + f(c_i)$ to the residual stream (no information has been moved).`
+* If $\vec x$ is orthogonal to the row $B_{[i, :]}$, i.e. $B_{[i,:]}\vec x = 0$, then this term in the sum doesn't contribute to the movement of any information through the residual stream.
+* If $\vec x$ is parallel to $B_{[i,:]}$ (say $\vec x = \lambda B_{[i,:]}$) and orthogonal to all other rows, then the formula simplifies to $d + f(\lambda ||B_{[i,:]}||^2 + c_i) A_{[:,i]}$
+    * So the MLP just writes a scaled version of the vector $A_{[:,i]}$ to the residual stream.
+    * The scale factor of $A_{[:,i]}$ is determined by the activation of neuron $i$, which is a nonlinear function of $\lambda$.
+    * In particular, this means that if we've identified $A_{[:,i]}$ as being an important direction in the residual stream, then the component of the MLP input in the direction $B_{[i,:]}$ is correspondingly important.
+        * This illustrates why we can call $B_{[i,:]}$ and $A_{[:,i]}$ the **"in-direction"** and **"out-direction"** of neuron $i$ respectively.
+---
+
+To recap, an MLP consists of $n$ neurons, each of whose activations are calculated by comparing $x$ to their individual in-directions, and then each contributes some scaled version of its out-direction to the residual stream.
+
+This is a neat-enough equation that Buck jokes he's going to get it tattooed on his arm.
 """)
 
     st.markdown(r"""
