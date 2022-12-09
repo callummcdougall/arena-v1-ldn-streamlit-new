@@ -97,7 +97,7 @@ If we treat the model as a black box function and only consider the input/output
 
 Unlike many of the days in the curriculum which cover classic papers and well-trodden topics, today you're at the research frontier, covering current research at Redwood. This is pretty cool, but also means you should expect that things will be more confusing and complicated than other days. TAs might not know answers because in fact nobody knows the answer yet, or might be hard to explain because nobody knows how to explain it properly yet.
 
-Feel free to ask Nix Goldowsky-Dill questions, and feel free to go "off-road" and follow your curiosity - you might discover uncharted lands :)
+Feel free to go "off-road" and follow your curiosity - you might discover uncharted lands :)
 
 ## Today's Toy Model
 
@@ -338,16 +338,16 @@ def section_2():
 <ul class="contents">
    <li><a class="contents-el" href="#moving-backward">Moving backward</a></li>
    <li><ul class="contents">
-       <li><a class="contents-el" href="#stage-1:-translating-through-softmax">Stage 1: Translating through softmax</a></li>
-       <li><a class="contents-el" href="#stage-2:-translating-through-linear">Stage 2: Translating through linear</a></li>
-       <li><a class="contents-el" href="#step-3:-translating-through-layernorm">Step 3: Translating through LayerNorm</a></li>
+       <li><a class="contents-el" href="#stage-1-translating-through-softmax">Stage 1: Translating through softmax</a></li>
+       <li><a class="contents-el" href="#stage-2-translating-through-linear">Stage 2: Translating through linear</a></li>
+       <li><a class="contents-el" href="#step-3-translating-through-layernorm">Step 3: Translating through LayerNorm</a></li>
        <li><a class="contents-el" href="#introduction-to-hooks">Introduction to hooks</a></li>
    </ul></li>
    <li><a class="contents-el" href="#writing-the-residual-stream-as-a-sum-of-terms">Writing the residual stream as a sum of terms</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#output-by-head-hooks">Output-by-head hooks</a></li>
        <li><a class="contents-el" href="#breaking-down-the-residual-stream-by-component">Breaking down the residual stream by component</a></li>
-       <li><a class="contents-el" href="#which-heads-write-in-this-direction?-on-what-sorts-of-inputs?">Which heads write in this direction? On what sorts of inputs?</a></li>
+       <li><a class="contents-el" href="#which-components-matter">Which components matter?</a></li>
        <li><a class="contents-el" href="#head-influence-by-type-of-failures">Head influence by type of failures</a></li>
 </ul>
 """, unsafe_allow_html=True)
@@ -418,7 +418,9 @@ The next step we encounter is the final linear layer (called `decoder`), $\text{
 
 We can now put the difference in logits as a function of $W$ and $x_{\text{linear}}$ like this:
 
-$\text{logit}_0 - \text{logit}_1 = W_{[0, :]}x_{\text{linear}} - W_{[1, :]}x_{\text{linear}} = (W_{[0, :]} - W_{[1, :]})x_{\text{linear}}$
+$$
+\text{logit}_0 - \text{logit}_1 = W_{[0, :]}x_{\text{linear}} - W_{[1, :]}x_{\text{linear}} = (W_{[0, :]} - W_{[1, :]})x_{\text{linear}}
+$$
 
 ```python
 logit_diff = (self.decoder.weight[0, :] - self.decoder.weight[1, :]) @ x_linear
@@ -549,14 +551,38 @@ if MAIN:
 
 ```
 
-If you're still confused by any of this, the following diagram might help:""")
+If you're still confused by any of this, the diagram below might help.
+
+How to interpret this diagram:
+
+* We start at the bottom, and ask the question *"what causes the output of the model (probability that string is unbalanced) to be largest?"*.
+    * We find the answer is the `logit_diff` term.
+* We then move one layer up, and ask *"what value of* `x_linear` *causes the* `logit_diff` *term to be largest?"*.
+    * We find the answer is the `W[0, :] - W[1, :]` term, which we call `post_final_ln_dir`.
+* We then move one layer up, and ask *"what value of* `x_norm` *causes the* `post_final_ln_dir` *term to be largest?"*.
+    * We find the answer is the `post_final_ln_dir @ L` term, which we call `pre_final_ln_dir`.
+* So to conclude, `pre_final_ln_dir` is the direction in the residual stream that most points in the direction of unbalanced evidence. Over all possible vectors in the residual stream of unit length, the one that maximizes the model's $\mathbb{P}(\text{unbalanced})$ is the (normalized version of) `pre_final_ln_dir`.
+""")
 
     st_excalidraw("brackets-transformer-tracing-back-output", 1500)
     st.markdown(r"""
 
 ## Writing the residual stream as a sum of terms
 
-Recall from yesterday that at any point during the forward pass of a model, a residual stream can be thought of as a sum of terms: one term for the contribution of each attention head or MLP so far, plus one for the input embeddings. In our journey backward, we've arrived at the last stop of the residual stream, when it is a sum of all the MLP contributions and all the attention contributions in the entire model.
+Recall from yesterday that at any point during the forward pass of a model, a residual stream can be thought of as a sum of terms: one term for the contribution of each attention head or MLP so far, plus one for the input embeddings. In our journey backward, we've arrived at the last stop of the residual stream, when it is a sum of all the MLP contributions and all the attention contributions in the entire model.""")
+
+    st_excalidraw("brackets-transformer-heads", 1400)
+
+    st.info(r"""
+It's worth noting here - this is different from the full path expansion in the transformer circuits paper.
+
+* In QK path expansion, we wrote out the terms in the residual stream as a sum of paths, each one containing a different number of attention heads (some were pure attention heads, others were virtual heads created via composition).
+* Here, we're writing out the terms in the residual stream as a sum of heads, each one containing a different number of paths (for instance, the output of head `2.1` will be a sum of many different paths, but the output of head `0.1` will just correspond to a single path with no composition, because there are no attention heads that could have come before it).
+
+These are mathematically equivalent.
+""")
+
+    st.markdown(r"""
 
 If we want to figure out when the value in the residual stream at this location has high dot-product with the unbalanced direction, we can ask ***"Which components' outputs tend to cause the residual stream to have high dot product with this direction, and why?"***. Note that we're narrowing in on the components who are making direct contributions to the classification, i.e. they're causing a classification of "unbalanced" by directly writing a value to the residual stream with high dot product in the unbalanced direction, rather than by writing a value to the residual stream that influences some future head. We'll get into indirect contributions later.
 
@@ -654,7 +680,7 @@ if MAIN:
     t.testing.assert_close(summed_terms, pre_final_ln)
 ```
 
-### Which heads write in this direction? On what sorts of inputs?
+### Which components matter?
 
 To figure out which components are directly important for the the model's output being "unbalanced", we can see which components tend to output a vector to the position-0 residual stream with higher dot product in the unbalanced direction for actually unbalanced inputs.
 
@@ -939,7 +965,6 @@ if MAIN:
 Yesterday you learned that an attention layer can be broken down as a sum of separate contributions from each head. It turns out that we can do something similar with MLPs, breaking them down as a sum of per-neuron contributions. I've hidden this decomposition in a dropdown in case you feel motivated to try to discover it for youself; simply opening up the box is fine though.
 
 Ignoring biases, let $MLP(\vec x) = A f(B\vec x)$ for matrices $A, B$. Note that $f(B\vec x)$ is what we refer to as the neuron activations, let $n$ be its length (the intermediate size of the MLP). Write $MLP$ as a sum of $n$ functions of $\vec x$.
-
 """)
 
     with st.markdown("Answer and discussion"):
