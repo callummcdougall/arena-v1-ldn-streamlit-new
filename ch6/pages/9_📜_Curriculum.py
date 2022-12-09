@@ -7,7 +7,7 @@ import pandas as pd
 
 import os
 if not os.path.exists("./images"):
-    os.chdir("./ch6")
+    os.chdir("./ch6") # update_num = 2
 from st_dependencies import *
 # styling()
 
@@ -109,14 +109,14 @@ def style_func(s, column):
 CHAPTER_IMG_DICT = {
     "0 - Prerequisites": "pre", 
     "1 - Transformers": "trans", 
-    "2 - Optimisation": "opti", 
-    "3 - Scaling Laws": "laws", 
-    "4A - Modelling Objectives": "mod", 
-    "   4A - Modelling Objectives<br><br>or 4B - Training at Scale": ("mod", "scale"), 
-    "5 - RL": "rl", 
-    "6 - Interpretability": "int", 
-    "7 - Adversarial Training": "adv", 
-    "8 - Capstone Projects": "cap"
+    "2 - Training at Scale": "scale", 
+    "3 - Optimisation": "opti", 
+    "4 - RL": "rl", 
+    "5 - Interpretability": "int", 
+    "6 - Modelling Objectives": "mod", 
+    "7 - Scaling Laws": "laws", 
+    "8 - Adversarial Training": "adv", 
+    "9 - Capstone Projects": "cap"
 }
 
 def generate_fig():
@@ -131,7 +131,7 @@ def generate_fig():
     last_working_day = get_last_working_day(today)
     # today = datetime.strptime("28/10/2022", "%d/%m/%Y").date()
     df_dict_list = []
-    chapter_old = ""
+    img_path_old = ""
     for idx, row in df.iterrows():
 
         row = dict(row)
@@ -145,22 +145,12 @@ def generate_fig():
         date_with_year = date + (" 2022" if "Jan" not in date else " 2023")
         this_date = datetime.strptime(date_with_year, "%a %d %b %Y").date()
         if chapter != "" and this_date.isoweekday() <= 5:
-            if chapter != chapter_old:
-                chapter_old = chapter
-                if "<br>" not in chapter:
-                    img_path = "images/headers/" + CHAPTER_IMG_DICT[chapter] + ".png"
-                    img_true = np.asarray(Image.open(img_path).convert('RGB').resize((164, 164)))
-                    img = 255 * np.ones((180, 180, 3))
-                    img[8:-8, 8:-8, :] = img_true
-                else:
-                    img_path_1 = "images/headers/" + CHAPTER_IMG_DICT[chapter][0] + ".png"
-                    img_path_2 = "images/headers/" + CHAPTER_IMG_DICT[chapter][1] + ".png"
-                    img1_true = np.asarray(Image.open(img_path_1).convert('RGB').resize((110, 110)))
-                    img2_true = np.asarray(Image.open(img_path_2).convert('RGB').resize((110, 110)))
-                    img = 255 * np.ones((180, 180, 3))
-                    img[8:118, 8:118, :] = img1_true
-                    img[-122:-8, -122:-8, :] = 255
-                    img[-118:-8, -118:-8, :] = img2_true
+            img_path = "images/headers/" + CHAPTER_IMG_DICT[chapter] + ".png"
+            if img_path != img_path_old:
+                img_path_old = img_path
+                img_true = np.asarray(Image.open(img_path).convert('RGB').resize((164, 164)))
+                img = 255 * np.ones((180, 180, 3))
+                img[8:-8, 8:-8, :] = img_true
             # Add correct image (red highlighting)
             if this_date == last_working_day:
                 img2 = img.copy()
@@ -171,16 +161,8 @@ def generate_fig():
                 arr_list.append(img)
         
             # Add to the table what we need
-            if "<br>" not in chapter:
-                name = "_-_".join(url.split("_-_")[1:]).replace("_", " ")
-                name_html = f"<a href='{url}'>{name}</a>"
-            else:
-                url1, url2 = url.split(", ")
-                name1 = "_-_".join(url1.split("_-_")[1:]).replace("_", " ")
-                name2 = "_-_".join(url2.split("_-_")[1:]).replace("_", " ")
-                name_html = "4A: <a href='{}'>{}</a><br><br>or 4B: <a href='{}'>{}</a>".format(
-                    url1, name1, url2, name2
-                )
+            name = "_-_".join(url.split("_-_")[1:]).replace("_", " ")
+            name_html = f"<a href='{url}'>{name}</a>"
             row["Day"] = name_html
         df_dict_list.append(row)
 
@@ -228,24 +210,23 @@ else:
 
 def page():
     st.markdown("""
-# Curriculum
+    # Curriculum
 
-The symbol at the end of each line links to the material for that day, but it also indicates what type of day it will be: 📝 for **exercises**, 📚 for **reading**, and 🔬 for **open-ended projects/investigations**.
+    The symbol at the end of each line links to the material for that day, but it also indicates what type of day it will be: 📝 for **exercises**, 📚 for **reading**, and 🔬 for **open-ended projects/investigations**.
 
-You can click on the tab headers below to navigate through the chapters, and click on the title of each day to be redirected to that day's material.
+    You can click on the tab headers below to navigate through the chapters, and click on the title of each day to be redirected to that day's material.
 
-You can also see a <u>calendar view</u> and a <u>daily view</u> in the dropdowns immediately below. The calendar view provides a nice visualisation of the whole programme, and the daily view should help you quickly find the exercises for a certain day.
-""", unsafe_allow_html=True)
+    You can also see a <u>calendar view</u> and a <u>daily view</u> in the dropdowns immediately below. The calendar view provides a nice visualisation of the whole programme, and the daily view should help you quickly find the exercises for a certain day.
+    """, unsafe_allow_html=True)
 
     with st.expander("Calendar view"):
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("""Note that chapter 4 is split between training at scale and modelling objectives. After two days of the modelling objectives chapter, participants will be able to choose either of these two tracks.""")
 
     with st.expander("Daily view"):
         st.write(table, unsafe_allow_html=True)
         st.markdown("Note that this plan has some flexibility built-in. We indend to wrap up at the end of the final week before Christmas, and we might still redistribute some material between weeks depending on how the curriculum goes.")
 
-    tabs = st.tabs([f"CH {i}" for i in [0, 1, 2, 3, "4A", "4B", 5, 6, 7, 8]])
+    tabs = st.tabs([f"CH {i}" for i in range(10)])
 
     with tabs[0]:
 
@@ -253,49 +234,55 @@ You can also see a <u>calendar view</u> and a <u>daily view</u> in the dropdowns
         st.subheader("Chapter 0 - Prerequisites")
 
         st.markdown("""
-<div style="color:gray; margin-top:-30px">
-Duration: 5 days
-</div>
-""", unsafe_allow_html=True)
+        <div style="color:gray; margin-top:-30px">
+        Duration: 5 days
+        </div>
+        """, unsafe_allow_html=True)
 
         st.success("""
-💡 Before embarking on this curriculum, it is necessary to understand the basics of deep learning, including basic machine learning terminology, what neural networks are, and how to train them.
-This week concludes with you building and finetuning your own Residual Neural Network based on the **ResNet34** architecture, to classify images from ImageNet.""")
+    💡 Before embarking on this curriculum, it is necessary to understand the basics of deep learning, including basic machine learning terminology, what neural networks are, and how to train them.
+
+    This week concludes with you building and finetuning your own Residual Neural Network based on the **ResNet34** architecture, to classify images from ImageNet.""")
 
         st.info("""
-📜 This chapter's material is primarily based on the first week of MLAB2. It also draws on several PyTorch tutorials.
-""")
+    📜 This chapter's material is primarily based on the first week of MLAB2. It also draws on several PyTorch tutorials.
+    """)
 
 
         ch1_columns = st.columns(1)
         with ch1_columns[0]:
-            st.markdown("""<h5><code>W0D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-w0d1.streamlitapp.com/">Fourier Transforms 📝</a></h5>""", unsafe_allow_html=True)
+            st.markdown("""<h5><code>W0D1</code>&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D1_-_Fourier_Transforms">Fourier Transforms 📝</a></h5>""", unsafe_allow_html=True)
             st.markdown("""
-Get comfortable with the basics of how exercises work, via an implementation of Fourier transforms. Then build a very basic neural network from the ground up, just to get an idea of what role all the different PyTorch components play.
+        Get comfortable with the basics of how exercises work, via an implementation of Fourier transforms. Then build a very basic neural network from the ground up, just to get an idea of what role all the different PyTorch components play.
 
----
-""")
-            st.markdown("""<h5><code>W0D2</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-w0d2.streamlitapp.com/">as_strided, convolutions and CNNs 📝</a></h5> """, unsafe_allow_html=True)
+        ---
+        """)
+            st.markdown("""<h5><code>W0D2</code>&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D2_-_as_strided,_convolutions_and_CNNs">as_strided, convolutions and CNNs 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
-Learn about `as_strided`, as well as `einops` and `einsum` - important libraries for expressing more complicated linear operations within neural networks. Then apply this knowledge to build your own Linear and Convolutional layers, which inherit from `nn.Module`. 
+        Learn about `as_strided`, as well as `einops` and `einsum` - important libraries for expressing more complicated linear operations within neural networks. Then apply this knowledge to build your own Linear and Convolutional layers, which inherit from `nn.Module`. 
 
----
-""")
-            st.markdown("""<h5><code>W0D3</code> - <code>W0D5</code>&emsp;|&emsp;<a href="https://arena-w0d2.streamlitapp.com/">ResNets and fine-tuning 📝</a></h5> """, unsafe_allow_html=True)
+        ---
+        """)
+            st.markdown("""<h5><code>W0D3</code>&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D3_-_ResNets_and_fine-tuning">ResNets and fine-tuning 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
-Apply the lessons from the previous day, to assemble and train a CNN out of layers that you built yourself. Use it to classify MNIST data. Then, build a more complicated architecture (ResNet34) and fine-tune it on ImageNet data.
-You should spend the rest of the week doing more investigations into fine-tuning (or going over material from previous days).
-""")
+        Apply the lessons from the previous day, to assemble and train a CNN out of layers that you built yourself. Use it to classify MNIST data. Then, build a more complicated architecture (ResNet34) and fine-tune it on ImageNet data.
 
-        st.markdown("")
+        Today's exercises are expected to run over into part of tomorrow.
 
-        ch1_columns2 = st.columns(1)
-        with ch1_columns2[0]:
-            st.markdown("""<h5><code>W0-bonus</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-w0-bonus.streamlitapp.com/">Build Your Own Backpropagation Framework 📝</a></h5>""", unsafe_allow_html=True)
+        ---
+        """)
+            st.markdown("""<h5><code>W0D4</code>&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D4_-_Weights_and_Biases">Weights and Biases 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
-Today, you'll learn about the nuts and bolts of implementing backpropagation: how gradients are stored, and how they're propagated backwards through a computational graph.
-This is bonus content, and won't be essential for any other parts of the course. You may wish to return here after the course has finished.
-""")
+    Today, you'll be introduced to **Weights and Biases**, a tool for logging and efficient hyperparameter search. You should spend the morning on W0D3, since the associated exercises here should only take an afternoon.
+
+    ---
+        """)
+            st.markdown("""<h5><code>W0D5</code>&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch0.streamlit.app/W0D5_-_Build_Your_Own_Backprop_Framework">Build Your Own Backprop 📝</a></h5>""", unsafe_allow_html=True)
+            st.markdown("""
+    Today, you'll learn about the nuts and bolts of implementing backpropagation: how gradients are stored, and how they're propagated backwards through a computational graph.
+
+    This is bonus content, and won't be essential for any other parts of the course. You may wish to return here after the course has finished.
+    """)
 
     with tabs[1]:
 
@@ -303,104 +290,200 @@ This is bonus content, and won't be essential for any other parts of the course.
         st.subheader("Chapter 1 - Transformers")
 
         st.markdown("""
-    <div style="color:gray; margin-top:-30px">
-    Duration: 10 days
-    </div>
-    """, unsafe_allow_html=True)
+        <div style="color:gray; margin-top:-30px">
+        Duration: 7 days
+        </div>
+        """, unsafe_allow_html=True)
 
         st.success("""
-💡 The **transformer** is an important neural network architecture used for language modelling.
-In this week, you will learn all about transformers - how the **self-attention mechanism** works, how transformers are trained, and how they've managed to be the driving force behind language model progress of the last few years.""")
+    💡 The **transformer** is an important neural network architecture used for language modelling.
+
+    In this week, you will learn all about transformers - how the **self-attention mechanism** works, how transformers are trained, and how they've managed to be the driving force behind language model progress of the last few years.""")
 
         st.info("""
-📜 This chapter's material is primarily based on week 1 of Jacob Hilton's curriculum. It also draws on elements from MLAB2 W2, and Marius Hobbhahn's [Building a transformer from scratch](https://www.lesswrong.com/posts/98jCNefEaBBb7jwu6/building-a-transformer-from-scratch-ai-safety-up-skilling) challenge.
-""")
+    📜 This chapter's material is primarily based on week 1 of Jacob Hilton's curriculum. It also draws on elements from MLAB2 W2, and Marius Hobbhahn's [Building a transformer from scratch](https://www.lesswrong.com/posts/98jCNefEaBBb7jwu6/building-a-transformer-from-scratch-ai-safety-up-skilling) challenge.
+    """)
 
         ch1_columns = st.columns(1)
         with ch1_columns[0]:
-            st.markdown("""<h5><code>W1D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-w1d1.streamlitapp.com/">Transformer reading 📚</a></h5>""", unsafe_allow_html=True)
+            st.markdown("""<h5><code>W1D1</code>&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch1.streamlit.app/">Transformer reading & exercises 📚</a></h5>""", unsafe_allow_html=True)
             st.markdown("""
-Read about transformers: the basics of their architecture, what self-attention is, how tokenisation works, etc. There are also some questions to work through, to check how well you've understood the concepts.
+    Read about transformers: the basics of their architecture, what self-attention is, how tokenisation works, etc. There are also some questions to work through, to check how well you've understood the concepts.
 
----
-    """)
-            st.markdown("""<h5><code>W1D2</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-w1d2.streamlitapp.com/">Transformer exercises 📝</a></h5> """, unsafe_allow_html=True)
-            st.markdown("""
-Today's material provides some basic exercises to work through, in order to get you started building your own transformer. If you get through all of this, you should spend more time working through the reading material in W1D1.
+    You'll also be going through some atomic transformer exercises: building an attention function, and a positional encoding function.
 
----
-    """)
-            st.markdown("""<h5><code>W1D3</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-w1d3.streamlitapp.com/">Build your own transformer (1/2) 📝</a></h5> """, unsafe_allow_html=True)
+    ---
+        """)
+            st.markdown("""<h5><code>W1D2</code>&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch1.streamlit.app/">Build your own transformer (1/2) 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
 Build your own transformer! This will be the most challenging and open-ended task you've done so far in this programme. You will also test your transformer by making it learn a simple task: reversing the order of a sequence of digits.
 
 ---
     """)
-            st.markdown("""<h5><code>W1D4</code> & <code>W1D5</code>&emsp;|&emsp;<a href="https://arena-w1d4.streamlitapp.com/">Build your own transformer (2/2) 📝</a></h5> """, unsafe_allow_html=True)
+            st.markdown("""<h5><code>W1D3</code>&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch1.streamlit.app/">Build your own transformer (2/2) 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
-You'll now train your transformer to do a much harder task: autoregressive text generation, from training on the entire [Shakespeare text corpus](https://www.gutenberg.org/files/100/100-0.txt). To do this well, you'll also need to learn about different sampling techniques.
-    """)
 
-        st.markdown("")
-
-        ch3_columns = st.columns(1)
-        with ch3_columns[0]:
-            st.markdown("""<h5><code>W2D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp;<a href="https://arena-w2d1.streamlitapp.com/">Weights and Biases 📝</a></h5> """, unsafe_allow_html=True)
-            st.markdown("""
-Today, you'll be introduced to **Weights and Biases**, a tool for logging and efficient hyperparameter search.
+Train your transformer to do a much harder task: autoregressive text generation, from training on the entire [Shakespeare text corpus](https://www.gutenberg.org/files/100/100-0.txt). To do this well, you'll also need to learn about different sampling techniques.
 
 ---
     """)
-            st.markdown("""<h5><code>W2D2</code> - <code>W2D5</code>&emsp;|&emsp;<a href="https://arena-w2d2.streamlitapp.com/">Further investigations 🔬</a></h5> """, unsafe_allow_html=True)
+            st.markdown("""<h5><code>W1D4</code>-<code>W2D5</code>&emsp;|&emsp;<a href="https://arena-ldn-ch1.streamlit.app/">Further investigations 🔬</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
 The rest of this chapter will be spent on additional transformer exercises, including building and using GPT-2 and BERT, and trying to build a classifier using only modules you've created yourself (in a throwback to our work from week 0 assembling ResNet34). 
-    """)
+""")
 
     with tabs[2]:
 
-        st_image("headers/opti.png", width=250)
-        st.subheader("Chapter 2 - Optimisation")
+        st_image("headers/scale.png", width=250)
+        st.subheader("Chapter 2 - Training at Scale")
 
         st.markdown("""
-    <div style="color:gray; margin-top:-30px">
-    Duration: 2 days
-    </div>
-    """, unsafe_allow_html=True)
+<div style="color:gray; margin-top:-30px">
+Duration: 3 days
+</div>
+""", unsafe_allow_html=True)
 
         st.success("""
-💡 It's helpful to have an intuition for how SGD and its variants optimize models, and a number of theoretical pictures are informative here.
-We will read some papers discussing some of the mathematical justifications behind different optimisation algorithms and schedules, and conclude by running our own set of experiments.""")
+💡 There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.""")
 
         st.info("""
-📜 This chapter is the shortest in the programme, at just 2 days. It will be designed by the ARENA team, with partial inspiration from [week 4 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/4-Optimization.md).
+📜 This week draws partially from [week 3 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/3-Training-at-Scale.md), although there will be more of a focus on hands-on skills with useful tools like Docker and Lambda Labs.
 """)
 
         ch1_columns = st.columns(1)
         with ch1_columns[0]:
-            st.markdown("""<h5><code>W3D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; <a href="https://arena-ch3.streamlit.app/W3D1_-_Optimiser_Exercises">Optimisers: exercises 📝</a></h5>""", unsafe_allow_html=True)
+            st.markdown("""<h5><code>W2D3</code>&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch2.streamlit.app/W2D3_-_Docker">Docker 📝</a></h5>""", unsafe_allow_html=True)
             st.markdown("""
-Learn about different optimisation algorithms (e.g. **RMSProp** and **Adam**), and implement them from scratch. Understand important concepts like momentum, and how they affect the performance of optimisers.
+Learn about Docker, and follow a step-by-step process on how to set up a basic Docker application. Then, you'll have the opportunity to deploy one of the models you've previously trained inside your Docker container.
 
 ---
     """)
-            st.markdown("""<h5><code>W3D2</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; <a href="https://arena-ch3.streamlit.app/W3D2_-_Optimiser_Investigations">Optimisers: investigations 🔬</a></h5> """, unsafe_allow_html=True)
+            st.markdown("""<h5><code>W2D4</code>&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch2.streamlit.app/W2D4_-_Lambda_Labs">Lambda Labs 📝</a></h5> """, unsafe_allow_html=True)
             st.markdown("""
-Run your own experiments on optimisation algorithms.
+Learn about GPUs and why they're important for deep learning. You'll also learn how to use Lambda Labs to run your models on more powerful GPUs.
+
+---
+    """)
+            st.markdown("""<h5><code>W3D1</code>&emsp;&emsp;|&emsp;<a href="https://arena-ldn-ch2.streamlit.app/W3D1_-_Pretraining_BERT">Pretraining BERT 📝</a></h5> """, unsafe_allow_html=True)
+            st.markdown("""
+Pre-train BERT on the masked language modelling task. This will require using a GPU from Lambda Labs in order to get decent results.
+    """)
+        st.markdown("")
+        ch1_columns2 = st.columns(1)
+        with ch1_columns2[0]:
+            st.markdown("""<h5><code>BONUS</code>&emsp;|&emsp;<a href="https://arena-ldn-ch1.streamlit.app/">Distributed computing 📝</a></h5> """, unsafe_allow_html=True)
+            st.markdown("""
+We might return to this topic, if there's time nearer the end of the course.
 """)
 
     with tabs[3]:
 
-        st_image("headers/laws.png", width=250)
-        st.subheader("Chapter 3 - Scaling Laws")
+        st_image("headers/opti.png", width=250)
+        st.subheader("Chapter 3 - Optimisation")
 
         st.markdown("""
-    <div style="color:gray; margin-top:-30px">
-    Duration: 3 days
-    </div>
-    """, unsafe_allow_html=True)
+        <div style="color:gray; margin-top:-30px">
+        Duration: 3 days
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.success("""
+    💡 It's helpful to have an intuition for how SGD and its variants optimize models, and a number of theoretical pictures are informative here.
+
+    We will read some papers discussing some of the mathematical justifications behind different optimisation algorithms and learning rate schedules, and conclude by running our own set of experiments.""")
+
+        st.info("""
+    📜 This chapter will be designed by the ARENA team, and will also draw heavily on [week 4 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/4-Optimization.md).
+    """)
+        ch1_columns = st.columns(1)
+        with ch1_columns[0]:
+            st.markdown("""<h5><code>W2D5</code>&emsp;&emsp;|&emsp; <a href="https://arena-ldn-ch3.streamlit.app/W3D1-2_-_Optimiser_Investigations">Optimisers: Exercises 📝</a></h5>""", unsafe_allow_html=True)
+            st.markdown("""Learn about different optimisation algorithms (e.g. **RMSProp** and **Adam**), and implement them from scratch. Understand important concepts like momentum, and how they affect the performance of optimisers.
+
+---
+        """)
+            st.markdown("""<h5><code>W3D3</code>&emsp;&emsp;|&emsp; <a href="https://arena-ldn-ch3.streamlit.app/W3D1-2_-_Optimiser_Investigations">Optimisers: Investigations 🔬</a></h5> """, unsafe_allow_html=True)
+            st.markdown("""Run your own experiments on optimisation algorithms. There are several different experiments you can choose to run, based on the material provided in Jacob Hilton's curriculum.""")
+
+    with tabs[6]:
+
+        st_image("headers/mod.png", width=250)
+        st.subheader("Chapter 6 - Modelling Objectives")
+
+        st.markdown("""
+        <div style="color:gray; margin-top:-30px">
+        Duration: 4 days
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.success("""
+    Here, we take a tour through various generative models. This is the name for a broad class of models which can generate new data instances from a particular distribution. Examples are diffusion models like DALL-E 2, which we used to generate the images you're seeing on these pages!""")
+
+        st.info("""
+    📜 This chapter is primarily based on [week 5 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/5-Modelling-Objectives.md). It also draws on some material from week 3 of MLAB2.
+    """)
+
+        ch1_columns = st.columns(1)
+        with ch1_columns[0]:
+            st.markdown("""<h5><code>W6D4</code>&emsp;&emsp;|&emsp; GANs and VAEs 📝</h5>""", unsafe_allow_html=True)
+            st.markdown("""
+    Learn how **GANs** (Generative Adversarial Models) and **VAEs** (Variational Autoencoders) work, and build & train some of your own.
+
+    ---
+        """)
+            st.markdown("""<h5><code>W6D5</code>&emsp;&emsp;|&emsp; Contrastive Representation Learning 📝</h5>""", unsafe_allow_html=True)
+            st.markdown("""
+    Learn about contrastive objectives, and use them to improve the outputs of your VAEs from the previous section.
+
+    ---
+        """)
+            st.markdown("""<h5><code>W7D1</code>&emsp;&emsp;|&emsp; Diffusion models 📝</h5> """, unsafe_allow_html=True)
+            st.markdown("""
+    Read up on the maths behind diffusion models, and why they work so well for image generation. Then, implement your own diffusion models and train them on the fashion MNIST dataset.
+
+    ---
+    """)
+            st.markdown("""<h5><code>W7D1-2</code>&emsp;|&emsp; Stable Diffusion 📝</h5> """, unsafe_allow_html=True)
+            st.markdown("""
+    Assemble CLIP, and integrate it into the Stable Diffusion pipeline.
+
+    These exercises will bring together all the previous material from this chapter: VAEs, contrastive loss functions, and diffusion models.
+    """)
+
+    with tabs[4]:
+
+        st_image("headers/rl.png", width=250)
+        st.subheader("Chapter 4 - RL")
+
+        st.markdown("""
+        <div style="color:gray; margin-top:-30px">
+        Duration: 7 days
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.success("""
+    💡 Reinforcement learning is an important field of machine learning. It works by teaching agents to take actions in an environment to maximise their accumulated reward.
+
+    In this chapter, you will be learning about some of the fundamentals of RL, and working with OpenAI's Gym environment to run your own experiments.""")
+
+        st.info("""
+    📜 This chapter is primarily based on pre-existing RL tutorials, such as OpenAI's spinning up course.
+    """)
+
+    with tabs[7]:
+
+        st_image("headers/laws.png", width=250)
+        st.subheader("Chapter 7 - Scaling Laws")
+
+        st.markdown("""
+        <div style="color:gray; margin-top:-30px">
+        Duration: 3 days
+        </div>
+        """, unsafe_allow_html=True)
 
         st.success("""
 💡 Studying how properties of networks **vary with scale** is important for drawing generalizable conclusions about them.
+
 In this week, we will read foundational papers on scaling laws, and perform our own study of scaling laws for the MNIST classifiers we wrote in week 0.""")
 
         st.info("""
@@ -409,190 +492,72 @@ In this week, we will read foundational papers on scaling laws, and perform our 
 
         ch1_columns = st.columns(1)
         with ch1_columns[0]:
-            st.markdown("""<h5><code>W3D3</code>&emsp;&emsp;&emsp;|&emsp; <a href="https://arena-ch3.streamlit.app/W3D3-5_-_Scaling_Laws_Investigations">Scaling Laws: reading 📚</a></h5>""", unsafe_allow_html=True)
+            st.markdown("""<h5><code>W7D5</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Scaling Laws: reading 📚</h5>""", unsafe_allow_html=True)
             st.markdown("""
 Read about some landmark results in the study of scaling laws, such as the Chinchilla paper, the lottery ticket hypothesis, and deep double descent.
 
 ---
-""")
-            st.markdown("""<h5><code>W3D4-5</code>&emsp;&emsp;|&emsp; <a href="https://arena-ch3.streamlit.app/W3D3-5_-_Scaling_Laws_Investigations">Scaling Laws: investigations 🔬</a></h5> """, unsafe_allow_html=True)
+        """)
+            st.markdown("""<h5><code>W8D1-2</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; Scaling Laws: investigations 🔬</h5> """, unsafe_allow_html=True)
             st.markdown("""
 Run your own experiments to test out some of these scaling laws and hypotheses.
-""")
 
-    with tabs[4]:
-
-        st_image("headers/mod.png", width=250)
-        st.subheader("Chapter 4A - Modelling Objectives")
-
-        st.markdown("""
-<div style="color:gray; margin-top:-30px">
-Duration: 10 days
-</div>
-""", unsafe_allow_html=True)
-
-        st.markdown("This chapter is part of an optional track: you can choose to do it, or chapter 4B (training at scale).")
-
-        st.success("""
-Here, we take a tour through various generative models. This is the name for a broad class of models which can generate new data instances from a particular distribution. Examples are diffusion models like DALL-E 2, which we used to generate the images you're seeing on these pages!""")
-
-        st.info("""
-📜 This chapter is primarily based on [week 5 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/5-Modelling-Objectives.md). It also draws on some material from week 3 of MLAB2.
-""")
-
-        ch1_columns = st.columns(1)
-        with ch1_columns[0]:
-            st.markdown("""<h5><code>W4D1-2</code>&emsp;&emsp;&emsp;|&emsp; <a href="https://arena-ch4a.streamlit.app/W4D1-2_-_GANs">GANs 📝</a></h5> """, unsafe_allow_html=True)
-            st.markdown("""
-Learn how **GANs** (Generative Adversarial Models) work, and build & train some of your own.
-
----
-    """)
-            st.markdown("""<h5><code>W4D3-4</code>&emsp;&emsp;&emsp;&nbsp;|&emsp; <a href="https://arena-ch4a.streamlit.app/W4D3-5_-_VAEs">VAEs 📝</a></h5>""", unsafe_allow_html=True)
-            st.markdown("""
-Learn about how autoencoders and **VAEs** (variational autoencoders) work, and build some of your own. You'll be able to compare the quality of their generated outputs to your GANs from yesterday.
-
----
-""")
-            st.markdown("""<h5><code>W4D5</code>-<code>W5D5</code>&emsp;&nbsp;|&emsp; <a href="https://arena-ch4a.streamlit.app/W5D1-3_-_Diffusion_models">Diffusion models 🔬</a></h5> """, unsafe_allow_html=True)
-            st.markdown("""
-Over this next week, you'll be learning about the maths behind diffusion models. Hopefully, you'll also get to build some of your own.
-""")
+        """)
 
     with tabs[5]:
 
-        st_image("headers/scale.png", width=250)
-        st.subheader("Chapter 4B - Training at Scale")
-
-        st.markdown("""
-    <div style="color:gray; margin-top:-30px">
-    Duration: 5 days
-    </div>
-    """, unsafe_allow_html=True)
-
-        st.markdown("This chapter is part of an optional track: you can choose to do it, or chapter 4A (modelling objectives).")
-        st.success("""
-There are a number of techniques that are helpful for training large-scale models efficiently. Here, we will learn more about these techniques and how to use them.""")
-
-        st.info("""
-📜 This part of the curriculum has been designed by external contractors. The first half covers Docker and training on GPUs, the second half covers distributed computing (and more closely resembles [week 3 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/3-Training-at-Scale.md)).
-""")
-
-        ch1_columns = st.columns(1)
-        with ch1_columns[0]:
-
-            st.markdown("""<h5><code>W4D3</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; <a href="https://arena-ch4b.streamlit.app/W4D3-4_-_Docker">Docker 📝</a></h5> """, unsafe_allow_html=True)
-            st.markdown("""
-    Today, you'll learn about Docker, and use it to deploy your own application containing a model and training loop.
-
-    ---
-    """)
-
-            st.markdown("""<h5><code>W4D4 - W4D5</code>&emsp;&nbsp;|&emsp; <a href="https://arena-ch4b.streamlit.app/W4D5_-_Lambda_Labs">Lambda Labs 📝</a></h5> """, unsafe_allow_html=True)
-            st.markdown("""
-In these exercises, you'll use Lambda Labs to train your models on GPUs. If you want to, you'll have the chance to return to the BERT architecture from the transformers week and train it from scratch!
-
----
-""")
-
-            st.markdown("""<h5><code>W5D1 - W5D2</code>&emsp;&nbsp;|&emsp; <a href="https://arena-ch4b.streamlit.app/W5D1-3_-_Pretraining_BERT">Pretraining BERT 📝</a></h5> """, unsafe_allow_html=True)
-            st.markdown("""
-Over these next three days, you'll be learning about the maths behind diffusion models. Hopefully, you'll also get to build some of your own.
-""")
-
-    with tabs[6]:
-
-        st_image("headers/rl.png", width=250)
-        st.subheader("Chapter 5 - RL")
-
-        st.markdown("""
-<div style="color:gray; margin-top:-30px">
-Duration: 7 days
-</div>
-""", unsafe_allow_html=True)
-
-        st.success("""
-💡 Reinforcement learning is an important field of machine learning. It works by teaching agents to take actions in an environment to maximise their accumulated reward.
-In this chapter, you will be learning about some of the fundamentals of RL, and working with OpenAI's Gym environment to run your own experiments.""")
-
-        st.info("""
-📜 This chapter was designed by David Quarel, with input from the MLAB2 curriculum.
-""")
-
-    ch1_columns = st.columns(1)
-    with ch1_columns[0]:
-
-        st.markdown("""<h5><code>W6D1</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; <a href="https://arena-ch4b.streamlit.app/W6D1_-_RL_and_Multi-Armed_Bandits">RL and Multi-Armed Bandits 📝</a></h5> """, unsafe_allow_html=True)
-        st.markdown("""
-Today, you'll learn about RL through the well-known Multi-Armed Bandit problem. You'll also write your own code for this problem, and start getting used to OpenAI's `gym` environemnt.
-
----
-""")
-
-        st.markdown("""<h5><code>W6D2</code>&emsp;&emsp;&emsp;&emsp;&emsp;|&emsp; <a href="https://arena-ch4b.streamlit.app/W4D5_-_Lambda_Labs">Lambda Labs 📝</a></h5> """, unsafe_allow_html=True)
-        st.markdown("""
-These exercises take you further with the maths behind RL, and have you implement your own tabular RL and policy improvement algorithms. We assume today that the agent has full knowledge of its environment, specifically its reward distributions and transition probabilities.
----
-""")
-
-        st.markdown("""<h5><code>W6D3 - W6D5</code>&emsp;&nbsp;|&emsp; <a href="https://arena-ch4b.streamlit.app/W5D1-3_-_Pretraining_BERT">Pretraining BERT 📝</a></h5> """, unsafe_allow_html=True)
-        st.markdown("""
-We progress to $Q$-learning, where the agent makes incremental updates to its $Q$-function (also called its value function) in order to learn an optimal policy. We will also start to reincorporate some techniques from deep learning, when we tackle **DQN** (Deep Q-Networks).
-""")
-
-    with tabs[7]:
-
         st_image("headers/int.png", width=250)
-        st.subheader("Chapter 6 - Interpretability")
+        st.subheader("Chapter 5 - Interpretability")
 
         st.markdown("""
-<div style="color:gray; margin-top:-30px">
-Duration: 7 days
-</div>
-""", unsafe_allow_html=True)
+        <div style="color:gray; margin-top:-30px">
+        Duration: 8 days
+        </div>
+        """, unsafe_allow_html=True)
 
         st.success("""
-💡 Mechanistic interpretability aims to reverse-engineer the weights of neural networks into human-understandable programs. It's one of the most exciting and fastest-growing fields in AI safety today.
-In this chapter, you will be performing your own interpretability investigations, including feature visualisation and attribution for CNNs, and transformer interpretability exercises.""")
+    💡 Mechanistic interpretability aims to reverse-engineer the weights of neural networks into human-understandable programs. It's one of the most exciting and fastest-growing fields in AI safety today.
+
+    In this chapter, you will be performing your own interpretability investigations, including feature visualisation and attribution for CNNs, and transformer interpretability exercises.""")
 
         st.info("""
-📜 This chapter is primarily based on Anthropic's [Transformer Circuits](https://transformer-circuits.pub/) work, and material from week 2 of MLAB2. It also draws from [week 8 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/8-Interpretability.md).
-""")
+    📜 This chapter is primarily based on Anthropic's [Transformer Circuits](https://transformer-circuits.pub/) work, and material from week 2 of MLAB2. It also draws from [week 8 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/8-Interpretability.md).
+    """)
 
     with tabs[8]:
 
         st_image("headers/adv.png", width=250)
-        st.subheader("Chapter 7 - Adversarial Training")
+        st.subheader("Chapter 8 - Adversarial Training")
 
         st.markdown("""
-<div style="color:gray; margin-top:-30px">
-Duration: 3 days
-</div>
-""", unsafe_allow_html=True)
-
-        st.markdown("This chapter will not be part of the main course content, although the material will still be made available for study.")
+        <div style="color:gray; margin-top:-30px">
+        Duration: 3 days
+        </div>
+        """, unsafe_allow_html=True)
 
         st.success("""
-💡 Adversarial training is designed to make models robust to adversarially-selected inputs.
-In this chapter, we will be working with the language models we've studied in previous weeks, and trying to red-team them by producing examples of offsenive language or other failures.""")
+    💡 Adversarial training is designed to make models robust to adversarially-selected inputs.
+
+    In this chapter, we will be working with the language models we've studied in previous weeks, and trying to red-team them by producing examples of offsenive language or other failures.""")
 
         st.info("""
-📜 This chapter is primarily based on [week 9 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/9-Adversarial-Training.md).
-""")
+    📜 This chapter is primarily based on [week 9 of Jacob Hilton's curriculum](https://github.com/jacobhilton/deep_learning_curriculum/blob/master/9-Adversarial-Training.md).
+    """)
 
     with tabs[9]:
 
         st_image("headers/cap.png", width=250)
-        st.subheader("Chapter 8 - Capstone Projects")
+        st.subheader("Chapter 9 - Capstone Projects")
 
         st.markdown("""
-<div style="color:gray; margin-top:-30px">
-Duration: 5 days
-</div>
-""", unsafe_allow_html=True)
+        <div style="color:gray; margin-top:-30px">
+        Duration: 6 days
+        </div>
+        """, unsafe_allow_html=True)
 
         st.success("""
-💡 We will conclude this program with capstone projects, where you get to dig into something related to the course. This should draw on much of the skills and knowledge you will have accumulated over the last 9 weeks, and serves as great way to round off the program!""")
+    💡 We will conclude this program with capstone projects, where you get to dig into something related to the course. This should draw on much of the skills and knowledge you will have accumulated over the last 9 weeks, and serves as great way to round off the program!""")
+
 
 
 def check_password():

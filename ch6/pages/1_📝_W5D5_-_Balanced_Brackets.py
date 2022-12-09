@@ -948,6 +948,9 @@ The important neurons in layer 1 can be put into three broad categories:
 
 The network could just use these two types of neurons, and compose them to measure if the open-proportion exactly equals 1/2 by adding them together. But we also see in layer 1 that there are many neurons that output this composed property. As a few examples, look at 1.10 and 1.3. It's much harder for a single neuron in layer 0 to do this by themselves, given that ReLU is monotonic and it requires the output to be a non-monotonic function of the open-paren proportion. It is possible, however, to take advantage of the layernorm before MLP0 to approximate this -- 0.19 and 0.34 are good examples of this.""")
 
+    st.error("""
+Currently the exercises have only been reviewed up to this point - please let me know if you get this far and you can still see this message.
+""")
     st.markdown(r"""
 ## Understanding how the open-proportion is calculated - Head 0.0
 
