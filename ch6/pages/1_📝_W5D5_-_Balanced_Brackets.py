@@ -61,9 +61,26 @@ Now that we have a basic understanding of how our transformer is classifying sta
 """)
 
 def section_1():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#life-on-the-frontier">Life On The Frontier</a></li>
+   <li><a class="contents-el" href="#today-s-toy-model">Today's Toy Model</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#model-architecture">Model architecture</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#tokenizer">Tokenizer</a></li>
+   <li><a class="contents-el" href="#dataset">Dataset</a></li>
+   <li><a class="contents-el" href="#hand-written-solution">Hand-Written Solution</a></li>
+   <li><a class="contents-el" href="#hand-written-solution-vectorized">Hand-Written Solution - Vectorized</a></li>
+   <li><a class="contents-el" href="#the-model-s-solution">The Model's Solution</a></li>
+   <li><a class="contents-el" href="#running-the-model">Running the Model</a></li>
+</ul>
+""", unsafe_allow_html=True)
     st.markdown(r"""
 
-# W2D5 - Interpretability on an algorithmic model
+# Interpretability on an algorithmic model
 
 One of the many behaviors that a large language model learns is the ability to tell if a sequence of nested parentheses is balanced. For example, `(())()`, `()()`, and `(()())` are balanced sequences, while `)()`, `())()`, and `((()((())))` are not.
 
@@ -86,9 +103,9 @@ Feel free to ask Nix Goldowsky-Dill questions, and feel free to go "off-road" an
 
 Today we'll study a small transformer that is trained to only classify whether a sequence of parentheses is balanced or not. It's small so we can run experiments quickly, but big enough to perform well on the task. The weights and architecture are provided for you.
 
-### Model architecture:
+### Model architecture
 
-The model resembles BERT and GPT, but isn't identical to either. Read through `w2d5_transformer.py` for the definitive model reference. To summarize:
+The model resembles BERT and GPT, but isn't identical to either. Read through `w5d5_transformer.py` for the definitive model reference. To summarize:
 
 * Positional embeddings are sinusoidal (non-learned).
 * It has `hidden_size` (aka `d_model`, aka `embed_width`) of 56.
@@ -164,16 +181,15 @@ As is good practice, examine the dataset and plot the distribution of sequence l
 ```python
 if MAIN:
     model = ParenTransformer(ntoken=5, nclasses=2, d_model=56, nhead=2, d_hid=56, nlayers=3).to(DEVICE)
-    state_dict = t.load("w2d5_state_dict.pt")
+    state_dict = t.load("w5d5_balanced_brackets_state_dict.pt")
     model.to(DEVICE)
     model.load_simple_transformer_state_dict(state_dict)
     model.eval()
     tokenizer = SimpleTokenizer("()")
-    with open("w2d5_data.json") as f:
+    with open("w5d5_data.json") as f:
         data_tuples: List[Tuple[str, bool]] = json.load(f)
         print(f"loaded {len(data_tuples)} examples")
     assert isinstance(data_tuples, list)
-
 
 class DataSet:
     '''A dataset containing sequences, is_balanced labels, and tokenized sequences'''
@@ -208,13 +224,11 @@ class DataSet:
     def with_start_char(cls, data_tuples: list[tuple[str, bool]], start_char: str) -> "DataSet":
         return cls([(s, b) for (s, b) in data_tuples if s[0] == start_char])
 
-
 if MAIN:
-    N_SAMPLES = 5000 if not IS_CI else 100
+    N_SAMPLES = 5000
     data_tuples = data_tuples[:N_SAMPLES]
     data = DataSet(data_tuples)
     "TODO: YOUR CODE HERE"
-
 ```
 
 ## Hand-Written Solution
@@ -257,22 +271,17 @@ One solution is to map begin, pad, and end tokens to zero, map open paren to 1 a
 
     st.markdown(r"""
 ```python
-def plot_all_neurons(model, data, layer):
-    neurons_in_d = out_by_neuron_in_20_dir(model, data, layer)[data.starts_open, 1, :].detach().flatten()
-    neuron_numbers = repeat(t.arange(model.d_model), "n -> (s n)", s=data.starts_open.sum())
-    data_open_proportion = repeat(data.open_proportion[data.starts_open], "s -> (s n)", n=model.d_model)
-    df = pd.DataFrame({
-        "Output in 2.0 direction": neurons_in_d,
-        "Neuron number": neuron_numbers,
-        "Open-proportion": data_open_proportion
-    })
-    fig = px.scatter(df, x="Open-proportion", y="Output in 2.0 direction", animation_frame="Neuron number", title=f"Neuron contributions from layer {layer}", template="simple_white", height=500, width=800).update_traces(marker_size=3, opacity=0.8)
-    fig.update_layout(xaxis_range=[0, 1], yaxis_range=[-5, 5])
-    fig.show()
+def is_balanced_vectorized(tokens: t.Tensor) -> bool:
+    '''
+    tokens: sequence of tokens including begin, end and pad tokens - recall that 3 is '(' and 4 is ')'
+    '''
+    pass
 
 if MAIN:
-    plot_all_neurons(model, data, 0)
-    plot_all_neurons(model, data, 1)
+    for (tokens, expected) in zip(tokenizer.tokenize(examples), labels):
+        actual = is_balanced_vectorized(tokens)
+        assert expected == actual, f"{tokens}: expected {expected} got {actual}"
+    print("is_balanced_vectorized ok!")
 ```
 
 ## The Model's Solution
@@ -323,6 +332,26 @@ if MAIN:
 ```""")
 
 def section_2():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#moving-backward">Moving backward</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#stage-1:-translating-through-softmax">Stage 1: Translating through softmax</a></li>
+       <li><a class="contents-el" href="#stage-2:-translating-through-linear">Stage 2: Translating through linear</a></li>
+       <li><a class="contents-el" href="#step-3:-translating-through-layernorm">Step 3: Translating through LayerNorm</a></li>
+       <li><a class="contents-el" href="#introduction-to-hooks">Introduction to hooks</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#writing-the-residual-stream-as-a-sum-of-terms">Writing the residual stream as a sum of terms</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#output-by-head-hooks">Output-by-head hooks</a></li>
+       <li><a class="contents-el" href="#breaking-down-the-residual-stream-by-component">Breaking down the residual stream by component</a></li>
+       <li><a class="contents-el" href="#which-heads-write-in-this-direction?-on-what-sorts-of-inputs?">Which heads write in this direction? On what sorts of inputs?</a></li>
+       <li><a class="contents-el" href="#head-influence-by-type-of-failures">Head influence by type of failures</a></li>
+</ul>
+""", unsafe_allow_html=True)
+
     st.markdown(r"""
 ## Moving backward
 
@@ -763,6 +792,22 @@ if MAIN:
 Think about how this fits in with your understanding of what 2.0 is doing.""")
 
 def section_3():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#attention-pattern-of-the-responsible-head">Attention pattern of the responsible head</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#identifying-meaningful-direction-before-this-head">Identifying meaningful direction before this head</a></li>
+       <li><a class="contents-el" href="#breaking-down-an-mlps-contribution-by-neuron">Breaking down an MLP's contribution by neuron</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#understanding-how-the-open-proportion-is-calculated---head-00">Understanding how the open-proportion is calculated - Head 0.0</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#00-attention-pattern">0.0 Attention Pattern</a></li>
+       <li><a class="contents-el" href="#the-00-ov-circuit">The 0.0 OV circuit</a></li>
+</ul>
+""", unsafe_allow_html=True)
+
     st.markdown(r"""
 # Understanding the total elevation circuit
 
@@ -1193,7 +1238,7 @@ if MAIN:
 
 func_list = [section_home, section_1, section_2, section_3, section_4]
 
-page_list = ["🏠 Home", "1️⃣ Bracket classifier", "2️⃣ Going backwards", "3️⃣ Total elevation circuit", "4️⃣ Finding adversarial examples"]
+page_list = ["🏠 Home", "1️⃣ Bracket classifier", "2️⃣ Moving backwards", "3️⃣ Total elevation circuit", "4️⃣ Finding adversarial examples"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 def page():
