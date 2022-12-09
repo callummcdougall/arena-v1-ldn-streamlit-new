@@ -1,6 +1,6 @@
 import os
 if not os.path.exists("./images"):
-    os.chdir("./ch5")
+    os.chdir("./ch6")
 
 from st_dependencies import *
 st.set_page_config(layout="wide")

@@ -40,7 +40,25 @@ if NAMES[0] not in st.session_state["fig_dict"]:
 fig_dict = st.session_state["fig_dict"]
 
 def section_home():
-    pass
+    st.markdown(r"""
+## 1️⃣ Bracket classifier
+
+We'll start by looking at our bracket classifier and dataset, and see how it works. We'll also write our own hand-coded solution to the balanced bracket problem (understanding what a closed-form solution looks like will be helpful as we discover how our transformer is solving the problem).
+
+## 2️⃣ Going backwards
+
+If we want to investigate which heads cause the model to classify a bracket string as balanced or unbalanced, we need to work our way backwards from the input. Eventually, we can find things like the **resudiaul stream unbalanced directions**, which are the directions of vectors in the residual stream which contribute most to the model's decision to classify a string as unbalanced.
+
+This will require learning how to use **hooks**, to capture inputs and outputs of intermediate layers in the model.
+
+## 3️⃣ Total elevation circuit
+
+In this section (which is the meat of the exercises), we'll hone in on a particular circuit and try to figure out what kinds of composition it is using.
+
+## 4️⃣ Finding adversarial examples
+
+Now that we have a basic understanding of how our transformer is classifying states
+""")
 
 def section_1():
     st.markdown(r"""
