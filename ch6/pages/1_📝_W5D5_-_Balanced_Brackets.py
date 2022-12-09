@@ -186,7 +186,7 @@ if MAIN:
     model.load_simple_transformer_state_dict(state_dict)
     model.eval()
     tokenizer = SimpleTokenizer("()")
-    with open("w5d5_data.json") as f:
+    with open("w5d5_brackets_data.json") as f:
         data_tuples: List[Tuple[str, bool]] = json.load(f)
         print(f"loaded {len(data_tuples)} examples")
     assert isinstance(data_tuples, list)
