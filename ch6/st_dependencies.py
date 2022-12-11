@@ -73,17 +73,17 @@ a.contents-el > code {
 .css-ffhzg2 .contents-el {
     color: white !important;
 }
-.lightExcalidraw {
-    display: block
+.css-fg4pbf .lightExcalidraw {
+    height: initial
 }
-.darkExcalidraw {
-    display: none
+.css-fg4pbf .darkExcalidraw {
+    height: 0
 }
 .css-ffhzg2 .lightExcalidraw {
-    display: none
+    height: 0
 }
 .css-ffhzg2 .darkExcalidraw {
-    display: block
+    height: initial
 }
 pre code {
     font-size:13px !important;
