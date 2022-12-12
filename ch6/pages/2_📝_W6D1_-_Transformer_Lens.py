@@ -43,7 +43,12 @@ def section_home():
     st.markdown(r"""
 # TransformerLens
 
-Today is designed to get you introduced to Neel Nanda's **TransformerLens** library, which we'll be using for the rest of the interpretability chapter. The hope is that, having previously had to write our own code to do things like visualize attention heads, we'll have a better understanding of the features of TransformerLens that make this more convenient.
+Today is designed to get you introduced to Neel Nanda's **TransformerLens** library, which we'll be using for the rest of the interpretability chapter. The hope is that, having previously had to write our own code to do things like visualize attention heads, we'll have a better understanding of the features of TransformerLens that make this more convenient.""")
+
+    st.info(r"""
+Today's material is transcribed directly from Neel Nanda's TransformerLens intro. If you prefer to go through the original Colab, you can find it [here](https://colab.research.google.com/github/neelnanda-io/TransformerLens/blob/new-demo/New_Demo.ipynb#scrollTo=cfdePPmEkR8y). Whenever first person is used here, it's referring to Neel.""")
+
+    st.markdown(r"""
 
 ## Setup
 
@@ -77,11 +82,11 @@ def section_1():
 <ul class="contents">
    <li><a class="contents-el" href="#loading-and-running-models">Loading and Running Models</a></li>
    <li><a class="contents-el" href="#caching-all-activations">Caching all Activations</a></li>
-   <li><a class="contents-el" href="#hooks:-intervening-on-activations">Hooks: Intervening on Activations</a></li>
+   <li><a class="contents-el" href="#hooks-intervening-on-activations">Hooks: Intervening on Activations</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#activation-patching-on-the-indirect-object-identification-task">Activation Patching on the Indirect Object Identification Task</a></li>
    </ul></li>
-   <li><a class="contents-el" href="#hooks:-accessing-activations">Hooks: Accessing Activations</a></li>
+   <li><a class="contents-el" href="#hooks-accessing-activations">Hooks: Accessing Activations</a></li>
    <li><a class="contents-el" href="#available-models">Available Models</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#an-overview-of-the-important-open-source-models-in-the-library">An overview of the important open source models in the library</a></li>
@@ -98,7 +103,7 @@ def section_1():
     st.markdown(r"""
 # Introduction
 
-This is a demo notebook for [TransformerLens](https://github.com/neelnanda-io/TransformerLens), **a library I ([Neel Nanda](neelnanda.io)) wrote for doing [mechanistic interpretability](https://distill.pub/2020/circuits/zoom-in/) of GPT-2 Style language models.** The goal of mechanistic interpretability is to take a trained model and reverse engineer the algorithms the model learned during training from its weights. It is a fact about the world today that we have computer programs that can essentially speak English at a human level (GPT-3, PaLM, etc), yet we have no idea how they work nor how to write one ourselves. This offends me greatly, and I would like to solve this! Mechanistic interpretability is a very young and small field, and there are a *lot* of open problems - if you would like to help, please try working on one! **Check out my [list of concrete open problems](TODO: link) to figure out where to start.**
+This is a demo notebook for [TransformerLens](https://github.com/neelnanda-io/TransformerLens), **a library I ([Neel Nanda](neelnanda.io)) wrote for doing [mechanistic interpretability](https://distill.pub/2020/circuits/zoom-in/) of GPT-2 Style language models.** The goal of mechanistic interpretability is to take a trained model and reverse engineer the algorithms the model learned during training from its weights. It is a fact about the world today that we have computer programs that can essentially speak English at a human level (GPT-3, PaLM, etc), yet we have no idea how they work nor how to write one ourselves. This offends me greatly, and I would like to solve this! Mechanistic interpretability is a very young and small field, and there are a *lot* of open problems - if you would like to help, please try working on one! **Check out my [list of concrete open problems](https://docs.google.com/document/d/1WONBzNqfKIxERejrrPlQMyKqg7jSFW92x5UMXNrMdPo/edit#) to figure out where to start.**
 
 I wrote this library because after I left the Anthropic interpretability team and started doing independent research, I got extremely frustrated by the state of open source tooling. There's a lot of excellent infrastructure like HuggingFace and DeepSpeed to *use* or *train* models, but very little to dig into their internals and reverse engineer how they work. **This library tries to solve that**, and to make it easy to get into the field even if you don't work at an industry org with real infrastructure! The core features were heavily inspired by [Anthropic's excellent Garcon tool](https://transformer-circuits.pub/2021/garcon/index.html). Credit to Nelson Elhage and Chris Olah for building Garcon and showing me the value of good infrastructure for accelerating exploratory research!
 
@@ -114,7 +119,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model = HookedTransformer.from_pretrained("gpt2-small", device=device)
 ```
 
-To try the model the model out, let's find the loss on this text! Models can be run on a single string or a tensor of tokens (shape: [batch, position], all integers), and the possible return types are: 
+To try the model the model out, let's find the loss on this text! Models can be run on a single string or a tensor of tokens (shape: `[batch, position]`, all integers), and the possible return types are: 
 * "logits" (shape [batch, position, d_vocab], floats), 
 * "loss" (the cross-entropy loss when predicting the next token), 
 * "both" (a tuple of (logits, loss)) 
@@ -209,8 +214,8 @@ ablated_loss = model.run_with_hooks(
     fwd_hooks=[(
         utils.get_act_name("v", layer_to_ablate), 
         head_ablation_hook
-        )]
-    )
+    )]
+)
 print(f"Original Loss: {original_loss.item():.3f}")
 print(f"Ablated Loss: {ablated_loss.item():.3f}")
 ```
@@ -226,9 +231,20 @@ The IOI task is the task of identifying that a sentence like "After John and Mar
 **Activation patching** is a technique from [Kevin Meng and David Bau's excellent ROME paper](https://rome.baulab.info/). The goal is to identify which model activations are important for completing a task. We do this by setting up a **clean prompt** and a **corrupted prompt** and a **metric** for performance on the task. We then pick a specific model activation, run the model on the corrupted prompt, but then *intervene* on that activation and patch in its value when run on the clean prompt. We then apply the metric, and see how much this patch has recovered the clean performance. 
 (See [a more detailed explanation of activation patching here](https://colab.research.google.com/github/neelnanda-io/Easy-Transformer/blob/main/Exploratory_Analysis_Demo.ipynb#scrollTo=5nUXG6zqmd0f))
 
-Here, our clean prompt is "After John and Mary went to the store, **Mary** gave a bottle of milk to", our corrupted prompt is "After John and Mary went to the store, **John** gave a bottle of milk to", and our metric is the difference between the correct logit ( John) and the incorrect logit ( Mary) on the final token. 
+Here, our clean prompt is "After John and Mary went to the store, **Mary** gave a bottle of milk to", our corrupted prompt is "After John and Mary went to the store, **John** gave a bottle of milk to", and our metric is the difference between the correct logit (John) and the incorrect logit (Mary) on the final token. 
 
 We see that the logit difference is significantly positive on the clean prompt, and significantly negative on the corrupted prompt, showing that the model is capable of doing the task!
+
+**Exercise - read the code below, and think about what you expect the output to be and why.**
+""")
+
+    with st.expander("Output (and explanation"):
+        st.markdown(r"""
+
+""")
+
+
+    st.markdown(r"""
 
 ```python
 clean_prompt = "After John and Mary went to the store, Mary gave a bottle of milk to"
@@ -607,6 +623,492 @@ def section_1():
     pass
 
 def section_2():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#dealing-with-tokens">Dealing with tokens</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#gotcha-prepend-bos">Gotcha: <code>prepend_bos</code></a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#factored-matrix-class">Factored Matrix Class</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#basic-examples">Basic Examples</a></li>
+       <li><a class="contents-el" href="#medium-example-eigenvalue-copying-scores">Medium Example: Eigenvalue Copying Scores</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#generating-text">Generating Text</a></li>
+   <li><a class="contents-el" href="#hook-points">Hook Points</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#toy-example">Toy Example</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#loading-pre-trained-checkpoints">Loading Pre-Trained Checkpoints</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#example-induction-head-phase-transition">Example: Induction Head Phase Transition</a></li>
+</ul>
+""", unsafe_allow_html=True)
+
+    st.markdown(r"""
+# Features
+
+An overview of some other important features of the library. I recommend checking out the [Exploratory Analysis Demo](https://colab.research.google.com/github/neelnanda-io/Easy-Transformer/blob/main/Exploratory_Analysis_Demo.ipynb) for some other important features not mentioned here, and for a demo of what using the library in practice looks like.
+
+## Dealing with tokens
+
+**Tokenization** is one of the most annoying features of studying language models. We want language models to be able to take in arbitrary text as input, but the transformer architecture needs the inputs to be elements of a fixed, finite vocabulary. The solution to this is **tokens**, a fixed vocabulary of "sub-words", that any natural language can be broken down into with a **tokenizer**. This is invertible, and we can recover the original text, called **de-tokenization**. 
+
+TransformerLens comes with a range of utility functions to deal with tokenization. Different models can have different tokenizers, so these are all methods on the model.
+
+`get_token_position`, `to_tokens`, `to_string`, `to_str_tokens`, `prepend_bos`, 1to_single_token`
+
+The first thing you need to figure out is *how* things are tokenized. `model.to_str_tokens` splits a string into the tokens *as a list of substrings*, and so lets you explore what the text looks like. To demonstrate this, let's use it on this paragraph.
+
+Some observations - there are a lot of arbitrary-ish details in here!
+* The tokenizer splits on spaces, so no token contains two words.
+* Tokens include the preceding space, and whether the first token is a capital letter. `how` and ` how` are different tokens!
+* Common words are single tokens, even if fairly long (` paragraph`) while uncommon words are split into multiple tokens (` token|ized`).
+* Tokens *mostly* split on punctuation characters (eg `*` and `.`), but eg `'s` is a single token.
+
+```python
+example_text = "The first thing you need to figure out is *how* things are tokenized. `model.to_str_tokens` splits a string into the tokens *as a list of substrings*, and so lets you explore what the text looks like. To demonstrate this, let's use it on this paragraph."
+example_text_str_tokens = model.to_str_tokens(example_text)
+print(example_text_str_tokens)
+```
+
+The transformer needs to take in a sequence of integers, not strings, so we need to convert these tokens into integers. `model.to_tokens` does this, and returns a tensor of integers on the model's device (shape `[batch, position]`). It maps a string to a batch of size 1.
+
+```python
+example_text_tokens = model.to_tokens(example_text)
+print(example_text_tokens)
+```
+
+`to_tokens` can also take in a list of strings, and return a batch of size `len(strings)`. If the strings are different numbers of tokens, it adds a PAD token to the end of the shorter strings to make them the same length.
+
+(Note: In GPT-2, 50256 signifies both the beginning of sequence, end of sequence and padding token - see the `prepend_bos` section for details)
+
+```python
+example_multi_text = ["The cat sat on the mat.", "The cat sat on the mat really hard."]
+example_multi_text_tokens = model.to_tokens(example_multi_text)
+print(example_multi_text_tokens)
+```
+
+`model.to_single_token` is a convenience function that takes in a string 
+
+*   List item
+*   List item
+
+corresponding to a *single* token and returns the corresponding integer. This is useful for eg looking up the logit corresponding to a single token. 
+
+For example, let's input `The cat sat on the mat.` to GPT-2, and look at the log prob predicting that the next token is ` The`. 
+""")
+    with st.expander("Technical notes"):
+        st.markdown(r"""
+Note that if we input a string to the model, it's implicitly converted to a string with `to_tokens`. 
+
+Note further that the log probs have shape `[batch, position, d_vocab]==[1, 8, 50257]`, with a vector of log probs predicting the next token for *every* token position. GPT-2 uses causal attention which means heads can only look backwards (equivalently, information can only move forwards in the model.), so the log probs at position k are only a function of the first k tokens, and it can't just cheat and look at the k+1 th token. This structure lets it generate text more efficiently, and lets it treat every *token* as a training example, rather than every *sequence*.""")
+
+    st.markdown(r"""
+```python
+cat_text = "The cat sat on the mat."
+cat_logits = model(cat_text)
+cat_probs = cat_logits.softmax(dim=-1)
+print(f"Probability tensor shape [batch, position, d_vocab] == {cat_probs.shape}")
+
+capital_the_token_index = model.to_single_token(" The")
+print(f"| The| probability: {cat_probs[0, -1, capital_the_token_index].item():.2%}")
+```
+
+`model.to_string` is the inverse of `to_tokens` and maps a tensor of integers to a string or list of strings. It also works on integers and lists of integers.
+
+For example, let's look up token 256 (due to technical details of tokenization, this will be the most common pair of ASCII characters!), and also verify that our tokens above map back to a string.
+
+```python
+print(f"Token 256 - the most common pair of ASCII characters: |{model.to_string(256)}|")
+# Squeeze means to remove dimensions of length 1. 
+# Here, that removes the dummy batch dimension so it's a rank 1 tensor and returns a string
+# Rank 2 tensors map to a list of strings
+print(f"De-Tokenizing the example tokens: {model.to_string(example_text_tokens.squeeze())}")
+```
+
+A related annoyance of tokenization is that it's hard to figure out how many tokens a string will break into. `model.get_token_position(single_token, tokens)` returns the position of `single_token` in `tokens`. `tokens` can be either a string or a tensor of tokens. 
+
+Note that position is zero-indexed, it's two (ie third) because there's a beginning of sequence token automatically prepended (see the next section for details)
+
+```python
+print("With BOS:", model.get_token_position(" cat", "The cat sat on the mat"))
+print("Without BOS:", model.get_token_position(" cat", "The cat sat on the mat", prepend_bos=False))
+```
+
+If there are multiple copies of the token, we can set `mode="first"` to find the first occurence's position and `mode="last"` to find the last
+
+```python
+print("First occurence", model.get_token_position(
+    " cat", 
+    "The cat sat on the mat. The mat sat on the cat.", 
+    mode="first"))
+print("Final occurence", model.get_token_position(
+    " cat", 
+    "The cat sat on the mat. The mat sat on the cat.", 
+    mode="last"))
+```
+
+In general, tokenization is a pain, and full of gotchas. I highly recommend just playing around with different inputs and their tokenization and getting a feel for it. As another "fun" example, let's look at the tokenization of arithmetic expressions - tokens do *not* contain consistent numbers of digits. (This makes it even more impressive that GPT-3 can do arithmetic!)
+
+```python
+print(model.to_str_tokens("2342+2017=21445"))
+print(model.to_str_tokens("1000+1000000=999999"))
+```
+
+I also *highly* recommend investigating prompts with easy tokenization when starting out - ideally key words should form a single token, be in the same position in different prompts, have the same total length, etc. Eg study Indirect Object Identification with common English names like ` Tim` rather than ` Ne|el`. Transformers need to spend some parameters in early layers converting multi-token words to a single feature, and then de-converting this in the late layers, and unless this is what you're explicitly investigating, this will make the behaviour you're investigating be messier.
+
+### Gotcha: `prepend_bos`
+
+##### Key Takeaway: **If you get weird off-by-one errors, check whether there's an unexpected `prepend_bos`!**
+
+A weirdness you may have noticed in the above is that `to_tokens` and `to_str_tokens` added a weird `<|endoftext|>` to the start of each prompt. TransformerLens does this by default, and it can easily trip up new users. Notably, **this includes `model.forward`** (which is what's implicitly used when you do eg `model("Hello World")`). This is called a **Beginning of Sequence (BOS)** token, and it's a special token used to mark the beginning of the sequence. Confusingly, in GPT-2, the End of Sequence (EOS), Beginning of Sequence (BOS) and Padding (PAD) tokens are all the same, `<|endoftext|>` with index `50256`.
+
+You can disable this behaviour by setting the flag `prepend_bos=False` in `to_tokens`, `to_str_tokens`, `model.forward` and any other function that converts strings to multi-token tensors. 
+
+**Gotcha:** You only want to do this at the *start* of a prompt. If you, eg, want to input a question followed by an answer, and want to tokenize these separately, you do *not* want to prepend_bos on the answer.
+
+```python
+print("Logits shape by default (with BOS)", model("Hello World").shape)
+print("Logits shape with BOS", model("Hello World", prepend_bos=True).shape)
+print("Logits shape without BOS - only 2 positions!", model("Hello World", prepend_bos=False).shape)
+```
+
+`prepend_bos` is a bit of a hack, and I've gone back and forth on what the correct default here is. The reason I do this is that transformers tend to treat the first token weirdly - this doesn't really matter in training (where all inputs are >1000 tokens), but this can be a big issue when investigating short prompts! The reason for this is that attention patterns are a probability distribution and so need to add up to one, so to simulate being "off" they normally look at the first token. Giving them a BOS token lets the heads rest by looking at that, preserving the information in the first "real" token.
+
+Further, *some* models are trained to need a BOS token (OPT and my interpretability-friendly models are, GPT-2 and GPT-Neo are not). But despite GPT-2 not being trained with this, empirically it seems to make interpretability easier.
+
+For example, the model can get much worse at Indirect Object Identification without a BOS (and with a name as the first token):
+
+```python
+ioi_logits_with_bos = model("Claire and Mary went to the shops, then Mary gave a bottle of milk to", prepend_bos=True)
+mary_logit_with_bos = ioi_logits_with_bos[0, -1, model.to_single_token(" Mary")].item()
+claire_logit_with_bos = ioi_logits_with_bos[0, -1, model.to_single_token(" Claire")].item()
+print(f"Logit difference with BOS: {(claire_logit_with_bos - mary_logit_with_bos):.3f}")
+
+ioi_logits_without_bos = model("Claire and Mary went to the shops, then Mary gave a bottle of milk to", prepend_bos=False)
+mary_logit_without_bos = ioi_logits_without_bos[0, -1, model.to_single_token(" Mary")].item()
+claire_logit_without_bos = ioi_logits_without_bos[0, -1, model.to_single_token(" Claire")].item()
+print(f"Logit difference without BOS: {(claire_logit_without_bos - mary_logit_without_bos):.3f}")
+```
+
+Though, note that this also illustrates another gotcha - when `Claire` is at the start of a sentence (no preceding space), it's actually *two* tokens, not one, which probably confuses the relevant circuit. (Note - in this test we put `prepend_bos=False`, because we want to analyse the tokenization of a specific string, not to give an input to the model!)
+
+```
+print(f"| Claire| -> {model.to_str_tokens(' Claire', prepend_bos=False)}")
+print(f"|Claire| -> {model.to_str_tokens('Claire', prepend_bos=False)}")
+```
+
+## Factored Matrix Class
+
+In transformer interpretability, we often need to analyse low rank factorized matrices - a matrix $M = AB$, where M is `[large, large]`, but A is `[large, small]` and B is `[small, large]`. This is a common structure in transformers, and the `FactoredMatrix` class is a convenient way to work with these. It implements efficient algorithms for various operations on these, such as computing the trace, eigenvalues, Frobenius norm, singular value decomposition, and products with other matrices. It can (approximately) act as a drop-in replacement for the original matrix, and supports leading batch dimensions to the factored matrix. """)
+
+    with st.expander("Why are low-rank factorized matrices useful for transformer interpretability?"):
+        st.markdown(r"""
+As argued in [A Mathematical Framework](https://transformer-circuits.pub/2021/framework/index.html), an unexpected fact about transformer attention heads is that rather than being best understood as keys, queries and values (and the requisite weight matrices), they're actually best understood as two low rank factorized matrices. """)
+
+    st.markdown(r"""
+* **Where to move information from:** $W_QK = W_Q W_K^T$, used for determining the attention pattern - what source positions to move information from and what destination positions to move them to.
+    * Intuitively, residual stream -> query and residual stream -> key are linear maps, *and* `attention_score = query @ key.T` is a linear map, so the whole thing can be factored into one big bilinear form `residual @ W_QK @ residual.T`
+* **What information to move:** $W_OV = W_V W_O$, used to determine what information to copy from the source position to the destination position (weighted by the attention pattern weight from that destination to that source). 
+    * Intuitively, the residual stream is a `[position, d_model]` tensor (ignoring batch). The attention pattern acts on the *position* dimension (where to move information from and to) and the value and output weights act on the *d_model* dimension - ie *what* information is contained at that source position. So we can factor it all into `attention_pattern @ residual @ W_V @ W_O`, and so only need to care about `W_OV = W_V @ W_O`
+* Note - the internal head dimension is smaller than the residual stream dimension, so the factorization is low rank. (here, `d_model=768` and `d_head=64`)
+</details>
+
+### Basic Examples
+
+We can use the basic class directly - let's make a factored matrix directly and look at the basic operations:
+
+```python
+A = torch.randn(5, 2)
+B = torch.randn(2, 5)
+AB = A @ B
+AB_factor = FactoredMatrix(A, B)
+print("Norms:")
+print(AB.norm())
+print(AB_factor.norm())
+
+print(f"Right dimension: {AB_factor.rdim}, Left dimension: {AB_factor.ldim}, Hidden dimension: {AB_factor.mdim}")
+```
+
+We can also look at the eigenvalues and singular values of the matrix. Note that, because the matrix is rank 2 but 5 by 5, the final 3 eigenvalues and singular values are zero - the factored class omits the zeros.
+
+```python
+print("Eigenvalues:")
+print(torch.linalg.eig(AB).eigenvalues)
+print(AB_factor.eigenvalues)
+print()
+print("Singular Values:")
+print(torch.linalg.svd(AB).S)
+print(AB_factor.S)
+```
+
+We can multiply with other matrices - it automatically chooses the smallest possible dimension to factor along (here it's 2, rather than 5)
+
+```python
+C = torch.randn(5, 300)
+ABC = AB @ C
+ABC_factor = AB_factor @ C
+print("Unfactored:", ABC.shape, ABC.norm())
+print("Factored:", ABC_factor.shape, ABC_factor.norm())
+print(f"Right dimension: {ABC_factor.rdim}, Left dimension: {ABC_factor.ldim}, Hidden dimension: {ABC_factor.mdim}")
+```
+
+If we want to collapse this back to an unfactored matrix, we can use the AB property to get the product:
+
+```python
+AB_unfactored = AB_factor.AB
+print(torch.isclose(AB_unfactored, AB).all())
+```
+
+### Medium Example: Eigenvalue Copying Scores
+
+(This is a more involved example of how to use the factored matrix class, skip it if you aren't following)
+
+For a more involved example, let's look at the eigenvalue copying score from [A Mathematical Framework](https://transformer-circuits.pub/2021/framework/index.html) of the OV circuit for various heads. The OV Circuit for a head (the factorised matrix $W_OV = W_V W_O$) is a linear map that determines what information is moved from the source position to the destination position. Because this is low rank, it can be thought of as *reading in* some low rank subspace of the source residual stream and *writing to* some low rank subspace of the destination residual stream (with maybe some processing happening in the middle).
+
+A common operation for this will just be to *copy*, ie to have the same reading and writing subspace, and to do minimal processing in the middle. Empirically, this tends to coincide with the OV Circuit having (approximately) positive real eigenvalues. I mostly assert this as an empirical fact, but intuitively, operations that involve mapping eigenvectors to different directions (eg rotations) tend to have complex eigenvalues. And operations that preserve eigenvector direction but negate it tend to have negative real eigenvalues. And "what happens to the eigenvectors" is a decent proxy for what happens to an arbitrary vector.
+
+We can get a score for "how positive real the OV circuit eigenvalues are" with $\frac{\sum \lambda_i}{\sum |\lambda_i|}$, where $\lambda_i$ are the eigenvalues of the OV circuit. This is a bit of a hack, but it seems to work well in practice.
+
+Let's use FactoredMatrix to compute this for every head in the model! We use the helper `model.OV` to get the concatenated OV circuits for all heads across all layers in the model. This has the shape `[n_layers, n_heads, d_model, d_model]`, where `n_layers` and `n_heads` are batch dimensions and the final two dimensions are factorised as `[n_layers, n_heads, d_model, d_head]` and `[n_layers, n_heads, d_head, d_model]` matrices.
+
+We can then get the eigenvalues for this, where there are separate eigenvalues for each element of the batch (a `[n_layers, n_heads, d_head]` tensor of complex numbers), and calculate the copying score.
+
+```python
+OV_circuit_all_heads = model.OV
+print(OV_circuit_all_heads)
+```
+
+```python
+OV_circuit_all_heads_eigenvalues = OV_circuit_all_heads.eigenvalues 
+print(OV_circuit_all_heads_eigenvalues.shape)
+print(OV_circuit_all_heads_eigenvalues.dtype)
+```
+
+```python
+OV_copying_score = OV_circuit_all_heads_eigenvalues.sum(dim=-1).real / OV_circuit_all_heads_eigenvalues.abs().sum(dim=-1)
+imshow(utils.to_numpy(OV_copying_score), xaxis="Head", yaxis="Layer", title="OV Copying Score for each head in GPT-2 Small", zmax=1.0, zmin=-1.0)
+```
+
+Head 11 in Layer 11 (L11H11) has a high copying score, and if we plot the eigenvalues they look approximately as expected.
+
+```python
+scatter(x=OV_circuit_all_heads_eigenvalues[-1, -1, :].real, y=OV_circuit_all_heads_eigenvalues[-1, -1, :].imag, title="Eigenvalues of Head L11H11 of GPT-2 Small", xaxis="Real", yaxis="Imaginary")
+```
+
+We can even look at the full OV circuit, from the input tokens to output tokens: $W_E W_V W_O W_U$. This is a `[d_vocab, d_vocab]==[50257, 50257]` matrix, so absolutely enormous, even for a single head. But with the FactoredMatrix class, we can compute the full eigenvalue copying score of every head in a few seconds.
+
+```python
+full_OV_circuit = model.embed.W_E @ OV_circuit_all_heads @ model.unembed.W_U
+print(full_OV_circuit)
+```
+
+```python
+full_OV_circuit_eigenvalues = full_OV_circuit.eigenvalues
+print(full_OV_circuit_eigenvalues.shape)
+print(full_OV_circuit_eigenvalues.dtype)
+```
+
+```python
+full_OV_copying_score = full_OV_circuit_eigenvalues.sum(dim=-1).real / full_OV_circuit_eigenvalues.abs().sum(dim=-1)
+imshow(utils.to_numpy(full_OV_copying_score), xaxis="Head", yaxis="Layer", title="OV Copying Score for each head in GPT-2 Small", zmax=1.0, zmin=-1.0)
+```
+
+Interestingly, these are highly (but not perfectly!) correlated. I'm not sure what to read from this, or what's up with the weird outlier heads!
+
+```python
+scatter(x=full_OV_copying_score.flatten(), y=OV_copying_score.flatten(), hover_name=[f"L{layer}H{head}" for layer in range(12) for head in range(12)], title="OV Copying Score for each head in GPT-2 Small", xaxis="Full OV Copying Score", yaxis="OV Copying Score")
+```
+
+```python
+print(f"Token 256 - the most common pair of ASCII characters: |{model.to_string(256)}|")
+# Squeeze means to remove dimensions of length 1. 
+# Here, that removes the dummy batch dimension so it's a rank 1 tensor and returns a string
+# Rank 2 tensors map to a list of strings
+print(f"De-Tokenizing the example tokens: {model.to_string(example_text_tokens.squeeze())}")
+```
+
+## Generating Text
+
+TransformerLens also has basic text generation functionality, which can be useful for generally exploring what the model is capable of (thanks to Ansh Radhakrishnan for adding this!). This is pretty rough functionality, and where possible I recommend using more established libraries like HuggingFace for this.
+
+```python
+model.generate("(CNN) President Barack Obama caught in embarrassing new scandal\n", max_new_tokens=50, temperature=0.7, prepend_bos=True)
+```
+
+## Hook Points
+
+The key part of TransformerLens that lets us access and edit intermediate activations are the HookPoints around every model activation. Importantly, this technique will work for *any* model architecture, not just transformers, so long as you're able to edit the model code to add in HookPoints! This is essentially a lightweight library bundled with TransformerLens that should let you take an arbitrary model and make it easier to study. 
+
+This is implemented by having a HookPoint layer. Each transformer component has a HookPoint for every activation, which wraps around that activation. The HookPoint acts as an identity function, but has a variety of helper functions that allows us to put PyTorch hooks in to edit and access the relevant activation. 
+
+There is also a `HookedRootModule` class - this is a utility class that the root module should inherit from (root module = the model we run) - it has several utility functions for using hooks well, notably `reset_hooks`, `run_with_cache` and `run_with_hooks`. 
+
+The default interface is the `run_with_hooks` function on the root module, which lets us run a forwards pass on the model, and pass on a list of hooks paired with layer names to run on that pass. 
+
+The syntax for a hook is `function(activation, hook)` where `activation` is the activation the hook is wrapped around, and `hook` is the `HookPoint` class the function is attached to. If the function returns a new activation or edits the activation in-place, that replaces the old one, if it returns None then the activation remains as is.
+
+### Toy Example
+
+Here's a simple example of defining a small network with HookPoints:
+
+We define a basic network with two layers that each take a scalar input $x$, square it, and add a constant:
+$x_0=x$, $x_1=x_0^2+3$, $x_2=x_1^2-4$.
+
+We wrap the input, each layer's output, and the intermediate value of each layer (the square) in a hook point.
+
+```python
+from transformer_lens.hook_points import HookedRootModule, HookPoint
+
+class SquareThenAdd(nn.Module):
+    def __init__(self, offset):
+        super().__init__()
+        self.offset = nn.Parameter(torch.tensor(offset))
+        self.hook_square = HookPoint()
+
+    def forward(self, x):
+        # The hook_square doesn't change the value, but lets us access it
+        square = self.hook_square(x * x)
+        return self.offset + square
+
+class TwoLayerModel(HookedRootModule):
+    def __init__(self):
+        super().__init__()
+        self.layer1 = SquareThenAdd(3.0)
+        self.layer2 = SquareThenAdd(-4.0)
+        self.hook_in = HookPoint()
+        self.hook_mid = HookPoint()
+        self.hook_out = HookPoint()
+
+        # We need to call the setup function of HookedRootModule to build an
+        # internal dictionary of modules and hooks, and to give each hook a name
+        super().setup()
+
+    def forward(self, x):
+        # We wrap the input and each layer's output in a hook - they leave the
+        # value unchanged (unless there's a hook added to explicitly change it),
+        # but allow us to access it.
+        x_in = self.hook_in(x)
+        x_mid = self.hook_mid(self.layer1(x_in))
+        x_out = self.hook_out(self.layer2(x_mid))
+        return x_out
+
+model = TwoLayerModel()
+```
+
+We can add a cache, to save the activation at each hook point
+
+(There's a custom `run_with_cache` function on the root module as a convenience, which is a wrapper around model.forward that return model_out, cache_object - we could also manually add hooks with `run_with_hooks` that store activations in a global caching dictionary. This is often useful if we only want to store, eg, subsets or functions of some activations.)
+
+```python
+out, cache = model.run_with_cache(torch.tensor(5.0))
+print("Model output:", out.item())
+for key in cache:
+    print(f"Value cached at hook {key}", cache[key].item())
+```
+
+We can also use hooks to intervene on activations - eg, we can set the intermediate value in layer 2 to zero to change the output to -5
+
+```python
+def set_to_zero_hook(tensor, hook):
+    print(hook.name)
+    return torch.tensor(0.0)
+
+print(
+    "Output after intervening on layer2.hook_scaled",
+    model.run_with_hooks(
+        torch.tensor(5.0), fwd_hooks=[("layer2.hook_square", set_to_zero_hook)]
+    ).item(),
+)
+```
+
+## Loading Pre-Trained Checkpoints
+
+There are a lot of interesting questions combining mechanistic interpretability and training dynamics - analysing model capabilities and the underlying circuits that make them possible, and how these change as we train the model. 
+
+TransformerLens supports these by having several model families with checkpoints throughout training. `HookedTransformer.from_pretrained` can load a checkpoint of a model with the `checkpoint_index` (the label 0 to `num_checkpoints-1`) or `checkpoint_value` (the step or token number, depending on how the checkpoints were labelled).
+
+
+Available models:
+* All of my interpretability-friendly models have checkpoints available, including:
+    * The toy models - `attn-only`, `solu`, `gelu` 1L to 4L
+        * These have ~200 checkpoints, taken on a piecewise linear schedule (more checkpoints near the start of training), up to 22B tokens. Labelled by number of tokens seen.
+    * The SoLU models trained on 80% Web Text and 20% Python Code (`solu-6l` to `solu-12l`)
+        * Same checkpoint schedule as the toy models, this time up to 30B tokens
+    * The SoLU models trained on the pile (`solu-1l-pile` to `solu-12l-pile`)
+        * These have ~100 checkpoints, taken on a linear schedule, up to 15B tokens. Labelled by number of steps.
+        * The 12L training crashed around 11B tokens, so is truncated.
+* The Stanford Centre for Research of Foundation Models trained 5 GPT-2 Small sized and 5 GPT-2 Medium sized models (`stanford-gpt2-small-a` to `e` and `stanford-gpt2-medium-a` to `e`)
+    * 600 checkpoints, taken on a piecewise linear schedule, labelled by the number of steps.
+
+The checkpoint structure and labels is somewhat messy and ad-hoc, so I mostly recommend using the `checkpoint_index` syntax (where you can just count from 0 to the number of checkpoints) rather than `checkpoint_value` syntax (where you need to know the checkpoint schedule, and whether it was labelled with the number of tokens or steps). The helper function `get_checkpoint_labels` tells you the checkpoint schedule for a given model - ie what point was each checkpoint taken at, and what type of label was used.
+
+Here are graphs of the schedules for several checkpointed models: (note that the first 3 use a log scale, latter 2 use a linear scale)
+
+```python
+from transformer_lens.loading_from_pretrained import get_checkpoint_labels
+for model_name in ["attn-only-2l", "solu-12l", "stanford-gpt2-small-a"]:
+    checkpoint_labels, checkpoint_label_type = get_checkpoint_labels(model_name)
+    line(checkpoint_labels, xaxis="Checkpoint Index", yaxis=f"Checkpoint Value ({checkpoint_label_type})", title=f"Checkpoint Values for {model_name} (Log scale)", log_y=True, markers=True)
+for model_name in ["solu-1l-pile", "solu-6l-pile"]:
+    checkpoint_labels, checkpoint_label_type = get_checkpoint_labels(model_name)
+    line(checkpoint_labels, xaxis="Checkpoint Index", yaxis=f"Checkpoint Value ({checkpoint_label_type})", title=f"Checkpoint Values for {model_name} (Linear scale)", log_y=False, markers=True)
+```
+
+### Example: Induction Head Phase Transition
+
+One of the more interesting results analysing circuit formation during training is the [induction head phase transition](https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html). They find a pretty dramatic shift in models during training - there's a brief period where models go from not having induction heads to having them, which leads to the models suddenly becoming much better at in-context learning (using far back tokens to predict the next token, eg over 500 words back). This is enough of a big deal that it leads to a visible *bump* in the loss curve, where the model's rate of improvement briefly increases. 
+
+As a brief demonstration of the existence of the phase transition, let's load some checkpoints of a two layer model, and see whether they have induction heads. An easy test, as we used above, is to give the model a repeated sequence of random tokens, and to check how good its loss is on the second half. `evals.induction_loss` is a rough util that runs this test on a model.
+(Note - this is deliberately a rough, non-rigorous test for the purposes of demonstration, eg `evals.induction_loss` by default just runs it on 4 sequences of 384 tokens repeated twice. These results totally don't do the paper justice - go check it out if you want to see the full results!)
+
+In the interests of time and memory, let's look at a handful of checkpoints (chosen to be around the phase change), indices `[10, 25, 35, 60, -1]`. These are roughly 22M, 200M, 500M, 1.6B and 21.8B tokens through training, respectively. (I generally recommend looking things up based on indices, rather than checkpoint value!). 
+
+```python
+from transformer_lens import evals
+# We use the two layer model with SoLU activations, chosen fairly arbitrarily as being both small (so fast to download and keep in memory) and pretty good at the induction task.
+model_name = "solu-2l"
+# We can load a model from a checkpoint by specifying the checkpoint_index, -1 means the final checkpoint
+checkpoint_indices = [10, 25, 35, 60, -1]
+checkpointed_models = []
+tokens_trained_on = []
+induction_losses = []
+```
+
+We load the models, cache them in a list, and 
+
+```python
+for index in checkpoint_indices:
+    # Load the model from the relevant checkpoint by index
+    model_for_this_checkpoint = HookedTransformer.from_pretrained(model_name, checkpoint_index=index)
+    checkpointed_models.append(model_for_this_checkpoint)
+
+    tokens_seen_for_this_checkpoint = model_for_this_checkpoint.cfg.checkpoint_value
+    tokens_trained_on.append(tokens_seen_for_this_checkpoint)
+
+    induction_loss_for_this_checkpoint = evals.induction_loss(model_for_this_checkpoint).item()
+    induction_losses.append(induction_loss_for_this_checkpoint)
+```
+
+We can plot this, and see there's a sharp shift from ~200-500M tokens trained on (note the log scale on the x axis). Interestingly, this is notably earlier than the phase transition in the paper, I'm not sure what's up with that.
+
+(To contextualise the numbers, the tokens in the random sequence are uniformly chosen from the first 20,000 tokens (out of ~48,000 total), so random performance is at least $\ln(20000)\approx 10$. A naive strategy like "randomly choose a token that's already appeared in the first half of the sequence (384 elements)" would get $\ln(384)\approx 5.95$, so the model is doing pretty well here.)
+
+```python
+line(induction_losses, x=tokens_trained_on, xaxis="Tokens Trained On", yaxis="Induction Loss", title="Induction Loss over training: solu-2l", markers=True, log_x=True)
+```
+""")
+
+
+
+def section_2():
+    pass
+
+
+def section_3():
     pass
 
 func_list = [section_home, section_1, section_2]

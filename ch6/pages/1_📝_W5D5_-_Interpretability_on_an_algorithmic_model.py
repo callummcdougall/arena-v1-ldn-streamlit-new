@@ -881,7 +881,7 @@ Write a function that extracts the attention patterns for a given head when run 
 
 Specifically:
 * Use `get_inputs` from earlier, on the self-attention module in the layer in question.
-* You can use the `attention_pattern_pre_softmax` function to get the pattern, then mask the padding (elements of the batch might be different lengths, and thus be suffixed with padding).""")
+* You can use the `attention_pattern_pre_softmax` function to get the pattern (see the `MultiheadAttention` class in `w5d5_transformer.py`), then mask the padding (elements of the batch might be different lengths, and thus be suffixed with padding).""")
 
     with st.expander("How do I find the padding?"):
         st.markdown(r"""
