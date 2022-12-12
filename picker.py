@@ -7,7 +7,11 @@ max_chapter = max([int(f[2:]) for f in folders if f.startswith('ch')])
 
 title = 'Choose chapter (press SPACE to mark, ENTER to continue):'
 options = [f'CH{n}'for n in range(max_chapter + 1)]
-selected = pick(options, title, multiselect=True, min_selection_count=1)
+
+try:
+    selected = pick(options, title, multiselect=True, min_selection_count=1, indicator='→', default_index=max_chapter)
+except KeyboardInterrupt:
+    exit()
 
 commands = [f"streamlit run ch{n}/Home.py" for (name, n) in selected]
 print(f'Opening chapters {", ".join([name for (name, n) in selected])}...')
