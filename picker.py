@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from pick import pick
 import subprocess
 import os
