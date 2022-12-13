@@ -576,14 +576,21 @@ How to interpret this diagram:
 
 ## Writing the residual stream as a sum of terms
 
-Recall from yesterday that at any point during the forward pass of a model, a residual stream can be thought of as a sum of terms: one term for the contribution of each attention head or MLP so far, plus one for the input embeddings. In our journey backward, we've arrived at the last stop of the residual stream, when it is a sum of all the MLP contributions and all the attention contributions in the entire model.""")
+The traditional way to think about transformers is as a bunch of layers stacked in sequence, like in the diagram below:""")
+
+    st_excalidraw("brackets-transformer-heads-0", 1400)
+    st.markdown(r"""
+
+But as we learned from the transformer circuits paper, this isn't the most natural point of view to take. A better perspective is that the residual stream at any point in the model's forward pass is a sum of terms: one term for the contribution of each attention head or MLP so far, plus one for the input embeddings. The attention heads and MLPs read from and write to the residual stream. By the time we get to the end of our model, the residual stream is a sum of ten terms: the direct path from the input embeddings, plus two attention heads and one MLP on each of the three layers. We might draw this as:""")
 
     st_excalidraw("brackets-transformer-heads", 1400)
 
+    st.markdown(r"""
+Where each dotted line indicates that, thanks to skip connections, the component is writing something into the residual stream which is eventually used to compute classification probabilities.""")
     st.info(r"""
-It's worth noting here - this is different from the full path expansion in the transformer circuits paper.
+It's worth noting here - this is not exactly the same concept as the full path expansion in the transformer circuits paper.
 
-* In QK path expansion, we wrote out the terms in the residual stream as a sum of paths, each one containing a different number of attention heads (some were pure attention heads, others were virtual heads created via composition).
+* In QK path expansion, we wrote out the residual stream as a sum of terms, each one written to the residual stream by a different one of our ten components. For instance, head `2.0` a sum of paths, each one containing a different number of attention heads (some were pure attention heads, others were virtual heads created via composition).
 * Here, we're writing out the terms in the residual stream as a sum of heads, each one containing a different number of paths (for instance, the output of head `2.1` will be a sum of many different paths, but the output of head `0.1` will just correspond to a single path with no composition, because there are no attention heads that could have come before it).
 
 These are mathematically equivalent.
@@ -908,9 +915,69 @@ You should see an average attention of around 0.5 on position 1, and an average 
 
 ### Identifying meaningful direction before this head
 
-We again need to propagate the direction back, this time through the OV matrix of `2.0` and a linear fit to the layernorm. This will require functions that can find these matrices for us.
+Previously, we looked at the vector each component wrote to the residual stream at sequence position 0 (remember the diagram with ten dotted arrows, each one going directly from one of the components to the residual stream). Now that we've observed head `2.0` is mainly copying information from sequence position 1 to position 0, we want to understand how each of the 7 components **before** head `2.0` contributes to the unbalanced direction **via its path through head `2.0`**. We might draw these paths as:""")
 
-Remember, we're interested in the 1st sequence position in the residual stream (see the bar chart above). So when fitting our regression to the layernorm before attention head `2.0`, we'll use `seq_pos=1`. Also, note that we're only looking at the seven components that come *before* our head `2.0` (the embedding, plus the first two layers).
+    st_excalidraw("brackets-transformer-heads-7", 1500)
+
+    st.markdown(r""" 
+We want to find out which components are responsible for writing the information to sequence position 1, which is then used by our attention head `2.0` to implement the elevation circuit. How do we do this? Well, we use a similar trick to what we did before - find an **"unbalanced direction"** $v = $`pre_head_20_dir` so that we can measure a component's contribution to $\mathbb{P}(\text{unbalanced})$ by its dot product with this vector.
+
+#### That was all a bit hand-wavey, so let's try and derive this a bit more cleanly.
+        
+Consider the attention calculation done by head `2.0`.
+
+Recall from the transformer circuits paper, the formula for a single attention layer. If the input is $x$, then the output is:
+$$
+T(x) = A  x W_{OV}^T
+$$
+where $W_{OV} = W_O W_V$, and $A$ is the matrix of attention probabilities given by:
+
+$$
+A = \text{softmax} \left( \frac{Q^T K}{\sqrt{d_k}} \right) = \text{softmax} \left( \frac{x^T W_Q^T W_K x}{\sqrt{d_k}} \right)
+$$
+
+We only care about the element of $T(x)$ at the zeroth sequence position (since the vector at the 0th sequence position is the one used in classification). This is:
+$$
+\begin{align*}
+(T(x))_0 &= \sum_{j=0}^{41} A_{0j}  (x  W_{OV}^T)_j \\
+&= A_{0,0}  (x  W_{OV}^T)_0 + A_{0,1}  (x  W_{OV}^T)_1 + \cdots + A_{0,41}  (x  W_{OV}^T)_{41}
+\end{align*}
+$$
+Furthermore, from our observations in the previous section, we can see that in head `2.0` the 0th token pays a lot of attention to the 1st token, and ignores most of the others. So we can write:
+$$
+\begin{align*}
+(T(x))_0 &\approx (x \cdot W_{OV}^T)_1 \\
+&= (x  W_V^T W_O^T)_1 \\
+&= (W_O  W_V x)_1
+\end{align*}
+$$
+
+Finally, since we already have the vector `pre_final_ln_dir` (let's call this $v$), we can measure the contribution of $x$ via head `2.0` as:
+$$
+v ^T (W_O  W_V x)_1
+$$
+And since $x$ is actually the sum of seven tensors $x$ which were written to the residual stream by the seven components before head `2.0`, we can measure the effect of each component as follows:
+
+$$
+\begin{align*}
+x &= x_\text{emb} + x_{0.0} + x_{0.1} + x_\text{mlp0} + x_{1.0} + x_{1.1} + x_\text{mlp1} \\
+    \\
+\text{contribution of } x_\text{emb} &= v ^T (W_O  W_V x_\text{emb})_1 \\
+\text{contribution of } x_{0.0}\;\, &= v ^T (W_O  W_V x_\text{0.0})_1 \\
+&\;\;\vdots \\
+\text{contribution of } x_{\text{mlp1}} &= v ^T (W_O  W_V x_\text{mlp1})_1 \\
+\end{align*}
+$$
+
+In the exercises below, you'll be asked to perform this calculation. This should be familiar for you since it will be a lot like the last time you calculated performed attribution. You'll reuse the vector $v = $`pre_final_ln_dir` that you used last time; the only difference is that now you'll also need the matrix $W_{OV} = W_O W_V$ of weights from head `2.0`.
+
+---
+
+One last thing, which was omitted from the derivation above to keep it cleaner and more readable - remember that we have layernorms before each of our attention heads. So your contributions will actually be of the form:
+$$
+\text{contribution of } x_\text{emb} = v ^T (W_O  W_V L x_\text{emb})_1
+$$
+etc, where $L$ is a matrix that you will have to git via the `get_ln_fit` function. Here, you should use the argument `seq_pos=1`, since we only care about the effect our layernorm $L$ is having on the 1st sequence position (this being the one that sequence position zero pays most attention to in head `2.0`).
 
 If you're confused by this, then you can use the diagram below this code to help guide you.
 
@@ -1173,8 +1240,16 @@ Up to this point we've been working backwards from the logits and through the in
 
 The key will end up being head 0.0. Let's start by examining its attention pattern.
 
-### 0.0 Attention Pattern
+### 0.0 Attention Pattern""")
 
+    st.error("""
+TODO - figure out what's going on here.
+
+I think they intended it as an intro to the idea of activation patching (for analysing Q/K-composition), but this is kinda dumb because the first-layer attention heads can't be involved in composition! I should replace this section with my own provided code that just averages over all the attention scores where the query is a "(" token, and same for ")" token. I've started to do this (search for `probs_avg_for_query_type` in the w5d5 exercises file), but there's a bug which I need to fix cause it's currently not working (the attention masks just look like bold diagonal stripes).
+
+I think maybe it looks smoother cause they've averaged over the scores before softmaxing? But that seems even less principled. Overall, this section definitely needs restructuring! As a short term measure, maybe just include the bar chart, and cut down on the advexes section so that it doesn't rely on having plotted the full attention pattern.
+""")
+    st.markdown(r"""
 We're going to calculate the attention pattern directly from weights. 
 
 First, write a function to get the Q and K weights (this should be relatively straightforward).
@@ -1462,7 +1537,7 @@ Although the magnitude result is a bit unexpected, we should take this with a pi
 1. It's very unclear how the layernorm affects the input magnitudes.
 2. There are ways we could imagine the model getting around the magnitude problem (e.g. by using information about the total length of the bracket string, which it has easy access to).
 
-Another way we can get evidence for this hypothesis - recall in our discussion of MLP neurons that $B_[i,:]$ (the $i$th row of matrix $B$, where $B$ is the first linear layer of the MLP) is a vector representing the "in-direction" of the neuron. If these neurons are indeed measuring open/closed proportions in the way we think, then we should expect to see the vectors $W_{OV} L(\color{red}``)"\color{black}),\; W_{OV} L(\color{red}``("\color{black})$ have high dot product with these vectors - this is indeed what I found when investigating this. To be precise, I found an average squared cosine similarity of approximately $0.13$, which is significantly larger than the average squared cosine similarity of two randomly chosen vectors (which is approximately $1 / \text{n\_dims} = 1/56 = 0.018$).
+Another way we can get evidence for this hypothesis - recall in our discussion of MLP neurons that $B_{[i,:]}$ (the $i$th row of matrix $B$, where $B$ is the first linear layer of the MLP) is a vector representing the "in-direction" of the neuron. If these neurons are indeed measuring open/closed proportions in the way we think, then we should expect to see the vectors $W_{OV} L(\color{red}``)"\color{black}),\; W_{OV} L(\color{red}``("\color{black})$ have high dot product with these vectors - this is indeed what I found when investigating this. To be precise, I found an average squared cosine similarity of approximately $0.13$, which is significantly larger than the average squared cosine similarity of two randomly chosen vectors (which is approximately $1 / \text{n\_dims} = 1/56 = 0.018$).
 
 ---
 

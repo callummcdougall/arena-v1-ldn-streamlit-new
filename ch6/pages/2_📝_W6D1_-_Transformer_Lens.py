@@ -30,14 +30,18 @@ def read_from_html(filename):
         fig = pio.from_json(json.dumps(plotly_json))
     return fig
 
-NAMES = ["attribution_fig", "attribution_fig_2", "failure_types_fig", "failure_types_fig_2"]
-def get_fig_dict():
-    return {name: read_from_html(name) for name in NAMES}
+NAMES = ["attribution_fig", "attribution_fig_2", "failure_types_fig", "failure_types_fig_2", "logit_diff_from_patching", "line", "attn_induction_score","distil_plot"]
+def complete_fig_dict(fig_dict):
+    for name in NAMES:
+        if name not in fig_dict:
+            fig_dict[name] = read_from_html(name)
+    return fig_dict
 if "fig_dict" not in st.session_state:
     st.session_state["fig_dict"] = {}
-if NAMES[0] not in st.session_state["fig_dict"]:
-    st.session_state["fig_dict"] |= get_fig_dict()
-fig_dict = st.session_state["fig_dict"]
+fig_dict_old = st.session_state["fig_dict"]
+fig_dict = complete_fig_dict(fig_dict_old)
+if len(fig_dict) > len(fig_dict_old):
+    st.session_state["fig_dict"] = fig_dict
 
 def section_home():
     st.markdown(r"""
@@ -46,7 +50,9 @@ def section_home():
 Today is designed to get you introduced to Neel Nanda's **TransformerLens** library, which we'll be using for the rest of the interpretability chapter. The hope is that, having previously had to write our own code to do things like visualize attention heads, we'll have a better understanding of the features of TransformerLens that make this more convenient.""")
 
     st.info(r"""
-Today's material is transcribed directly from Neel Nanda's TransformerLens intro. If you prefer to go through the original Colab, you can find it [here](https://colab.research.google.com/github/neelnanda-io/TransformerLens/blob/new-demo/New_Demo.ipynb#scrollTo=cfdePPmEkR8y). Whenever first person is used here, it's referring to Neel.""")
+Today's material is transcribed directly from Neel Nanda's TransformerLens intro. If you prefer to go through the original Colab, you can find it [here](https://colab.research.google.com/github/neelnanda-io/TransformerLens/blob/new-demo/New_Demo.ipynb#scrollTo=cfdePPmEkR8y) (or alternatively you can pull it from Colab into a VSCode notebook).
+
+Whenever the first person is used here, it's referring to Neel.""")
 
     st.markdown(r"""
 
@@ -71,9 +77,6 @@ ipython.magic("load_ext autoreload")
 ipython.magic("autoreload 2")
 ```
 """)
-
-def section_home():
-    st.markdown(r"""Coming soon!""")
 
 def section_1():
     st.sidebar.markdown("""
@@ -164,13 +167,31 @@ print(type(gpt2_cache))
 attention_pattern = gpt2_cache["pattern", 0, "attn"]
 print(attention_pattern.shape)
 gpt2_str_tokens = model.to_str_tokens(gpt2_text)
-```
 
-```python
 print("Layer 0 Head Attention Patterns:")
-cv.attention.attention_patterns(tokens=gpt2_str_tokens, attention=attention_pattern)
+cv.attention.attention_heads(tokens=gpt2_str_tokens, attention=attention_pattern)
+```""")
+    st.info(r"""
+Note - this library is currently under development (the function `attention_heads` was uploaded on 11th December!), and I think it's still a bit buggy. These plots might work in Colab or Notebooks, but they might not work in the VSCode python interpreter.
+
+The easiest way to solve this (if you still want to use a Python file) is replace the code above with code writing it to an HTML file:
+
+```
+html = cv.attention.attention_heads(tokens=gpt2_str_tokens, attention=attention_pattern)
+with open("cv_attn_2.html", "w") as f:
+    f.write(str(html))
 ```
 
+Then the file should pop up in your explorer on the left of VSCode. Right click on it and select "Open in Default Browser" to view it in your browser.
+""")
+    # with open("images/cv_attn.html") as f:
+    #     text = f.read()
+    # st.components.v1.html(text, height=400)
+    with open("images/cv_attn_2.html") as f:
+        text = f.read()
+    st.components.v1.html(text, height=1400)
+
+    st.markdown(r"""
 ## Hooks: Intervening on Activations
 
 One of the great things about interpreting neural networks is that we have *full control* over our system. From a computational perspective, we know exactly what operations are going on inside (even if we don't know what they mean!). And we can make precise, surgical edits and see how the model's behaviour and other internals change. This is an extremely powerful tool, because it can let us eg set up careful counterfactuals and causal intervention to easily understand model behaviour. 
@@ -235,13 +256,19 @@ Here, our clean prompt is "After John and Mary went to the store, **Mary** gave 
 
 We see that the logit difference is significantly positive on the clean prompt, and significantly negative on the corrupted prompt, showing that the model is capable of doing the task!
 
-**Exercise - read the code below, and think about what you expect the output to be and why.**
+**Exercise - before running the code below, think about what you expect the output to be and why.**
 """)
 
-    with st.expander("Output (and explanation"):
+    with st.expander("Output (and explanation)"):
         st.markdown(r"""
+We expect the clean logit diff to be positive (because the model knows that `"Mary gave a bottle of milk to"` should be followed by `" John"`), and the corrupted logit diff to be negative (because the model knows that `"John gave a bottle of milk to"` should be followed by `" Mary"`).
 
-""")
+This is indeed what we find:
+
+```python
+Clean logit difference: 4.276
+Corrupted logit difference: -2.738
+```""")
 
 
     st.markdown(r"""
@@ -271,7 +298,7 @@ corrupted_logit_diff = logits_to_logit_diff(corrupted_logits)
 print(f"Corrupted logit difference: {corrupted_logit_diff.item():.3f}")
 ```
 
-We now setup the hook function to do activation patching. Here, we'll patch in the residual stream at the start of a specific layer and at a specific position. This will let us see how much the model is using the residual stream at that layer and position to represent the key information for the task. 
+We now setup the hook function to do **activation patching**. Here, we'll patch in the residual stream at the start of a specific layer and at a specific position. This will let us see how much the model is using the residual stream at that layer and position to represent the key information for the task. 
 
 We want to iterate over all layers and positions, so we write the hook to take in an position parameter. Hook functions must have the input signature (activation, hook), but we can use `functools.partial` to set the position parameter before passing it to `run_with_hooks`.
 
@@ -314,7 +341,10 @@ We can now visualize the results, and see that this computation is extremely loc
 # Add the index to the end of the label, because plotly doesn't like duplicate labels
 token_labels = [f"{token}_{index}" for index, token in enumerate(model.to_str_tokens(clean_tokens))]
 imshow(ioi_patching_result, x=token_labels, xaxis="Position", yaxis="Layer", title="Normalized Logit Difference After Patching Residual Stream on the IOI Task")
-```
+```""")
+
+    st.plotly_chart(fig_dict["logit_diff_from_patching"], use_container_width=True)
+    st.markdown(r"""
 
 ## Hooks: Accessing Activations
 
@@ -339,7 +369,10 @@ repeated_logits = model(repeated_tokens)
 correct_log_probs = model.loss_fn(repeated_logits, repeated_tokens, per_token=True)
 loss_by_position = einops.reduce(correct_log_probs, "batch position -> position", "mean")
 line(loss_by_position, xaxis="Position", yaxis="Loss", title="Loss by position on random repeated tokens")
-```
+```""")
+
+    st.plotly_chart(fig_dict["line"], use_container_width=True)
+    st.markdown(r"""
 
 The induction heads will be attending from the second occurence of each token to the token *after* its first occurence, ie the token `50-1==49` places back. So by looking at the average attention paid 49 tokens back, we can identify induction heads! Let's define a hook to do this!""")
 
@@ -382,7 +415,10 @@ model.run_with_hooks(
 )
 
 imshow(induction_score_store, xaxis="Head", yaxis="Layer", title="Induction Score by Head")
-```
+```""")
+
+    st.plotly_chart(fig_dict["attn_induction_score"], use_container_width=True)
+    st.markdown(r"""
 
 Head 5 in Layer 5 scores extremely highly on this score, and we can feed in a shorter repeated random sequence, visualize the attention pattern for it and see this directly - including the "induction stripe" at `seq_len-1` tokens back.
 
@@ -398,7 +434,7 @@ def visualize_pattern_hook(
     hook: HookPoint,
 ):
     display(
-        cv.attention.attention_patterns(
+        cv.attention.attention_heads(
             tokens=model.to_str_tokens(repeated_random_sequence), 
             attention=pattern[0, induction_head_index, :, :][None, :, :] # Add a dummy axis, as CircuitsVis expects 3D patterns.
         )
@@ -412,7 +448,11 @@ model.run_with_hooks(
         visualize_pattern_hook
     )]
 )
-```
+```""")
+    with open("images/attn_3.html") as f:
+        text2 = f.read()
+    st.components.v1.html(text2, height=1400)
+    st.markdown(r"""
 
 ## Available Models
 
@@ -451,9 +491,9 @@ distilgpt2.run_with_hooks(
 )
 
 imshow(distilgpt2_induction_score_store, xaxis="Head", yaxis="Layer", title="Induction Score by Head in Distil GPT-2")
-```
-
-
+```""")
+    st.plotly_chart(fig_dict["distil_plot"], use_container_width=True)
+    st.markdown(r"""
 ### An overview of the important open source models in the library
 
 * **GPT-2** - the classic generative pre-trained models from OpenAI
@@ -619,9 +659,6 @@ print(f"Prob ratio bias: {torch.exp(john_bias - mary_bias).item():.4f}x")
 ```
 """)
 
-def section_1():
-    pass
-
 def section_2():
     st.sidebar.markdown("""
 ## Table of Contents
@@ -648,7 +685,10 @@ def section_2():
 """, unsafe_allow_html=True)
 
     st.markdown(r"""
-# Features
+# Features""")
+
+    st.error("Note - this section hasn't yet been converted to Streamlit, and there's some editing that still needs to be done.")
+    st.markdown(r"""
 
 An overview of some other important features of the library. I recommend checking out the [Exploratory Analysis Demo](https://colab.research.google.com/github/neelnanda-io/Easy-Transformer/blob/main/Exploratory_Analysis_Demo.ipynb) for some other important features not mentioned here, and for a demo of what using the library in practice looks like.
 
@@ -1102,11 +1142,14 @@ line(induction_losses, x=tokens_trained_on, xaxis="Tokens Trained On", yaxis="In
 ```
 """)
 
+# def section_home():
+#     st.markdown(r"""Coming soon!""")
 
+# def section_1():
+#     pass
 
-def section_2():
-    pass
-
+# def section_2():
+#     pass
 
 def section_3():
     pass
