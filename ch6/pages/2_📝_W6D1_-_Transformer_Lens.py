@@ -67,6 +67,13 @@ pip install git+https://github.com/neelnanda-io/TransformerLens.git@new-demo
 pip install circuitsvis
 ```
 
+Testing that circuitsvis works:
+
+```python
+import circuitsvis as cv
+cv.examples.hello("Bob")
+```
+
 Additionally, it's useful to run the following at the top of your notebook / python file:
 
 ```python
@@ -75,6 +82,59 @@ ipython = get_ipython()
 # Code to automatically update the HookedTransformer code as its edited without restarting the kernel
 ipython.magic("load_ext autoreload")
 ipython.magic("autoreload 2")
+```
+
+Lastly, here are the remaining imports and useful functions:
+
+```python
+import plotly.io as pio
+pio.renderers.default = "notebook_connected" # or use "browser" if you want plots to open with browser
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import numpy as np
+import einops
+from fancy_einsum import einsum
+import tqdm.auto as tqdm
+import random
+from pathlib import Path
+import plotly.express as px
+from torch.utils.data import DataLoader
+
+from torchtyping import TensorType as TT
+from typing import List, Union, Optional
+from functools import partial
+import copy
+
+import itertools
+from transformers import AutoModelForCausalLM, AutoConfig, AutoTokenizer
+import dataclasses
+import datasets
+from IPython.display import HTML, display
+
+import transformer_lens
+import transformer_lens.utils as utils
+from transformer_lens.hook_points import HookedRootModule, HookPoint  # Hooking utilities
+from transformer_lens import HookedTransformer, HookedTransformerConfig, FactoredMatrix, ActivationCache
+
+# Saves computation time, since we don't need it for the contents of this notebook
+torch.set_grad_enabled(False)
+
+def imshow(tensor, renderer=None, xaxis="", yaxis="", **kwargs):
+    px.imshow(utils.to_numpy(tensor), color_continuous_midpoint=0.0, color_continuous_scale="RdBu", labels={"x":xaxis, "y":yaxis}, **kwargs).show(renderer)
+    return px.imshow(utils.to_numpy(tensor), color_continuous_midpoint=0.0, color_continuous_scale="RdBu", labels={"x":xaxis, "y":yaxis}, **kwargs)
+
+def line(tensor, renderer=None, xaxis="", yaxis="", **kwargs):
+    px.line(utils.to_numpy(tensor), labels={"x":xaxis, "y":yaxis}, **kwargs).show(renderer)
+    return px.line(utils.to_numpy(tensor), labels={"x":xaxis, "y":yaxis}, **kwargs)
+
+def scatter(x, y, xaxis="", yaxis="", caxis="", renderer=None, **kwargs):
+    x = utils.to_numpy(x)
+    y = utils.to_numpy(y)
+    px.scatter(y=y, x=x, labels={"x":xaxis, "y":yaxis, "color":caxis}, **kwargs).show(renderer)
+    return px.scatter(y=y, x=x, labels={"x":xaxis, "y":yaxis, "color":caxis}, **kwargs)
 ```
 """)
 
