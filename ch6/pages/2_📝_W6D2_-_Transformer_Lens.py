@@ -161,6 +161,7 @@ def section_1():
        <li><a class="contents-el" href="#parameter-names">Parameter Names</a></li>
        <li><a class="contents-el" href="#activation-hook-names">Activation + Hook Names</a></li>
        <li><a class="contents-el" href="#folding-layernorm-for-the-curious">Folding LayerNorm (For the Curious)</a></li>
+    </ul></li>
 </ul>
 """, unsafe_allow_html=True)
     st.markdown(r"""
@@ -748,6 +749,7 @@ def section_2():
    <li><a class="contents-el" href="#loading-pre-trained-checkpoints">Loading Pre-Trained Checkpoints</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#example-induction-head-phase-transition">Example: Induction Head Phase Transition</a></li>
+    </ul></li>
 </ul>
 """, unsafe_allow_html=True)
 
@@ -1217,25 +1219,34 @@ def section_3():
 ## Table of Contents
 
 <ul class="contents">
-   <li><a class="contents-el" href="#introducing-our-toy-attention-only-model">Introducing Our Toy Attention-Only Model</a></li>
-   <li><a class="contents-el" href="#building-interpretability-tools">Building interpretability tools</a></li>
-   <li><ul class="contents">
-       <li><a class="contents-el" href="#direct-logit-attribution">Direct Logit attribution</a></li>
-       <li><a class="contents-el" href="#a-note-on-type-annotations-and-typechecking">A note on type-annotations and typechecking</a></li>
-   </ul></li>
-   <li><a class="contents-el" href="#visualising-attention-patterns">Visualising Attention Patterns</a></li>
-   <li><ul class="contents">
-       <li><a class="contents-el" href="#summarising-attention-patterns">Summarising attention patterns</a></li>
+    <li><a class="contents-el" href="#introducing-our-toy-attention-only-model">Introducing Our Toy Attention-Only Model</a></li>
+    <li><a class="contents-el" href="#building-interpretability-tools">Building interpretability tools</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#direct-logit-attribution">Direct Logit attribution</a></li>
+        <li><a class="contents-el" href="#a-note-on-type-annotations-and-typechecking">A note on type-annotations and typechecking</a></li>
     </ul></li>
-   <li><a class="contents-el" href="#ablations">Ablations</a></li>
-
+    <li><a class="contents-el" href="#visualising-attention-patterns">Visualising Attention Patterns</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#summarising-attention-patterns">Summarising attention patterns</a></li>
+    </ul></li>
+    <li><a class="contents-el" href="#ablations">Ablations</a></li>
+    <li><a class="contents-el" href="#finding-induction-circuits">Finding Induction Circuits</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#checking-for-the-induction-capability">Checking for the induction capability</a></li>
+        <li><a class="contents-el" href="#looking-for-induction-attention-patterns">Looking for Induction Attention Patterns</a></li>
+        <li><ul class="contents">
+            <li><a class="contents-el" href="#logit-attribution">Logit Attribution</a></li>
+            <li><a class="contents-el" href="#ablations">Ablations</a></li>
+        </ul></li>
+    </ul></li>
+    <li><a class="contents-el" href="#conclusion-do-you-understand-the-circuit">Conclusion - do you understand the circuit?</a></li>
 </ul>""", unsafe_allow_html=True)
     st.markdown(r"""
 # Exercises: finding induction heads
 
 Now that we've seen some of the features of TransformerLens, let's apply them to the task of finding induction heads.
 
-If you don't fully understand the algorithm peformed by induction heads, this diagram may prove helpful:""")
+If you don't fully understand the algorithm peformed by induction heads, this diagram may prove helpful. It is based on extending [this intuitive explanation](https://docs.google.com/document/d/14HY2xKDW6Pup_-XNXQBjoYbc2xFILz06uxHkk9-pYmY/edit) from Mary Phuong, a researcher at DeepMind.""")
 
     with open("images/induction-heads.svg", "r") as f:
         st.download_button("Download induction heads diagram", f.read(), "induction_head_diagram.svg")
@@ -1458,7 +1469,7 @@ def logit_attribution(
     tokens: TT["seq_len"],
 ) -> TT[seq_len-1, "n_components": n_components]:
     '''
-We have provided 'W_U_to_logits' which is a (d_model, seq_next) tensor where each row is the unembed for the correct NEXT token at the current position.
+    We have provided 'W_U_to_logits' which is a (d_model, seq_next) tensor where each row is the unembed for the correct NEXT token at the current position.
     Inputs:
         embed: the embeddings of the tokens (i.e. token + position embeddings)
         l1_results: the outputs of the attention heads at layer 1 (with head as one of the dimensions)
@@ -1618,7 +1629,7 @@ Compare the printouts to your attention visualisations above. Do they seem to ma
 
 An ablation is a simple causal intervention on a model - we pick some part of it and set it to zero. This is a crude proxy for how much that part matters. Further, if we have some story about how a specific circuit in the model enables some capability, showing that ablating *other* parts does nothing can be strong evidence of this.
 
-You already saw examples of ablations in the TransformerLens material. Here, we'll ask you to do some more. You should write a function `head_ablation` which sets a particular head's `attn_result` (i.e. the output of the attention layer corresponding to that head, before we sum over heads) to zero. Then, you should write a function `get_ablation_scores` which returns a tensor of shape `(n_layers, n_heads)` containing the **increase** in cross entropy loss on your input sequence that results from performing this ablation.
+You already saw examples of ablations in the TransformerLens material. Here, we'll ask you to do some more. You should write a function `head_ablation` which sets a particular head's `attn_result` (i.e. the output of the attention layer corresponding to that head, before we sum over heads) to zero. Then, you should write a function `get_ablation_scores` which returns a tensor of shape `(n_layers, n_heads)` containing the **increase** in cross entropy loss on your input sequence that results from performing this ablation (i.e. `cross_entropy_loss_with_ablation - cross_entropy_loss_without_ablation`).
 
 A few notes, before going into these exercises:
 
@@ -1649,10 +1660,187 @@ def get_ablation_scores(
     '''
     pass
 
-ablation_scores = get_ablation_scores(model, tokens)
-
-imshow(ablation_scores, xaxis="Head", yaxis="Layer", title="Logit Difference After Ablating Heads", text_auto=".2f")
+if MAIN:
+    ablation_scores = get_ablation_scores(model, tokens)
+    imshow(ablation_scores, xaxis="Head", yaxis="Layer", title="Logit Difference After Ablating Heads", text_auto=".2f")
 """)
+    st.success("Bonus: How would you expect this to compare to your direct logit attribution scores for heads in layer 0? For heads in layer 1? Plot a scatter plot and compare these results to your predictions")
+    st.markdown(r"""
+
+## Finding Induction Circuits
+
+(Note: I use induction *head* to refer to the head in the second layer which attends to the 'token immediately after the copy of the current token', and induction *circuit* to refer to the circuit consisting of the composition of a ***previous token head*** in layer 0 and an ***induction head*** in layer 1)
+
+[Induction heads](https://transformer-circuits.pub/2021/framework/index.html#induction-heads) are the first sophisticated circuit we see in transformers! And are sufficiently interesting that we wrote [another paper just about them](https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html).
+""")
+    with st.expander("An aside on why induction heads are a big deal"):
+        st.markdown(r"""
+
+There's a few particularly striking things about induction heads:
+
+* They develop fairly suddenly in a phase change - from about 2B to 4B tokens we go from no induction heads to pretty well developed ones. This is a striking divergence from a 1L model [see the training curves for this model vs a 1L one](https://wandb.ai/mechanistic-interpretability/attn-only/reports/loss_ewma-22-08-24-11-08-65---VmlldzoyNTI0MDQx?accessToken=extt248d3qoxbqw1zy05kplylztjmx2uqaui3ctqb0zruem0tkpwrssq2ao1su3j) and can be observed in much larger models (eg a 13B one)
+    * Phase changes are particularly interesting (and depressing) from an alignment perspective, because the prospect of a sharp left turn, or emergent capabilities like deception or situational awareness seems like worlds where alignment may be harder, and we get caught by surprise without warning shots or simpler but analogous models to test our techniques on.
+* They are responsible for a significant loss decrease - so much so that there's a visible bump in the loss curve when they develop (this change in loss can be pretty comparable to the increase in loss from major increases in model size, though this is hard to make an apples-to-apples comparison)
+* They seem to be responsible for the vast majority of in-context learning - the ability to use far back tokens in the context to predict the next token. This is a significant way in which transformers outperform older architectures like RNNs or LSTMs, and induction heads seem to be a big part of this.
+* The same core circuit seems to be used in a bunch of more sophisticated settings, such as translation or few-shot learning - there are heads that seem clearly responsible for those *and* which double as induction heads
+""")
+    st.markdown(r"""
+We're going to spend the next two section applying the interpretability tools we just built to hunting down induction heads - first doing feature analysis to find the relevant heads and what they're doing, and then mechanistically reverse engineering the details of how the circuit works. I recommend you re-read the inductions head section of the paper or read [this intuitive explanation from Mary Phuong](https://docs.google.com/document/d/14HY2xKDW6Pup_-XNXQBjoYbc2xFILz06uxHkk9-pYmY/edit), but in brief, the induction circuit consists of a previous token head in layer 0 and an induction head in layer 1, where the induction head learns to attend to the token immediately *after* copies of the current token via K-Composition with the previous token head.
+""")
+    st_image("induction_head_pic.png", 500)
+    st.markdown("")
+    st.markdown(r"""
+**Recommended Exercise:** Before continuing, take a few minutes to think about how you would implement an induction circuit if you were hand-coding the weights of an attention-only transformer:
+
+* How would you implement a copying head?
+* How would you implement a previous token head?
+* How would you implement an induction head?
+""")
+
+    with st.expander("Exercise - why couldn't an induction head form in a 1L model?"):
+        st.markdown(r"""
+Because this would require a head which attends a key position based on the *value* of the token before it. Attention scores are just a function of the key token and the query token, and are not a function of other tokens.
+The attention pattern *does* allow other tokens because of softmax - if another key token has a high attention score, softmax inhibits this pair. But this inhibition is symmetric across positions, so can't systematically favour the token *next* to the relevant one.
+
+Note that a key detail is that the value of adjacent tokens are (approximately) unrelated - if the model wanted to attend based on relative *position* this is easy.""")
+    st.markdown(r"""
+
+### Checking for the induction capability
+
+A striking thing about models with induction heads is that, given a repeated sequence of random tokens, they can predict the repeated half of the sequence. This is nothing like it's training data, so this is kind of wild! The ability to predict this kind of out of distribution generalisation is a strong point of evidence that you've really understood a circuit.
+
+To check that this model has induction heads, we're going to run it on exactly that, and compare performance on the two halves - you should see a striking difference in the per token losses.
+
+Note - w're using small sequences (and just one sequence), since the results are very obvious and this makes it easier to visualise. In practice we'd obviously use larger ones on more subtle tasks. But it's often easiest to iterate and debug on small tasks.
+
+```python
+def run_and_cache_model_repeated_tokens(
+    model: HookedTransformer, 
+    seq_len: int, 
+    batch=1
+) -> tuple[t.Tensor, t.Tensor, ActivationCache]:
+    '''
+    Generates a sequence of repeated random tokens, and runs the model on it, returning logits, tokens and cache
+
+    Add a prefix token, since the model was always trained to have one.
+
+    Outputs are:
+    rep_logits: [batch, 1+2*seq_len, d_vocab]
+    rep_tokens: [batch, 1+2*seq_len]
+    rep_cache: The cache of the model run on rep_tokens
+    '''
+    prefix = t.ones((batch, 1), dtype=t.int64) * tokenizer.bos_token_id
+    pass
+
+def per_token_losses(logits, tokens):
+    log_probs = F.log_softmax(logits, dim=-1)
+    pred_log_probs = t.gather(log_probs[:, :-1], -1, tokens[:, 1:, None])[..., 0]
+    return -pred_log_probs[0]
+
+if MAIN:
+    seq_len = 50
+    batch = 1
+    (rep_logits, rep_tokens, rep_cache) = run_and_cache_model_repeated_tokens(model, seq_len, batch)
+    rep_str = model.to_str_tokens(rep_tokens)
+    model.reset_hooks()
+    ptl = per_token_losses(rep_logits, rep_tokens)
+    print(f"Performance on the first half: {ptl[:seq_len].mean():.3f}")
+    print(f"Performance on the second half: {ptl[seq_len:].mean():.3f}")
+    fig = px.line(
+        to_numpy(ptl), hover_name=rep_str[1:],
+        title=f"Per token loss on sequence of length {seq_len} repeated twice",
+        labels={"index": "Sequence position", "value": "Loss"}
+    ).update_layout(showlegend=False, hovermode="x unified")
+    fig.add_vrect(x0=0, x1=49.5, fillcolor="red", opacity=0.2, line_width=0)
+    fig.add_vrect(x0=49.5, x1=99, fillcolor="green", opacity=0.2, line_width=0)
+    fig.show()
+```
+
+### Looking for Induction Attention Patterns
+
+The next natural thing to check for is the induction attention pattern.
+
+First, go back to the attention patterns visualisation code from earlier and manually check for likely heads in the second layer. Which ones do you think might be serving as induction heads?
+""")
+    with st.expander("What you should see (only click after you've made your own observations):"):
+        st.markdown("You should see that heads 4 and 10 are strongly induction-y, and the rest aren't.")
+
+    st.markdown(r"""
+Next, make an induction pattern score function, which looks for the average attention paid to the offset diagonal. Do this in the same style as our earlier head scorers.
+
+Remember, the offset in your diagonal should be `- (seq_len - 1)`. This is because, if the sequence is periodic with period $k$, then then the destination token $T_{n+k}$ will attend to the source token $T_{n+1}$ (since that source token contains both the value $T_{n+1}$ itself which will be used to predict the token $T_{n+k+1}$, and the value of $T_n$ which matches $T_{n+k}$ (the latter information having been moved into $T_{n+1}$ by a prev-token head in layer 0)). See the diagram at the start of this page, if this still isn't clear.
+
+```python
+def induction_attn_detector(cache: ActivationCache) -> List[str]:
+    '''
+    Returns a list e.g. ["0.2", "1.4", "1.9"] of "layer.head" which you judge to be induction heads
+
+    Remember:
+        The tokens used to generate rep_cache are (bos_token, *rand_tokens, *rand_tokens)
+    '''
+    pass
+
+if MAIN:
+    print("Induction heads = ", ", ".join(induction_attn_detector(rep_cache)))
+```
+
+If this function works as expected, then you should see output that matches the induction heads described in the dropdown above.
+
+#### Logit Attribution
+
+We can reuse our `logit_attribution` function from earlier to look at the contribution to the correct logit from each term on the first and second half of the sequence.
+
+Gotchas:
+* Remember to remove the batch dimension
+* Remember to split the sequence in two, with one overlapping token (since predicting the next token involves removing the final token with no label) - your logit_attrs should both have shape [seq_len, 2*n_heads + 1] (ie [50, 25] here)
+
+Note that the first plot will be pretty meaningless - can you see why?
+
+```python
+if MAIN:
+    embed = rep_cache["hook_embed"]
+    l1_results = rep_cache["blocks.0.attn.hook_result"]
+    l2_results = rep_cache["blocks.1.attn.hook_result"]
+    first_half_tokens = rep_tokens[0, : 1 + seq_len]
+    second_half_tokens = rep_tokens[0, seq_len:]
+    "TODO: YOUR CODE HERE"
+    plot_logit_attribution(first_half_logit_attr, first_half_tokens)
+    plot_logit_attribution(second_half_logit_attr, second_half_tokens)
+```
+
+#### Ablations
+
+We can re-use our `get_ablation_scores` function from earlier to ablate each head and compare the change in loss.
+
+Exercise: Before running this, what do you predict will happen? In particular, which cells will be significant?
+
+```python
+if MAIN:
+    ablation_scores = get_ablation_scores(model, rep_tokens)
+    imshow(ablation_scores, xaxis="Head", yaxis="Layer", title="Logit Difference After Ablating Heads (detecting induction heads)", text_auto=".2f")
+```""")
+    with st.expander("Click here to see the output you should be getting:"):
+        st_image("logit-ablations-2.png", 600)
+
+    st.success("Bonus: Try ablating *every* head apart from the previous token head and the two induction heads. What does this do to performance? What if you mean ablate it, rather than zero ablating it?")
+    st.markdown(r"""
+
+## Conclusion - do you understand the circuit?
+
+To end this section, try and summarise the induction head circuit in your own words. Your answer should reference at least one attention head in the 0th and 1st layers, and what their role in the circuit is.
+
+You can use the dropdown below to check your understanding.
+""")
+
+    with st.expander("My summary of the algorithm"):
+        st.markdown(r"""
+* Head L0H7 is a previous token head (the QK-circuit ensures it always attends to the previous token).
+* The OV circuit of head L0H7 writes a copy of the previous token in a *different* subspace to the one used by the embedding.
+* The output of head L0H7 is used by the *key* input of head L1H4 via K-Composition to attend to 'the source token whose previous token is the destination token'.
+* The OV-circuit of head L1H4 copies the *value* of the source token to the same output logit
+    * Note that this is copying from the embedding subspace, *not* the L0H7 output subspace - it is not using V-Composition at all
+
+To emphasise - the sophisticated hard part is computing the *attention* pattern of the induction head - this takes careful composition. The previous token and copying parts are fairly easy. This is a good illustrative example of how the QK circuits and OV circuits act semi-independently, and are often best thought of somewhat separately. And that computing the attention patterns can involve real and sophisticated computation!")""")
 
 def section_4():
     st.markdown(r"""
