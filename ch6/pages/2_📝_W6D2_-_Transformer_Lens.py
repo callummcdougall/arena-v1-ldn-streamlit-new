@@ -30,7 +30,7 @@ def read_from_html(filename):
         fig = pio.from_json(json.dumps(plotly_json))
     return fig
 
-NAMES = ["attribution_fig", "attribution_fig_2", "failure_types_fig", "failure_types_fig_2", "logit_diff_from_patching", "line", "attn_induction_score","distil_plot"]
+NAMES = ["attribution_fig", "attribution_fig_2", "failure_types_fig", "failure_types_fig_2", "logit_diff_from_patching", "line", "attn_induction_score","distil_plot", "ov_copying", "scatter_evals"]
 def complete_fig_dict(fig_dict):
     for name in NAMES:
         if name not in fig_dict:
@@ -80,8 +80,8 @@ Additionally, it's useful to run the following at the top of your notebook / pyt
 from IPython import get_ipython
 ipython = get_ipython()
 # Code to automatically update the HookedTransformer code as its edited without restarting the kernel
-ipython.magic("load_ext autoreload")
-ipython.magic("autoreload 2")
+ipython.run_line_magic("load_ext", "autoreload")
+ipython.run_line_magic("autoreload", "2")
 ```
 
 Lastly, here are the remaining imports and useful functions:
@@ -159,7 +159,7 @@ def section_1():
    <li><a class="contents-el" href="#transformer-architecture">Transformer architecture</a></li>
    <li><ul class="contents">
        <li><a class="contents-el" href="#parameter-names">Parameter Names</a></li>
-       <li><a class="contents-el" href="#activation-+-hook-names">Activation + Hook Names</a></li>
+       <li><a class="contents-el" href="#activation-hook-names">Activation + Hook Names</a></li>
        <li><a class="contents-el" href="#folding-layernorm-for-the-curious">Folding LayerNorm (For the Curious)</a></li>
 </ul>
 """, unsafe_allow_html=True)
@@ -183,10 +183,10 @@ model = HookedTransformer.from_pretrained("gpt2-small", device=device)
 ```
 
 To try the model the model out, let's find the loss on this text! Models can be run on a single string or a tensor of tokens (shape: `[batch, position]`, all integers), and the possible return types are: 
-* "logits" (shape [batch, position, d_vocab], floats), 
-* "loss" (the cross-entropy loss when predicting the next token), 
-* "both" (a tuple of (logits, loss)) 
-* None (run the model, but don't calculate the logits - this is faster when we only want to use intermediate activations)
+* `"logits"` (shape [batch, position, d_vocab], floats), 
+* `"loss"` (the cross-entropy loss when predicting the next token), 
+* `"both"` (a tuple of (logits, loss)) 
+* `None` (run the model, but don't calculate the logits - this is faster when we only want to use intermediate activations)
 
 ```python
 model_description_text = '''## Loading Models
@@ -242,7 +242,7 @@ with open("cv_attn_2.html", "w") as f:
     f.write(str(html))
 ```
 
-Then the file should pop up in your explorer on the left of VSCode. Right click on it and select "Open in Default Browser" to view it in your browser.
+Then the file should pop up in your explorer on the left of VSCode. Right click on it and select "Open in Default Browser" to view it in your browser. If you're on a mac, you might need to do this last part from your file explorer, because there doesn't seem to be a "Open in Default Browser" option.
 """)
     # with open("images/cv_attn.html") as f:
     #     text = f.read()
@@ -250,6 +250,13 @@ Then the file should pop up in your explorer on the left of VSCode. Right click 
     with open("images/cv_attn_2.html") as f:
         text = f.read()
     st.components.v1.html(text, height=1400)
+
+    st.info(r"""
+Second note - this graphic was produced by the function `cv.attention.attention_heads`. You can also produce a slightly different graphic with `cv.attention.attention_pattern` (same arguments `tokens` and `attention`), which presents basically the same information in a slightly different way, shown below:
+""")
+    with open("images/attn_patterns_2.html") as f:
+        text = f.read()
+    st.components.v1.html(text, height=400)
 
     st.markdown(r"""
 ## Hooks: Intervening on Activations
@@ -279,7 +286,6 @@ head_index_to_ablate = 8
 
 # We define a head ablation hook
 # The type annotations are NOT necessary, they're just a useful guide to the reader
-# 
 def head_ablation_hook(
     value: TT["batch", "pos", "head_index", "d_head"],
     hook: HookPoint
@@ -445,6 +451,7 @@ The induction heads will be attending from the second occurence of each token to
 * As we want to add this to *every* activation pattern hook point, rather than giving the string for an activation name, this time we give a **name filter**. This is a Boolean function on hook point names, and it adds the hook function to every hook point where the function evaluates as true. 
     * `run_with_hooks` allows us to enter a list of (act_name, hook_function) pairs to all be added at once, so we could also have done this by inputting a list with a hook for each layer.
 """)
+        st.markdown("")
 
     st.markdown(r"""
 ```python
@@ -758,13 +765,13 @@ An overview of some other important features of the library. I recommend checkin
 
 TransformerLens comes with a range of utility functions to deal with tokenization. Different models can have different tokenizers, so these are all methods on the model.
 
-`get_token_position`, `to_tokens`, `to_string`, `to_str_tokens`, `prepend_bos`, 1to_single_token`
+`get_token_position`, `to_tokens`, `to_string`, `to_str_tokens`, `prepend_bos`, `to_single_token`
 
 The first thing you need to figure out is *how* things are tokenized. `model.to_str_tokens` splits a string into the tokens *as a list of substrings*, and so lets you explore what the text looks like. To demonstrate this, let's use it on this paragraph.
 
 Some observations - there are a lot of arbitrary-ish details in here!
 * The tokenizer splits on spaces, so no token contains two words.
-* Tokens include the preceding space, and whether the first token is a capital letter. `how` and ` how` are different tokens!
+* Tokens include the preceding space, and whether the first token is a capital letter. `'how'` and `' how'` are different tokens!
 * Common words are single tokens, even if fairly long (` paragraph`) while uncommon words are split into multiple tokens (` token|ized`).
 * Tokens *mostly* split on punctuation characters (eg `*` and `.`), but eg `'s` is a single token.
 
@@ -907,15 +914,17 @@ In transformer interpretability, we often need to analyse low rank factorized ma
 
     with st.expander("Why are low-rank factorized matrices useful for transformer interpretability?"):
         st.markdown(r"""
-As argued in [A Mathematical Framework](https://transformer-circuits.pub/2021/framework/index.html), an unexpected fact about transformer attention heads is that rather than being best understood as keys, queries and values (and the requisite weight matrices), they're actually best understood as two low rank factorized matrices. """)
+As argued in [A Mathematical Framework](https://transformer-circuits.pub/2021/framework/index.html), an unexpected fact about transformer attention heads is that rather than being best understood as keys, queries and values (and the requisite weight matrices), they're actually best understood as two low rank factorized matrices. 
 
-    st.markdown(r"""
 * **Where to move information from:** $W_QK = W_Q W_K^T$, used for determining the attention pattern - what source positions to move information from and what destination positions to move them to.
     * Intuitively, residual stream -> query and residual stream -> key are linear maps, *and* `attention_score = query @ key.T` is a linear map, so the whole thing can be factored into one big bilinear form `residual @ W_QK @ residual.T`
-* **What information to move:** $W_OV = W_V W_O$, used to determine what information to copy from the source position to the destination position (weighted by the attention pattern weight from that destination to that source). 
+* **What information to move:** $W_{OV} = W_V W_O$, used to determine what information to copy from the source position to the destination position (weighted by the attention pattern weight from that destination to that source). 
     * Intuitively, the residual stream is a `[position, d_model]` tensor (ignoring batch). The attention pattern acts on the *position* dimension (where to move information from and to) and the value and output weights act on the *d_model* dimension - ie *what* information is contained at that source position. So we can factor it all into `attention_pattern @ residual @ W_V @ W_O`, and so only need to care about `W_OV = W_V @ W_O`
-* Note - the internal head dimension is smaller than the residual stream dimension, so the factorization is low rank. (here, `d_model=768` and `d_head=64`)
-</details>
+
+Note - the internal head dimension is smaller than the residual stream dimension, so the factorization is low rank. (here, `d_model=768` and `d_head=64`)
+""")
+
+    st.markdown(r"""
 
 ### Basic Examples
 
@@ -980,39 +989,40 @@ We can then get the eigenvalues for this, where there are separate eigenvalues f
 ```python
 OV_circuit_all_heads = model.OV
 print(OV_circuit_all_heads)
-```
 
-```python
 OV_circuit_all_heads_eigenvalues = OV_circuit_all_heads.eigenvalues 
 print(OV_circuit_all_heads_eigenvalues.shape)
 print(OV_circuit_all_heads_eigenvalues.dtype)
-```
 
-```python
 OV_copying_score = OV_circuit_all_heads_eigenvalues.sum(dim=-1).real / OV_circuit_all_heads_eigenvalues.abs().sum(dim=-1)
 imshow(utils.to_numpy(OV_copying_score), xaxis="Head", yaxis="Layer", title="OV Copying Score for each head in GPT-2 Small", zmax=1.0, zmin=-1.0)
-```
+```""")
+
+    st.plotly_chart(fig_dict["ov_copying"], use_container_width=True)
+    st.markdown(r"""
 
 Head 11 in Layer 11 (L11H11) has a high copying score, and if we plot the eigenvalues they look approximately as expected.
 
 ```python
 scatter(x=OV_circuit_all_heads_eigenvalues[-1, -1, :].real, y=OV_circuit_all_heads_eigenvalues[-1, -1, :].imag, title="Eigenvalues of Head L11H11 of GPT-2 Small", xaxis="Real", yaxis="Imaginary")
-```
+```""")
 
-We can even look at the full OV circuit, from the input tokens to output tokens: $W_E W_V W_O W_U$. This is a `[d_vocab, d_vocab]==[50257, 50257]` matrix, so absolutely enormous, even for a single head. But with the FactoredMatrix class, we can compute the full eigenvalue copying score of every head in a few seconds.
+    st.plotly_chart(fig_dict["scatter_evals"], use_container_width=True)
+    st.markdown(r"""
+
+We can even look at the full OV circuit, from the input tokens to output tokens: $W_E W_V W_O W_U$. This is a `[d_vocab, d_vocab]==[50257, 50257]` matrix, so absolutely enormous, even for a single head. But with the FactoredMatrix class, we can compute the full eigenvalue copying score of every head in a few seconds.""")
+
+    st.error("This code gives a CUDA error - it will be fixed shortly.")
+    st.markdown(r"""
 
 ```python
 full_OV_circuit = model.embed.W_E @ OV_circuit_all_heads @ model.unembed.W_U
 print(full_OV_circuit)
-```
 
-```python
 full_OV_circuit_eigenvalues = full_OV_circuit.eigenvalues
 print(full_OV_circuit_eigenvalues.shape)
 print(full_OV_circuit_eigenvalues.dtype)
-```
 
-```python
 full_OV_copying_score = full_OV_circuit_eigenvalues.sum(dim=-1).real / full_OV_circuit_eigenvalues.abs().sum(dim=-1)
 imshow(utils.to_numpy(full_OV_copying_score), xaxis="Head", yaxis="Layer", title="OV Copying Score for each head in GPT-2 Small", zmax=1.0, zmin=-1.0)
 ```
@@ -1202,6 +1212,455 @@ line(induction_losses, x=tokens_trained_on, xaxis="Tokens Trained On", yaxis="In
 ```
 """)
 
+def section_3():
+    st.sidebar.markdown("""
+## Table of Contents
+
+<ul class="contents">
+   <li><a class="contents-el" href="#introducing-our-toy-attention-only-model">Introducing Our Toy Attention-Only Model</a></li>
+   <li><a class="contents-el" href="#building-interpretability-tools">Building interpretability tools</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#direct-logit-attribution">Direct Logit attribution</a></li>
+       <li><a class="contents-el" href="#a-note-on-type-annotations-and-typechecking">A note on type-annotations and typechecking</a></li>
+   </ul></li>
+   <li><a class="contents-el" href="#visualising-attention-patterns">Visualising Attention Patterns</a></li>
+   <li><ul class="contents">
+       <li><a class="contents-el" href="#summarising-attention-patterns">Summarising attention patterns</a></li>
+    </ul></li>
+   <li><a class="contents-el" href="#ablations">Ablations</a></li>
+
+</ul>""", unsafe_allow_html=True)
+    st.markdown(r"""
+# Exercises: finding induction heads
+
+Now that we've seen some of the features of TransformerLens, let's apply them to the task of finding induction heads.
+
+If you don't fully understand the algorithm peformed by induction heads, this diagram may prove helpful:""")
+
+    with open("images/induction-heads.svg", "r") as f:
+        st.download_button("Download induction heads diagram", f.read(), "induction_head_diagram.svg")
+
+    st.markdown(r"""
+The material in this section will heavily follow the Mathematical Framework for Transformer Circuits paper. Here are some notes from Neel regarding this paper:""")
+
+    with st.expander("Tips & Insights for the Paper"):
+        st.markdown(r"""
+
+* The eigenvalue stuff is very cool, but doesn't generalise that much, it's not a priority to get your head around
+* It's really useful to keep clear in your head the difference between parameters (learned numbers that are intrinsic to the network and independent of the inputs) and activations (temporary numbers calculated during a forward pass, that are functions of the input).
+    * Attention is a slightly weird thing - it's an activation, but is also used in a matrix multiplication with another activation (z), which makes it parameter-y.
+        * The idea of freezing attention patterns disentangles this, and lets us treat it as parameters.
+* The residual stream is the fundamental object in a transformer - each layer just applies incremental updates to it - this is really useful to keep in mind throughout!
+    * This is in contrast to a classic neural network, where each layer's output is the central object
+    * To underscore this, a funky result about transformers is that the aspect ratio isn't *that* important - if you increase d_model/n_layer by a factor of 10 from optimal for a 1.5B transformer (ie controlling for the number of parameters), then loss decreases by <1%.
+* The calculation of attention is a bilinear form (ie via the QK circuit) - for any pair of positions it takes an input vector from each and returns a scalar (so a ctx x ctx tensor for the entire sequence), while the calculation of the output of a head pre weighting by attention (ie via the OV circuit) is a linear map from the residual stream in to the residual stream out - the weights have the same shape, but are doing functions of completely different type signatures!
+* How to think about attention: A framing I find surprisingly useful is that attention is the "wiring" of the neural network. If we hold the attention patterns fixed, they tell the model how to move information from place to place, and thus help it be effective at sequence prediction. But the key interesting thing about a transformer is that attention is *not* fixed - attention is computed and takes a substantial fraction of the network's parameters, allowing it to dynamically set the wiring. This can do pretty meaningful computation, as we see with induction heads, but is in some ways pretty limited. In particular, if the wiring is fixed, an attention only transformer is a purely linear map! Without the ability to intelligently compute attention, an attention-only transformer would be incredibly limited, and even with it it's highly limited in the functional forms it can represent.
+    * Another angle - attention as generalised convolution. A naive transformer would use 1D convolutions on the sequence. This is basically just attention patterns that are hard coded to be uniform over the last few tokens - since information is often local, this is a decent enough default wiring. Attention allows the model to devote some parameters to compute more intelligent wiring, and thus for a big enough and good enough model will significantly outperform convolutions.
+* One of the key insights of the framework is that there are only a few activations of the network that are intrinsically meaningful and interpretable - the input tokens, the output logits and attention patterns (and neuron activations in non-attention-only models). Everything else (the residual stream, queries, keys, values, etc) are just intermediate states on a calculation between two intrinsically meaningful things, and you should instead try to understand the start and the end. Our main goal is to decompose the network into many paths between interpretable start and end states
+    * We can get away with this because transformers are really linear! The composition of many linear components is just one enormous matrix
+* A really key thing to grok about attention heads is that the QK and OV circuits act semi-independently. The QK circuit determines which previous tokens to attend to, and the OV circuit determines what to do to tokens *if* they are attended to. In particular, the residual stream at the destination token *only* determines the query and thus what tokens to attend to - what the head does *if* it attends to a position is independent of the destination token residual stream (other than being scaled by the attention pattern).
+    <p align="center">
+        <img src="w2d4_Attn_Head_Pic.png" width="400" />
+    </p>
+* Skip trigram bugs are a great illustration of this - it's worth making sure you really understand them. The key idea is that the destination token can *only* choose what tokens to pay attention to, and otherwise not mediate what happens *if* they are attended to. So if multiple destination tokens want to attend to the same source token but do different things, this is impossible - the ability to choose the attention pattern is insufficient to mediate this.
+    * Eg, keep...in -> mind is a legit skip trigram, as is keep...at -> bay, but keep...in -> bay is an inherent bug from this pair of skip trigrams
+* The tensor product notation looks a lot more complicated than it is. $A \otimes W$ is shorthand for "the function $f_{A,W}$ st $f_{A,W}(x)=AxW$" - I recommend mentally substituting this in in your head everytime you read it.
+* K, Q and V composition are really important and fairly different concepts! I think of each attention head as a circuit component with 3 input wires (Q,K,V) and a single output wire (O). Composition looks like connecting up wires, but each possible connection is a choice! The key, query and value do different things and so composition does pretty different things.
+    * Q-Composition, intuitively, says that we want to be more intelligent in choosing our destination token - this looks like us wanting to move information to a token based on *that* token's context. A natural example might be the final token in a several token word or phrase, where earlier tokens are needed to disambiguate it, eg E|iff|el| Tower|
+    * K-composition, intuitively, says that we want to be more intelligent in choosing our source token - this looks like us moving information *from* a token based on its context (or otherwise some computation at that token).
+        * Induction heads are a clear example of this - the source token only matters because of what comes before it!
+    * V-Composition, intuitively, says that we want to *route* information from an earlier source token *other than that token's value* via the current destination token. It's less obvious to me when this is relevant, but could imagine eg a network wanting to move information through several different places and collate and process it along the way
+        * One example: In the ROME paper, we see that when models recall that "The Eiffel Tower is in" -> " Paris", it stores knowledge about the Eiffel Tower on the " Tower" token. When that information is routed to | in|, it must then map to the output logit for | Paris|, which seems likely due to V-Composition
+* A surprisingly unintuitive concept is the notion of heads (or other layers) reading and writing from the residual stream. These operations are *not* inverses! A better phrasing might be projecting vs embedding.
+    * Reading takes a vector from a high-dimensional space and *projects* it to a smaller one - (almost) any two pair of random vectors will have non-zero dot product, and so every read operation can pick up *somewhat* on everything in the residual stream. But the more a vector is aligned to the read subspace, the most that vector's norm (and intuitively, its information) is preserved, while other things are lower fidelity
+        * A common reaction to these questions is to start reasoning about null spaces, but I think this is misleading - rank and nullity are discrete concepts, while neural networks are fuzzy, continuous objects - nothing ever actually lies in the null space or has non-full rank (unless it's explicitly factored). I recommend thinking in terms of "what fraction of information is lost". The null space is the special region with fraction lost = 1
+    * Writing *embeds* a vector into a small dimensional subspace of a larger vector space. The overall residual stream is the sum of many vectors from many different small subspaces.
+        * Every read operation can see into every writing subspace, but will see some with higher fidelity, while others are noise it would rather ignore.
+    * It can be useful to reason about this by imagining that d_head=1, and that every vector is a random Gaussian vector - projecting a random Gaussian onto another in $\mathbb{R}^n$ will preserve $\frac{1}{n}$ of the variance, on average.
+* A key framing of transformers (and neural networks in general) is that they engage in **lossy compression** - they have a limited number of dimensions and want to fit in more directions than they have dimensions. Each extra dimension introduces some interference, but has the benefit of having more expressibility. Neural networks will learn an optimal-ish solution, and so will push the compression as far as it can until the costs of interference dominate.
+    * This is clearest in the case of QK and OV circuits - $W_QK=W_Q^TW_K$ is a d_model x d_model matrix with rank d_head. And to understand the attention circuit, it's normally best to understand $W_QK$ on its own. Often, the right mental move is to forget that $W_QK$ is low rank, to understand what the ideal matrix to learn here would be, and then to assume that the model learns the best low rank factorisation of that.
+        * This is another reason to not try to interpret the keys and queries - the intermediate state of a low rank factorisations are often a bit of a mess because everything is so compressed (though if you can do SVD on $W_QK$ that may get you a meaningful basis?)
+        * Rough heuristic for thinking about low rank factorisations and how good they can get - a good way to produce one is to take the SVD and zero out all but the first d_head singular values.
+    * This is the key insight behind why polysemanticity (back from w1d5) is a thing and is a big deal - naturally the network would want to learn one feature per neuron, but it in fact can learn to compress more features than total neurons. It has some error introduced from interference, but this is likely worth the cost of more compression.
+        * Just as we saw there, the sparsity of features is a big deal for the model deciding to compress things! Inteference cost goes down the more features are sparse (because unrelated features are unlikely to co-occur) while expressibility benefits don't really change that much.
+    * The residual stream is the central example of this - every time two parts of the network compose, they will be communicating intermediate states via the residual stream. Bandwidth is limited, so these will likely try to each be low rank. And the directions within that intermediate product will *only* make sense in the context of what the writing and reading components care about. So interpreting the residual stream seems likely fucked - it's just
+* The 'the residual stream is fundamentally uninterpretable' claim is somewhat overblown - most models do dropout on the residual stream which somewhat privileges that basis
+    * And there are [*weird*](https://timdettmers.com/2022/08/17/llm-int8-and-emergent-features/) results about funky directions in the residual stream.
+* Getting your head around the idea of a privileged basis is very worthwhile! The key mental move is to flip between "a vector is a direction in a geometric space" and "a vector is a series of numbers in some meaningful basis, where each number is intrinsically meaningful". By default, it's easy to spend too much time in the second mode, because every vector is represented as a series of numbers within the GPU, but this is often less helpful!
+
+### An aside on why we need the tensor product notation at all
+
+Neural networks are functions, and are built up of several subcomponents (like attention heads) that are also functions - they are defined by how they take in an input and return an output. But when doing interpretability we want the ability to talk about the network as a function intrinsically and analyse the structure of this function, *not* in the context of taking in a specific input and getting a specific output. And this means we need a language that allows us to naturally talk about functions that are the sum (components acting in parallel) or composition (components acting in series) of other functions.
+
+A simple case of this: We're analysing a network with several linear components acting in parallel - component $C_i$ is the function $x \rightarrow W_ix$, and can be represented intrinsically as $W_i$ (matrices are equivalent to linear maps). We can represent the layer with all acting in parallel as $x \rightarrow \sum_i W_ix=(\sum_i W_i)x$, and so intrinsically as $\sum_i W_i$ - this is easy because matrix notation is designed to make addition of.
+
+Attention heads are harder because they map the input tensor $x$ (shape: `[position x d_model]`) to an output $Ax(W_OW_V)^T$ - this is a linear function, but now on a *tensor*, so we can't trivially represent addition and composition with matrix notation. The paper uses the notation $A\otimes W_OW_V$, but this is just different notation for the same underlying function. The output of the layer is the sum over the 12 heads: $\sum_i A^{(i)}x(W_O^{(i)}W_V^{(i)})^T$. And so we could represent the function of the entire layer as $\sum_i A^{(i)} x (W_O^{(i)}W_V^{(i)})$. There are natural extensions of this notation for composition, etc, though things get much more complicated when reasoning about attention patterns - this is now a bilinear function of a pair of inputs: the query and key residual streams. (Note that $A$ is also a function of $x$ here, in a way that isn't obvious from the notation.)
+
+The key point to remember is that if you ever get confused about what a tensor product means, explicitly represent it as a function of some input and see if things feel clearer.
+""")
+
+    st.markdown(r"""
+
+## Introducing Our Toy Attention-Only Model
+
+Here we introduce a toy 2L attention-only transformer trained specifically for today. Some changes to make them easier to interpret:
+- It has only attention blocks
+- The positional embeddings are only added to each key and query vector in the attention layers as opposed to the token embeddings (meaning that the residual stream can't directly encode positional information)
+  - This turns out to make it *way* easier for induction heads to form, it happens 2-3x times earlier - [see the comparison of two training runs](https://wandb.ai/mechanistic-interpretability/attn-only/reports/loss_ewma-22-08-24-11-08-83---VmlldzoyNTI0MDMz?accessToken=8ap8ir6y072uqa4f9uinotdtrwmoa8d8k2je4ec0lyasf1jcm3mtdh37ouijgdbm) here. (The bump in each curve is the formation of induction heads)
+- It has no MLP layers, no LayerNorms, and no biases
+- There are separate embed and unembed matrices (ie the weights are not tied)
+- The activations in the attention layers $(q, k, v, z)$ have shape `[batch, position, head_index, d_head]` (ie, not flattened into a single d_model axis)
+  - Similarly $W_K, W_Q, W_V$ have shape `[head_index, d_head, d_model]`, $W_O$ has shape `[head_index, d_model, d_head]`
+- Convention: All weight matrices multiply on the left (i.e. have shape `[output, input]`)
+
+```python
+MAIN = __name__ == "__main__"
+
+cfg = HookedTransformerConfig(
+    d_model=768,
+    d_head=64,
+    n_heads=12,
+    n_layers=2,
+    n_ctx=2048,
+    d_vocab=50278,
+    attention_dir="causal", # defaults to "bidirectional"
+    attn_only=True, # defaults to False
+
+    tokenizer_name="EleutherAI/gpt-neox-20b", 
+    # if setting from config, set tokenizer this way rather than passing it in explicitly
+    # model initialises via AutoTokenizer.from_pretrained(tokenizer_name)
+
+    seed=398,
+    use_attn_result=True,
+    normalization_type=None, # defaults to "LN", i.e. use layernorm with weights and biases
+    
+    positional_embedding_type="shortformer" # this makes it so positional embeddings are used differently (makes induction heads cleaner to study)
+)
+
+if MAIN:
+    model = HookedTransformer(cfg)
+    raw_weights = model.state_dict()
+    pretrained_weights = t.load(WEIGHT_PATH, map_location=device)
+    model.load_state_dict(pretrained_weights)
+```
+
+""")
+
+    with st.expander("A guide to all the hook names in TransformerBlock:"):
+        st.markdown(r"""
+This is for a model with just attention layers, and no MLPs, LayerNorms, or biases. 
+
+The names in the boxes represent the hook names (prefixed with `hook_`). For instance, you can access the attention probabilities for layer 0 with `cache["pattern", 0]`, or if you want to use the full form then:
+
+```python
+cache["blocks.0.attn.hook_pattern"]
+```
+
+These are connected by the fact that `utils.get_act_name("pattern", 0)` returns the full string used in indexing above.
+""")
+        st.write("""<figure style="max-width:380px"><embed type="image/svg+xml" src="https://mermaid.ink/svg/pako:eNp1UsluwjAQ_ZWRz4nUsytxSuHQQ1W1ag9NhUw8IRFxHLykLObfOya0EARWFM3yZt7zePas0BIZZ0sjugres7wFOtYvhkDO6Bti8RSNsDbDElB1bgs_tXQVf-g2SYX1snLRfLyBjhz0a7ThBiUhzhiDtpbzzmCaptkXfHPOj73TdBKElOGU19ada87Wv07h3EXTeNZjdzV2-7Eby-e20MQ2TkzHbkdANFdMs7G7G7vU0jcX4rGVN28_CZ_z17CmMUyvxlCIpjgqTMCSjSBaCUrYVbiQHYFWl06JTTippFazu1TPYRWp7uY_Qh_rr6XotscNPaVagC6hF41H6LFw2tiwA4IA1b6E4dJwFOUV6B4NVCikHSRr7-JzD-Q0EJYwhUaJWtIm7mM4Z65ChTnjZEosRZwhLeKBoL6TwuGTrImV8VI0FhMmvNNv27Zg3BmPf6CsFrQf6oQ6_ALJ2eJm" /></figure>""", unsafe_allow_html=True)
+        # graph TD
+        #     subgraph " "
+        #         classDef empty width:0px,height:0px;
+        #         classDef code color:red;
+
+        #         resid_pre---D[ ]:::empty-->|add|resid_post
+                
+        #         subgraph attn
+        #             q
+        #             k
+        #             v
+        #             attn_scores
+        #             F
+        #             pattern
+        #             G
+        #             z
+        #             result
+        #         end
+        #         resid_pre-->|W_Q|q---F[ ]:::empty-->|calc attn, scale and mask|attn_scores-->|softmax|pattern---G
+        #         resid_pre-->|W_K|k---F
+        #         resid_pre-->|W_V|v---G[ ]:::empty-->|convex comb of value vectors|z --> |W_O|result -->|sum over heads|attn_out---D
+        #     end
+
+    st.markdown(r"""
+
+## Building interpretability tools
+
+In this section, we're going to build some basic interpretability tools to decompose models and answer some questions about them.
+
+Let's run our model on some text (feel free to write your own!)
+
+```python
+if MAIN:
+    text = "We think that powerful, significantly superhuman machine intelligence is more likely than not to be created this century. If current machine learning techniques were scaled up to this level, we think they would by default produce systems that are deceptive or manipulative, and that no solid plans are known for how to avoid this."
+    str_tokens = model.to_str_tokens(text)
+    tokens = model.to_tokens(text)
+    tokens = tokens.to(device)
+    logits, cache = model.run_with_cache(tokens, remove_batch_dim=True)
+    model.reset_hooks()
+```
+
+### Direct Logit attribution
+
+A consequence of the residual stream is that the output logits are the sum of the contributions of each layer, and thus the sum of the results of each head. This means we can decompose the output logits into a term coming from each head and directly do attribution like this! Write a function to look at how much each head and the direct path term contributes to the correct logit.""")
+
+    with st.expander("A concrete example"):
+
+        st.markdown(r"""
+Let's say that our model knows that the token Harry is followed by the token Potter, and we want to figure out how it does this. The logits on Harry are `W_U @ residual`. But this is a linear map, and the residual stream is the sum of all previous layers `residual = embed + attn_out_0 + attn_out_1`. So `logits = (W_U @ embed) + (W_U @ attn_out_0) + (W_U @ attn_out_1)`
+
+We can be even more specific, and *just* look at the logit of the Potter token - this corresponds to a row of W_U, and so a direction in the residual stream - our logit is now a single number that is the sum of `(potter_U @ embed) + (potter_U @ attn_out_0) + (potter_U @ attn_out_1)`. Even better, we can decompose each attention layer output into the sum of the result of each head, and use this to get many terms.
+""")
+
+    st.markdown(r"""
+Calculate the logit attributions of the following paths to the logits: direct path (via the residual connections from the embedding to unembedding); each layer 0 head (via the residual connection and skipping layer 1); each layer 1 head. To emphasise, these are not paths from the start to the end of the model, these are paths from the output of some component directly to the logits - we make no assumptions about how each path was calculated!
+
+Note: Here we are just looking at the DIRECT effect on the logits - if heads compose with other heads and affect logits like that, or inhibit logits for other tokens to boost the correct one we will not pick up on this!
+
+Note 2: By looking at just the logits corresponding to the correct token, our data is much lower dimensional because we can ignore all other tokens other than the correct next one (Dealing with a 50K vocab size is a pain!). But this comes at the cost of missing out on more subtle effects, like a head suppressing other plausible logits, to increase the log prob of the correct one.
+
+Note 3: When calculating correct output logits, we will get tensors with a dimension (position - 1,), not (position,) - we remove the final element of the output (logits), and the first element of labels (tokens). This is because we're predicting the *next* token, and we don't know the token after the final token, so we ignore it.
+""")
+
+    with st.expander("Aside:"):
+        st.markdown(r"""
+While we won't worry about this for this exercise, logit attribution is often more meaningful if we first center W_U - ie, ensure the mean of each row writing to the output logits is zero. Log softmax is invariant when we add a constant to all the logits, so we want to control for a head that just increases all logits by the same amount. We won't do this here for ease of testing.""")
+
+    with st.expander("Exercise: Why don't we do this to the log probs instead?"):
+        st.markdown(r"""
+Because log probs aren't linear, they go through log_softmax, a non-linear function.
+""")
+    st.markdown(r"""
+
+```python
+def to_numpy(tensor):
+    '''Helper function to convert things to numpy before plotting with Plotly.'''
+    return tensor.detach().cpu().numpy()
+
+def convert_tokens_to_string(tokens, batch_index=0):
+    if len(tokens.shape) == 2:
+        tokens = tokens[batch_index]
+    return [f"|{tokenizer.decode(tok)}|_{c}" for (c, tok) in enumerate(tokens)]
+
+seq_len = tokens.shape[-1]
+n_components = model.cfg.n_layers * model.cfg.n_heads + 1
+
+from torchtyping import TensorType, patch_typeguard
+from typeguard import typechecked
+patch_typeguard()  # must call this before @typechecked
+
+@typechecked
+def logit_attribution(
+    embed: TT["seq_len": seq_len, "d_model"],
+    l1_results: TT["seq_len", "n_heads", "d_model"],
+    l2_results: TT["seq_len", "n_heads", "d_model"],
+    W_U: TT["d_model", "d_vocab"],
+    tokens: TT["seq_len"],
+) -> TT[seq_len-1, "n_components": n_components]:
+    '''
+We have provided 'W_U_to_logits' which is a (d_model, seq_next) tensor where each row is the unembed for the correct NEXT token at the current position.
+    Inputs:
+        embed: the embeddings of the tokens (i.e. token + position embeddings)
+        l1_results: the outputs of the attention heads at layer 1 (with head as one of the dimensions)
+        l2_results: the outputs of the attention heads at layer 2 (with head as one of the dimensions)
+        W_U: the unembedding matrix
+    Returns:
+        Tensor representing the concatenation (along dim=-1) of logit attributions from:
+            the direct path (position-1,1)
+            layer 0 logits (position-1, n_heads)
+            and layer 1 logits (position-1, n_heads)
+    '''
+    W_U_to_logits = W_U[tokens[1:], :]
+    pass
+```
+
+### A note on type-annotations and typechecking
+
+We've added `TensorType` annotations to the function above, and shown some examples of how it can be used. You can have the elements of a tensortype object be of the form `str`, `int`, or `str: int` (as well as other options, which you can read about [here](https://github.com/patrick-kidger/torchtyping)). Additionally, using the `@typechecked` decorator on your function will make sure to throw an error if the types don't match up to what you've specified (for instance, you have `"seq_len"` appearing twice, corresponding to two different lengths).
+
+There are disadvantages to using type annotations in this very strict way, for instance you would have to redefine `seq_len` and `n_components` if you wanted to reuse the function above. For that reason, we recommend you remove the `int` parts of the type checking once you've got the tests below working.
+
+These tests will check your logit attribution function is working correctly, by taking the sum of logit attributions and comparing it to the actual values in the residual stream at the end of your model.
+
+```python
+if MAIN:
+    with t.inference_mode():
+        batch_index = 0
+        embed = cache["hook_embed"]
+        l1_results = cache["result", 0] # same as cache["blocks.0.attn.hook_result"]
+        l2_results = cache["result", 1]
+        logit_attr = logit_attribution(embed, l1_results, l2_results, model.unembed.W_U, tokens[0])
+        # Uses fancy indexing to get a len(tokens[0])-1 length tensor, where the kth entry is the predicted logit for the correct k+1th token
+        correct_token_logits = logits[batch_index, t.arange(len(tokens[0]) - 1), tokens[batch_index, 1:]]
+        t.testing.assert_close(logit_attr.sum(1), correct_token_logits, atol=1e-2, rtol=0)
+```
+
+Once you've got the tests working, you can visualise the logit attributions for each path through the model.
+
+```python
+def plot_logit_attribution(logit_attr: TT["seq", "path"], tokens: TT["seq"]):
+    tokens = tokens.squeeze()
+    y_labels = convert_tokens_to_string(tokens[:-1])
+    x_labels = ["Direct"] + [f"L{l}H{h}" for l in range(model.cfg.n_layers) for h in range(model.cfg.n_heads)]
+    px.imshow(
+        to_numpy(logit_attr),
+        x=x_labels,
+        y=y_labels,
+        labels={"x": "Term", "y": "Position", "color": "logit"},
+        color_continuous_midpoint=0.0,
+        color_continuous_scale="RdBu",
+        height=25*len(tokens),
+    ).show()
+
+if MAIN:
+    embed = cache["hook_embed"]
+    l1_results = cache["blocks.0.attn.hook_result"]
+    l2_results = cache["blocks.1.attn.hook_result"]
+    logit_attr = logit_attribution(embed, l1_results, l2_results, model.unembed.W_U, tokens[0])
+    plot_logit_attribution(logit_attr, tokens)
+```
+
+## Visualising Attention Patterns
+
+A key insight from the paper is that we should focus on interpreting the parts of the model that are intrinsically interpretable - the input tokens, the output logits and the attention patterns. Everything else (the residual stream, keys, queries, values, etc) are compressed intermediate states when calculating meaningful things. So a natural place to start is classifying heads by their attention patterns on various texts.
+
+When doing interpretability, it's always good to begin by visualising your data, rather than taking summary statistics. Summary statistics can be super misleading! But now that we have visualised the attention patterns, we can create some basic summary statistics and use our visualisations to validate them! (Accordingly, being good at web dev/data visualisation is a surprisingly useful skillset! Neural networks are very high-dimensional object.)
+
+A good place to start is visualising the attention patterns of the model on input text. Go through a few of these, and get a sense for what different heads are doing.
+
+```python
+if MAIN:
+    for layer in range(model.cfg.n_layers):
+        attention_pattern = cache["pattern", layer]
+        cv.attention.attention_heads(tokens=str_tokens, attention=attention_pattern)
+```
+""")
+    st.info(r"""Reminder: rather than plotting inline, you can do the following, and then open in your browser from the left-hand file explorer menu of VSCode:
+
+```python
+for layer in range(model.cfg.n_layers):
+    attention_pattern = cache["pattern", layer]
+    html = cv.attention.attention_heads(tokens=str_tokens, attention=attention_pattern)
+    with open(f"layer_{layer}_attention.html", "w") as f:
+        f.write(str(html))
+```""")
+    st.markdown(r"""
+
+### Summarising attention patterns
+
+Three basic patterns for attention heads are those that mostly attend to the current token, the previous token, or the first token (often used as a resting or null position for heads that only sometimes activate). Let's make detectors for those! Validate your detectors by comparing these results to the visual attention patterns above - summary statistics on their own can be dodgy, but are much more reliable if you can validate it by directly playing with the data.
+
+Note - there's no objectively correct answer for which heads are doing which tasks, and which detectors can spot them. You should just try and come up with something plausible-seeming, which identifies the kind of behaviour you're looking for.
+""")
+
+    with st.expander("Hint"):
+        st.markdown(r"""
+Try and compute the average attention probability along the relevant tokens. For instance, you can get the tokens just below the diagonal by using `t.diagonal` with appropriate `offset` parameter, or by indexing a 2D array as follows:
+
+```
+arr[t.arange(1, n), t.arange(n)]
+```
+
+Remember that you should be using the object `cache["pattern", layer]` to get all the attention probabilities for a given layer, and then indexing on the 0th dimension to get the correct head.
+""")
+    with st.expander("Example solution for current_attn_detector (read if you're stuck)"):
+        st.markdown(r"""
+def current_attn_detector(cache: ActivationCache) -> List[str]:
+    '''
+    Returns a list e.g. ["0.2", "1.4", "1.9"] of "layer.head" which you judge to be current-token heads
+    '''
+    current_attn_heads = []
+    for layer in range(model.cfg.n_layers):
+        for head in range(model.cfg.n_heads):
+            attention_pattern = cache["pattern", layer][head]
+            # take avg of diagonal elements
+            current_attn_score = attention_pattern[t.arange(seq_len), t.arange(seq_len)].mean()
+            if current_attn_score > 0.5:
+                current_attn_heads.append(f"{layer}.{head}")
+    return current_attn_heads
+""")
+
+    
+
+    st.markdown(r"""
+```python
+def current_attn_detector(cache: ActivationCache) -> List[str]:
+    '''
+    Returns a list e.g. ["0.2", "1.4", "1.9"] of "layer.head" which you judge to be current-token heads
+    '''
+    pass
+
+def prev_attn_detector(cache: ActivationCache):
+    '''
+    Returns a list e.g. ["0.2", "1.4", "1.9"] of "layer.head" which you judge to be prev-token heads
+    '''
+    pass
+
+def first_attn_detector(cache: ActivationCache):
+    '''
+    Returns a list e.g. ["0.2", "1.4", "1.9"] of "layer.head" which you judge to be first-token heads
+    '''
+    pass
+
+if MAIN:
+
+    print("Heads attending to current token  = ", ", ".join(current_attn_detector(cache)))
+    print("Heads attending to previous token = ", ", ".join(prev_attn_detector(cache)))
+    print("Heads attending to first token    = ", ", ".join(first_attn_detector(cache)))
+```
+
+Compare the printouts to your attention visualisations above. Do they seem to make sense?""")
+
+    st.success("Bonus: Try inputting different text, and see how stable your results are.")
+    st.markdown(r"""
+
+## Ablations
+
+An ablation is a simple causal intervention on a model - we pick some part of it and set it to zero. This is a crude proxy for how much that part matters. Further, if we have some story about how a specific circuit in the model enables some capability, showing that ablating *other* parts does nothing can be strong evidence of this.
+
+You already saw examples of ablations in the TransformerLens material. Here, we'll ask you to do some more. You should write a function `head_ablation` which sets a particular head's `attn_result` (i.e. the output of the attention layer corresponding to that head, before we sum over heads) to zero. Then, you should write a function `get_ablation_scores` which returns a tensor of shape `(n_layers, n_heads)` containing the **increase** in cross entropy loss on your input sequence that results from performing this ablation.
+
+A few notes, before going into these exercises:
+
+* We've generally left strict type-checking like `@typechecked` and ints in TensorTypes out of these functions, but you should feel free to add them in if you want to (in fact we'd encourage it!).
+* Remember from the TransformerLens material that you can use `functools.partial` to create a function which is a partial application of `head_ablation`, but for a particular head. You'll need to do this, because the forward hook functions you pass to `model.run_with_hooks` should take just two arguments - the tensor `attn_reuslt` and the hook.
+* You can access `n_layers` and `n_neads` using `model.cfg.n_layers` and `model.cfg.n_heads` respectively.
+* Remember you can use `remove_batch_dim=True` in your call to `model.run_with_cache`. This will make the cache easier to work with, because you don't have to keep indexing the zeroth element!
+
+```python
+def cross_entropy_loss(logits, tokens):
+    log_probs = F.log_softmax(logits, dim=-1)
+    pred_log_probs = t.gather(log_probs[:, :-1], -1, tokens[:, 1:, None])[..., 0]
+    return -pred_log_probs.mean()
+
+def head_ablation(
+    attn_result: TT["batch", "seq", "n_heads", "d_model"],
+    hook: HookPoint,
+    head_no: int
+) -> TT["batch", "seq", "n_heads", "d_model"]:
+    pass
+
+def get_ablation_scores(
+    model: HookedTransformer, 
+    tokens: TT["batch", "seq"]
+) -> TT["n_layers", "n_heads"]:
+    '''
+    Returns a tensor of shape (n_layers, n_heads) containing the increase in cross entropy loss from ablating the output of each head.
+    '''
+    pass
+
+ablation_scores = get_ablation_scores(model, tokens)
+
+imshow(ablation_scores, xaxis="Head", yaxis="Layer", title="Logit Difference After Ablating Heads", text_auto=".2f")
+""")
+
+def section_4():
+    st.markdown(r"""
+Most of what we did above was feature analysis - we looked at activations (here just attention patterns) and tried to interpret what they were doing. Now we're going to do some mechanistic analysis - digging into the weights and using them to reverse engineer the induction head algorithm and verify that it is really doing what we think it is.
+""")
+    st.info("These exercises will be added shortly!")
+
+
 # def section_home():
 #     st.markdown(r"""Coming soon!""")
 
@@ -1211,12 +1670,9 @@ line(induction_losses, x=tokens_trained_on, xaxis="Tokens Trained On", yaxis="In
 # def section_2():
 #     pass
 
-def section_3():
-    pass
+func_list = [section_home, section_1, section_2, section_3, section_4]
 
-func_list = [section_home, section_1, section_2]
-
-page_list = ["🏠 Home", "1️⃣ Introduction", "2️⃣ Features"]
+page_list = ["🏠 Home", "1️⃣ TransformerLens: Introduction", "2️⃣ TransformerLens: Features", "3️⃣ Finding induction heads", "4️⃣ Reverse-engineering induction heads"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
 
 def page():
