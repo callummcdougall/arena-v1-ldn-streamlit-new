@@ -1489,7 +1489,7 @@ def logit_attribution(
             layer 0 logits (position-1, n_heads)
             and layer 1 logits (position-1, n_heads)
     '''
-    W_U_to_logits = W_U[tokens[1:], :]
+    W_U_to_logits = W_U[:, tokens[1:]]
     pass
 ```
 
