@@ -1348,7 +1348,7 @@ cfg = HookedTransformerConfig(
     positional_embedding_type="shortformer" # this makes it so positional embeddings are used differently (makes induction heads cleaner to study)
 )
 
-WEIGHT_PATH = "./data/attn_only_2L.pth"
+WEIGHT_PATH = "./data/attn_only_2L_half.pth"
 
 if MAIN:
     model = HookedTransformer(cfg)
