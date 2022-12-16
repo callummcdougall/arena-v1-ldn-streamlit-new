@@ -1346,8 +1346,13 @@ cfg = HookedTransformerConfig(
     normalization_type=None, # defaults to "LN", i.e. use layernorm with weights and biases
     
     positional_embedding_type="shortformer" # this makes it so positional embeddings are used differently (makes induction heads cleaner to study)
-)
+)```
 
+You should download your model weights from [this Google Drive link](https://drive.google.com/drive/folders/1LRkK3tqNuZ6Y_UwgQKxML3980DtM0KUe), and save them under `WEIGHT_PATH` as given below.
+
+Note - this was saved using `float16` to save data. If some of the exercises don't work for this reason, please shoot me (Callum) a message and I'll upload the `float32` version.
+
+```python
 WEIGHT_PATH = "./data/attn_only_2L_half.pth"
 
 if MAIN:
