@@ -1320,7 +1320,7 @@ Here we introduce a toy 2L attention-only transformer trained specifically for t
   - This turns out to make it *way* easier for induction heads to form, it happens 2-3x times earlier - [see the comparison of two training runs](https://wandb.ai/mechanistic-interpretability/attn-only/reports/loss_ewma-22-08-24-11-08-83---VmlldzoyNTI0MDMz?accessToken=8ap8ir6y072uqa4f9uinotdtrwmoa8d8k2je4ec0lyasf1jcm3mtdh37ouijgdbm) here. (The bump in each curve is the formation of induction heads)
 - It has no MLP layers, no LayerNorms, and no biases
 - There are separate embed and unembed matrices (ie the weights are not tied)
-- The activations in the attention layers $(q, k, v, z)$ have shape `[batch, position, head_index, d_head]` (ie, not flattened into a single d_model axis)
+- The activations in the attention layers $(q, k, v, z)$ have shape `[batch, position, head_index, d_head]` (i.e. not flattened into a single d_model axis)
   - Similarly $W_K, W_Q, W_V$ have shape `[head_index, d_head, d_model]`, $W_O$ has shape `[head_index, d_model, d_head]`
 - Convention: All weight matrices multiply on the left (i.e. have shape `[output, input]`)
 
@@ -1346,7 +1346,8 @@ cfg = HookedTransformerConfig(
     normalization_type=None, # defaults to "LN", i.e. use layernorm with weights and biases
     
     positional_embedding_type="shortformer" # this makes it so positional embeddings are used differently (makes induction heads cleaner to study)
-)```
+)
+```
 
 You should download your model weights from [this Google Drive link](https://drive.google.com/drive/folders/1LRkK3tqNuZ6Y_UwgQKxML3980DtM0KUe), and save them under `WEIGHT_PATH` as given below.
 
