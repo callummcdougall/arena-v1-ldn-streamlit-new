@@ -1348,6 +1348,8 @@ cfg = HookedTransformerConfig(
     positional_embedding_type="shortformer" # this makes it so positional embeddings are used differently (makes induction heads cleaner to study)
 )
 
+WEIGHT_PATH = "./data/attn_only_2L.pth"
+
 if MAIN:
     model = HookedTransformer(cfg)
     raw_weights = model.state_dict()
@@ -1843,14 +1845,577 @@ You can use the dropdown below to check your understanding.
 To emphasise - the sophisticated hard part is computing the *attention* pattern of the induction head - this takes careful composition. The previous token and copying parts are fairly easy. This is a good illustrative example of how the QK circuits and OV circuits act semi-independently, and are often best thought of somewhat separately. And that computing the attention patterns can involve real and sophisticated computation!")""")
 
 def section_4():
-    st.markdown(r"""
-Most of what we did above was feature analysis - we looked at activations (here just attention patterns) and tried to interpret what they were doing. Now we're going to do some mechanistic analysis - digging into the weights and using them to reverse engineer the induction head algorithm and verify that it is really doing what we think it is.
-""")
-    st.info("These exercises will be added shortly!")
+    st.sidebar.markdown("""
+## Table of Contents
 
+<ul class="contents">
+    <li><a class="contents-el" href="#mechanistic-analysis-of-induction-heads">Mechanistic Analysis of Induction Heads</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#reverse-engineering-ov-circuit-analysis">Reverse Engineering OV-Circuit Analysis</a></li>
+        <li><a class="contents-el" href="#reverse-engineering-positional-embeddings--prev-token-head">Reverse Engineering Positional Embeddings + Prev Token Head</a></li>
+        <li><a class="contents-el" href="#composition-analysis">Composition Analysis</a></li>
+    </ul></li>
+    <li><a class="contents-el" href="#further-exploration-of-induction-circuits">Further Exploration of Induction Circuits</a></li>
+    <li><ul class="contents">
+        <li><a class="contents-el" href="#composition-scores">Composition scores</a></li>
+    </ul></li>
+    <li><a class="contents-el" href="#looking-for-circuits-in-real-llms">Looking for Circuits in Real LLMs</a></li>
+    <li><a class="contents-el" href="#training-your-own-toy-models">Training Your Own Toy Models</a></li>
+    <li><a class="contents-el" href="#interpreting-induction-heads-during-training">Interpreting Induction Heads During Training</a></li>
+</ul>
+""", unsafe_allow_html=True)
+
+    st.markdown(r"""
+## Mechanistic Analysis of Induction Heads
+
+Most of what we did above was feature analysis - we looked at activations (here just attention patterns) and tried to interpret what they were doing. Now we're going to do some mechanistic analysis - digging into the weights and using them to reverse engineer the induction head algorithm and verify that it is really doing what we think it is.
+
+### Reverse Engineering OV-Circuit Analysis
+
+Let's start with an easy parts of the circuit - the copying OV circuit of L1H4 and L1H10. Let's start with head 4. The only interpretable (read: **privileged basis**) things here are the input tokens and output logits, so we want to study the factored matrix $W_U W_O W_V W_E$. This is the matrix that combines with the attention pattern to get us from input to output, in paths with a single attention head:
+""")
+
+    st_image("math-framework-diagram.png", 800)
+    st.markdown(r"")
+    st.markdown(r"""
+You should get a matrix OV_circuit with shape `[d_vocab, d_vocab]`.
+
+Exercise: What does this matrix represent, conceptually?
+
+Tip: If you start running out of CUDA memory, cast everything to float16 (`tensor` -> `tensor.half()`) before multiplying - 50K x 50K matrices are large!
+
+Alternately, do the multiply on CPU if you have enough CPU memory. This should take less than a minute.
+
+Note: on some machines like M1 Macs, half precision can be much slower on CPU - try doing a `%timeit` on a small matrix before doing a huge multiplication!
+
+```python
+if MAIN:
+    head_index = 4
+    layer = 1
+    "TODO: YOUR CODE HERE"
+```
+
+Now we want to check that this matrix is the identity. This is a surprisingly big pain! It's a 50K x 50K matrix, which is far too big to visualise. And in practice, this is going to be fairly noisy. And we don't strictly need to get it to be the identity, just have big terms along the diagonal.
+
+First, to validate that it looks diagonal-ish, let's pick 200 random rows and columns and visualise that - it should at least look identity-ish here!
+
+
+```python
+if MAIN:
+    rand_indices = t.randperm(cfg["d_vocab"])[:200]
+    px.imshow(to_numpy(OV_circuit[rand_indices][:, rand_indices])).show()
+
+```
+
+Now we want to try to make a summary statistic to capture this. Accuracy is a good one - what fraction of the time is the largest logit in a column on the diagonal?
+
+Bonus exercise: Top-5 accuracy is also a good metric (use `t.topk`, take the indices output)
+
+When I run this I get about 30.8% - pretty underwhelming. It goes up to 47.72% for top-5. What's up with that?
+
+
+```python
+def top_1_acc(OV_circuit):
+    '''
+    This should take the argmax of each column (ie over dim=0) and return the fraction of the time that's equal to the correct logit
+    '''
+    pass
+
+
+if MAIN:
+    print("Fraction of the time that the best logit is on the diagonal:")
+    print(top_1_acc(OV_circuit))
+
+```
+
+Now we return to why we have *two* induction heads. If both have the same attention pattern, the effective OV circuit is actually W_U(W_O[4]W_V[4]+W_O[10]W_V[10])W_E, and this is what matters. So let's calculate this and re-run our analysis on that!
+<details>
+
+<summary>Exercise: Why might the model want to split the circuit across two heads?</summary>
+
+Because W_OW_V is a rank 64 matrix. The sum of two is a rank 128 matrix. This can be a significantly better approximation to the desired 50K x 50K matrix!
+</details>
+
+
+
+```python
+if MAIN:
+    try:
+        del OV_circuit
+    except:
+        pass
+    "TODO: YOUR CODE HERE"
+    print("Top 1 accuracy for the full OV Circuit:", top_1_acc(OV_circuit_full))
+    try:
+        del OV_circuit_full
+    except:
+        pass
+
+```
+
+### Reverse Engineering Positional Embeddings + Prev Token Head
+
+The other easy circuit is the QK-circuit of L0H7 - how does it know to be a previous token circuit?
+
+We can multiply out the full QK circuit via the positional embeddings: W_pos.T W_Q.T W_K W_pos to get a matrix pos_by_pos of shape [max_ctx, max_ctx]
+
+We can then mask it and apply a softmax, and should get a clear stripe on the lower diagonal (Tip: Click and drag to zoom in, hover over cells to see their values and indices!)
+
+Hints:
+* Remember to divide by sqrt(d_head)!
+* Reuse the `mask_scores` from earlier
+
+(Note: If we were being properly rigorous, we'd also need to show that the token embedding wasn't important for the attention scores.)
+
+
+```python
+if MAIN:
+    "TODO: YOUR CODE HERE"
+    px.imshow(
+        to_numpy(pos_by_pos_pattern[:200, :200]),
+        labels={"y": "Query", "k": "Key"},
+        color_continuous_scale="RdBu",
+        color_continuous_midpoint=0.0,
+    ).show()
+
+```
+
+
+### Composition Analysis
+
+We now dig into the hard part of the circuit - demonstrating the K-Composition between the previous token head and the induction head.
+
+#### Splitting activations
+
+We can repeat the trick from the logit attribution scores. The qk_input for layer 1 is the sum of 14 terms (2+n_heads) - the embedding, the positional embedding, and the results of each layer 0 head. So for each head in layer 1, the query tensor (ditto key) is:
+`W_Q @ qk_input == W_Q @ (embed + pos_embed + \sum result_i) == W_Q @ embed + W_Q @ pos_embed + \sum W_Q @ result_i`
+
+We can now analyse the relative importance of these terms! A very crude measure is to take the norm of each term (by component and position) - when we do this here, we show clear dominance in the k from L0H7, and in the q from the embed (and pos embed).
+
+Note that this is a pretty dodgy metric - q and k are not inherently interpretable! But it can be a good and easy to compute proxy.
+
+
+```python
+def decompose_qk_input(cache: dict) -> t.Tensor:
+    '''
+    Output is decomposed_qk_input, with shape [2+num_heads, position, d_model]
+    '''
+    pass
+
+
+def decompose_q(decomposed_qk_input: t.Tensor, ind_head_index: int) -> t.Tensor:
+    '''
+    Output is decomposed_q with shape [2+num_heads, position, d_head] (such that sum along axis 0 is just q)
+    '''
+    pass
+
+
+def decompose_k(decomposed_qk_input: t.Tensor, ind_head_index: int) -> t.Tensor:
+    '''
+    Output is decomposed_k with shape [2+num_heads, position, d_head] (such that sum along axis 0 is just k) - exactly analogous as for q
+    '''
+    pass
+
+
+if MAIN:
+    batch_index = 0
+    ind_head_index = 4
+    decomposed_qk_input = decompose_qk_input(rep_cache)
+    assert t.isclose(
+        decomposed_qk_input.sum(0), rep_cache["blocks.1.attn.hook_qk_input"][0], rtol=0.01, atol=1e-05
+    ).all()
+    decomposed_q = decompose_q(decomposed_qk_input, ind_head_index)
+    assert t.isclose(
+        decomposed_q.sum(0), rep_cache["blocks.1.attn.hook_q"][0, :, ind_head_index], rtol=0.01, atol=0.001
+    ).all()
+    decomposed_k = decompose_k(decomposed_qk_input, ind_head_index)
+    assert t.isclose(
+        decomposed_k.sum(0), rep_cache["blocks.1.attn.hook_k"][0, :, ind_head_index], rtol=0.01, atol=0.01
+    ).all()
+    component_labels = ["Embed", "PosEmbed"] + [f"L0H{h}" for h in range(cfg["n_heads"])]
+    px.imshow(
+        to_numpy(decomposed_q.pow(2).sum([-1])),
+        color_continuous_scale="Blues",
+        labels={"x": "Pos", "y": "Component"},
+        y=component_labels,
+        title="Norms of components of query",
+    ).show()
+    px.imshow(
+        to_numpy(decomposed_k.pow(2).sum([-1])),
+        color_continuous_scale="Blues",
+        labels={"x": "Pos", "y": "Component"},
+        y=component_labels,
+        title="Norms of components of key",
+    ).show()
+
+```
+
+We can do one better, and take the decomposed attention scores. This is a bilinear function of q and k, and so we will end up with a decomposed_scores tensor with shape [query_component, key_component, query_pos, key_pos], where summing along BOTH of the first axes will give us the original attention scores (pre-mask)
+
+Implement the function giving the decomposed scores (remember to scale by sqrt(d_head)!) For now, don't mask it.
+
+We can now look at the standard deviation across the key and query positions for each pair of components. This is a proxy for 'how much the attention pattern depends on that component for the query and for the key. And we can plot a num_components x num_components heatmap to see how important each pair is - this again clearly shows the pair of Q=Embed, K=L0H7 dominates.
+
+We can even plot the attention scores for that component and see a clear induction stripe.
+
+<details>
+<summary>Exercise: Do you expect this to be symmetric? Why/why not?</summary>
+
+No, because the y axis is the component in the *query*, the x axis is the component in the *key* - these are not symmetric!
+</details>
+
+<details>
+<summary>Exercise: Why do I focus on the attention scores, not the attention pattern? (Ie pre softmax not post softmax)</summary>
+
+Because the decomposition trick *only* works for things that are linear - softmax isn't linear and so we can no longer consider each component independently
+</details>
+
+
+```python
+def decompose_attn_scores(decomposed_q: t.Tensor, decomposed_k: t.Tensor) -> t.Tensor:
+    pass
+
+
+if MAIN:
+    decomposed_scores = decompose_attn_scores(decomposed_q, decomposed_k)
+    decomposed_stds = reduce(
+        decomposed_scores, "query_decomp key_decomp query_pos key_pos -> query_decomp key_decomp", t.std
+    )
+    px.imshow(
+        to_numpy(decomposed_stds),
+        labels={"x": "Key Component", "y": "Query Component"},
+        x=component_labels,
+        y=component_labels,
+        color_continuous_scale="Blues",
+        title="Standard deviations of components of scores",
+    ).show()
+    plot_attn_pattern(
+        t.tril(decomposed_scores[0, 9]),
+        rep_tokens,
+        title="Attention Scores for component from Q=Embed and K=Prev Token Head",
+    )
+
+```
+
+#### Interpreting the K-Composition Circuit
+Now we know that head L1H4 is composing with head L0H7 via K composition, we can multiply through to create a full end-to-end circuit W_E.T @ W_Q[1, 4].T @ W_K[1, 4] @ W_O[0, 7] @ W_V[0, 7] @ W_E and verify that it's the identity.
+
+We can now reuse our `top_1_acc` code from before to check that it's identity-like, we see that half the time the diagonal is the top (goes up to 89% with top 5 accuracy) (We transpose first, because we want the argmax over the key dimension)
+
+Remember to cast to float16 (tensor -> tensor.half()) to stop your GPU getting too full!
+
+
+```python
+def find_K_comp_full_circuit(prev_token_head_index, ind_head_index):
+    '''
+    Returns a vocab x vocab matrix, with the first dimension being the query side and the second dimension being the key side (going via the previous token head)
+    '''
+    pass
+
+
+if MAIN:
+    prev_token_head_index = 7
+    K_comp_circuit = find_K_comp_full_circuit(prev_token_head_index, ind_head_index)
+    print("Fraction of tokens where the highest activating key is the same token", top_1_acc(K_comp_circuit.T).item())
+    del K_comp_circuit
+
+```
+
+## Further Exploration of Induction Circuits
+
+I now consider us to have fully reverse engineered an induction circuit - by both interpreting the features and by reverse engineering the circuit from the weights. But there's a bunch more ideas that we can apply for finding circuits in networks that are fun to practice on induction heads, so here's some bonus content - feel free to skip to the later bonus ideas though.
+
+### Composition scores
+
+A particularly cool idea in the paper is the idea of [virtual weights](https://transformer-circuits.pub/2021/framework/index.html#residual-comms), or compositional scores. (though I came up with it, so I'm deeply biased) This is used [to identify induction heads](https://transformer-circuits.pub/2021/framework/index.html#analyzing-a-two-layer-model)
+
+The key idea of compositional scores is that the residual stream is a large space, and each head is reading and writing from small subspaces. By defaults, any two heads will have little overlap between their subspaces (in the same way that any two random vectors have almost zero dot product in a large vector space). But if two heads are deliberately composing, then they will likely want to ensure they write and read from similar subspaces, so that minimal information is lost. As a result, we can just directly look at "how much overlap there is" between the output space of the earlier head and the K, Q, or V input space of the later head. We represent the output space with $W_OV=W_OW_V$, and the input space with $W_QK^T=W_K^TW_Q$ (for Q-composition), $W_QK=W_Q^TW_K$ (for K-Composition) or $W_OV=W_OW_V$ (for V-Composition, of the later head). Call these matrices $W_A$ and $W_B$ respectively.
+
+How do we formalise overlap? This is basically an open question, but a surprisingly good metric is $\frac{|W_BW_A|}{|W_B||W_A|}$ where $|W|=\sum_{i,j}W_{i,j}^2$ is the Frobenius norm, the sum of squared elements. Let's calculate this metric for all pairs of heads in layer 0 and layer 1 for each of K, Q and V composition and plot it.
+
+<details><summary>Why do we use W_OV as the output weights, not W_O? (and W_QK not W_Q or W_K, etc)</summary>
+
+Because W_O is arbitrary - we can apply an arbitrary invertible matrix to W_O and its inverse to W_V and preserve the product W_OV. Though in practice, it's an acceptable approximation.
+</details>
+
+
+
+```python
+def frobenius_norm(tensor):
+    '''
+    Implicitly allows batch dimensions
+    '''
+    return tensor.pow(2).sum([-2, -1])
+
+
+def get_q_comp_scores(W_QK, W_OV):
+    '''
+    Returns a layer_1_index x layer_0_index tensor, where the i,j th entry is the Q-Composition score from head L0Hj to L1Hi
+    '''
+    pass
+
+
+def get_k_comp_scores(W_QK, W_OV):
+    '''
+    Returns a layer_1_index x layer_0_index tensor, where the i,j th entry is the K-Composition score from head L0Hj to L1Hi
+    '''
+    pass
+
+
+def get_v_comp_scores(W_OV_1, W_OV_0):
+    '''
+    Returns a layer_1_index x layer_0_index tensor, where the i,j th entry is the V-Composition score from head L0Hj to L1Hi
+    '''
+    pass
+
+
+if MAIN:
+    W_O = model.blocks[0].attn.W_O
+    W_V = model.blocks[0].attn.W_V
+    W_OV_0 = t.einsum("imh,ihM->imM", W_O, W_V)
+    W_Q = model.blocks[1].attn.W_Q
+    W_K = model.blocks[1].attn.W_K
+    W_V = model.blocks[1].attn.W_V
+    W_O = model.blocks[1].attn.W_O
+    W_QK = t.einsum("ihm,ihM->imM", W_Q, W_K)
+    W_OV_1 = t.einsum("imh,ihM->imM", W_O, W_V)
+    q_comp_scores = get_q_comp_scores(W_QK, W_OV_0)
+    k_comp_scores = get_k_comp_scores(W_QK, W_OV_0)
+    v_comp_scores = get_v_comp_scores(W_OV_1, W_OV_0)
+    px.imshow(
+        to_numpy(q_comp_scores),
+        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
+        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        labels={"x": "Layer 0", "y": "Layer 1"},
+        title="Q Composition Scores",
+        color_continuous_scale="Blues",
+        zmin=0.0,
+    ).show()
+    px.imshow(
+        to_numpy(k_comp_scores),
+        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
+        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        labels={"x": "Layer 0", "y": "Layer 1"},
+        title="K Composition Scores",
+        color_continuous_scale="Blues",
+        zmin=0.0,
+    ).show()
+    px.imshow(
+        to_numpy(v_comp_scores),
+        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
+        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        labels={"x": "Layer 0", "y": "Layer 1"},
+        title="V Composition Scores",
+        color_continuous_scale="Blues",
+        zmin=0.0,
+    ).show()
+
+```
+
+#### Setting a Baseline
+
+To interpret the above graphs we need a baseline! A good one is what the scores look like at initialisation. Make a function that randomly generates a composition score 200 times and tries this. Remember to generate 4 [d_head, d_model] matrices, not 2 [d_model, d_model] matrices! This model was initialised with Kaiming Uniform Initialisation:
+
+```python
+W = t.empty(shape)
+nn.init.kaiming_uniform_(W, a=np.sqrt(5))
+```
+
+(Ideally we'd do a more efficient generation involving batching, and more samples, but we won't worry about that here)
+
+
+```python
+def generate_single_random_comp_score() -> float:
+    '''
+    Write a function which generates a single composition score for random matrices
+    '''
+    pass
+
+
+if MAIN:
+    comp_scores_baseline = np.array([generate_single_random_comp_score() for i in range(200)])
+    print("Mean:", comp_scores_baseline.mean())
+    print("Std:", comp_scores_baseline.std())
+    px.histogram(comp_scores_baseline, nbins=50).show()
+
+```
+
+We can re-plot our above graphs with this baseline set to white. Look for interesting things in this graph!
+
+
+```python
+if MAIN:
+    px.imshow(
+        to_numpy(q_comp_scores),
+        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
+        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        labels={"x": "Layer 0", "y": "Layer 1"},
+        title="Q Composition Scores",
+        color_continuous_scale="RdBu",
+        color_continuous_midpoint=comp_scores_baseline.mean(),
+    ).show()
+    px.imshow(
+        to_numpy(k_comp_scores),
+        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
+        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        labels={"x": "Layer 0", "y": "Layer 1"},
+        title="K Composition Scores",
+        color_continuous_scale="RdBu",
+        color_continuous_midpoint=comp_scores_baseline.mean(),
+    ).show()
+    px.imshow(
+        to_numpy(v_comp_scores),
+        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
+        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        labels={"x": "Layer 0", "y": "Layer 1"},
+        title="V Composition Scores",
+        color_continuous_scale="RdBu",
+        color_continuous_midpoint=comp_scores_baseline.mean(),
+    ).show()
+
+```
+
+#### Theory + Efficient Implementation
+
+So, what's up with that metric? The key is a cute linear algebra result that the Frobenius norm is equal to the sum of the squared singular values.
+
+<details>
+<summary>Proof</summary>
+M = USV in the singular value decomposition. U and V are rotations and do not change norm, so |M|=|S|
+</details>
+
+So if $W_A=U_AS_AV_A$, $W_B=U_BS_BV_B$, then $|W_A|=|S_A|$, $|W_B|=|S_B|$ and $|W_AW_B|=|S_AV_AU_BS_B|$. In some sense, $V_AU_B$ represents how aligned the subspaces written to and read from are, and the $S_A$ and $S_B$ terms weights by the importance of those subspaces.
+
+We can also use this insight to write a more efficient way to calculate composition scores - this is extremely useful if you want to do this analysis at scale! The key is that we know that our matrices have a low rank factorisation, and it's much cheaper to calculate the SVD of a narrow matrix than one that's large in both dimensions. See the [algorithm described at the end of the paper](https://transformer-circuits.pub/2021/framework/index.html#induction-heads:~:text=Working%20with%20Low%2DRank%20Matrices) (search for SVD). Go implement it!
+
+
+Gotcha: Note that `torch.svd(A)` returns `(U, S, V.T)` not `(U, S, V)`
+
+Bonus exercise: Write a batched version of this that works for batches of heads, and run this over GPT-2 - this should be doable for XL, I think.
+
+
+
+```python
+def stranded_svd(A: t.Tensor, B: t.Tensor) -> tuple[t.Tensor, t.Tensor, t.Tensor]:
+    '''
+    Returns the SVD of AB in the torch format (ie (U, S, V^T))
+    '''
+    pass
+
+
+def stranded_composition_score(W_A1: t.Tensor, W_A2: t.Tensor, W_B1: t.Tensor, W_B2: t.Tensor):
+    '''
+    Returns the composition score for W_A = W_A1 @ W_A2 and W_B = W_B1 @ W_B2, with the entries in a low-rank factored form
+    '''
+    pass
+
+```
+
+#### Targeted Ablations
+
+We can refine the ablation technique to detect composition by looking at the effect of the ablation on the attention pattern of an induction head, rather than the loss. Let's implement this!
+
+Gotcha - by default, run_with_hooks removes any existing hooks when it runs, if you want to use caching set the reset_hooks_start flag to False
+
+
+```python
+def ablation_induction_score(prev_head_index: int, ind_head_index: int) -> t.Tensor:
+    '''
+    Takes as input the index of the L0 head and the index of the L1 head, and then runs with the previous token head ablated and returns the induction score for the ind_head_index now.
+    '''
+
+    def ablation_hook(v, hook):
+        v[:, :, prev_head_index] = 0.0
+        return v
+
+    def induction_pattern_hook(attn, hook):
+        hook.ctx[prev_head_index] = attn[0, ind_head_index].diag(-(seq_len - 1)).mean()
+
+    model.run_with_hooks(
+        rep_tokens,
+        fwd_hooks=[("blocks.0.attn.hook_v", ablation_hook), ("blocks.1.attn.hook_attn", induction_pattern_hook)],
+    )
+    return model.blocks[1].attn.hook_attn.ctx[prev_head_index]
+
+
+if MAIN:
+    for i in range(cfg["n_heads"]):
+        print(f"Ablation effect of head {i}:", ablation_induction_score(i, 4).item())
+
+```
+
+# Bonus
+
+## Looking for Circuits in Real LLMs
+
+A particularly cool application of these techniques is looking for real examples of circuits in large language models. Fortunately, there's a bunch of open source ones we can play around with! I've made a library for transformer interpretability called EasyTransformer. It loads in an open source LLMs into a simplified transformer, and gives each activation a unique name. With this name, we can set a hook that accesses or edits that activation, with the same API that we've been using on our 2L Transformer. You can see it in `w2d4_easy_transformer.py` - feedback welcome!
+
+**Example:** Ablating the 5th attention head in layer 4 of GPT-2 medium
+
+
+```python
+from w2d4_easy_transformer import EasyTransformer
+
+model = EasyTransformer("gpt2-medium")
+text = "Hello world"
+input_tokens = model.to_tokens(text)
+head_index = 5
+layer = 4
+
+
+def ablation_hook(value, hook):
+    value[:, :, head_index, :] = 0.0
+    return value
+
+
+logits = model.run_with_hooks(input_tokens, fwd_hooks=[(f"blocks.{layer}.attn.hook_v", ablation_hook)])
+
+```
+
+This library should make it moderately easy to play around with these models - I recommend going wild and looking for interesting circuits!
+
+This part of the day is deliberately left as an unstructured bonus, so I recommend following your curiosity! But if you want a starting point, here are some suggestions:
+- Look for induction heads - try repeating all of the steps from above. Do they follow the same algorithm?
+- Look for neurons that erase info
+    - Ie having a high negative cosine similarity between the input and output weights
+- Try to interpret a position embedding
+<details><summary>Positional Embedding Hint:</summary>
+
+Look at the singular value decomposition `t.svd` and plot the principal components over position space. High ones tend to be sine and cosine waves of different frequencies.
+
+**Gotcha:** The output of `t.svd` is `U, S, Vh = t.svd(W_pos)`, where `U @ S.diag() @ Vh.T == W_pos` - W_pos has shape [d_model, n_ctx], so the ith principal component on the n_ctx side is `W_pos[:, i]` NOT `W_pos[i, :]
+</details>
+
+- Look for heads with interpretable attention patterns: Eg heads that attend to the same word (or subsequent word) when given text in different languages, or the most recent proper noun, or the most recent full-stop, or the subject of the sentence, etc.
+    - Pick a head, ablate it, and run the model on a load of text with and without the head. Look for tokens with the largest difference in loss, and try to interpret what the head is doing.
+- Try replicating some of Kevin's work on indirect object vs
+- Inspired by the [ROME paper](https://rome.baulab.info/), use the causal tracing technique of patching in residual stream - can you analyse how the network answers different facts?
+
+Note: I apply several simplifications to the resulting transformer - these leave the model mathematically equivalent and doesn't change the output log probs, but does somewhat change the structure of the model and one change translates the output logits by a constant - see [Discussion](https://colab.research.google.com/drive/1_tH4PfRSPYuKGnJbhC1NqFesOYuXrir_#scrollTo=Discussion) for some discussion of these.
+
+## Training Your Own Toy Models
+
+A fun exercise is training models on the minimal task that'll produce induction heads - predicting the next token in a sequence of random tokens with repeated subsequences. You can get a small 2L Attention-Only model to do this.
+
+<details>
+<summary>Tips</summary>
+
+* Make sure to randomise the positions that are repeated! Otherwise the model can just learn the boring algorithm of attending to fixed positions
+* It works better if you *only* evaluate loss on the repeated tokens, this makes the task less noisy.
+* It works best with several repeats of the same sequence rather than just one.
+* If you do things right, and give it finite data + weight decay, you *should* be able to get it to grok - this may take some hyper-parameter tuning though.
+* When I've done this I get weird franken-induction heads, where each head has 1/3 of an induction stripe, and together cover all tokens.
+* It'll work better if you only let the queries and keys access the positional embeddings, but *should* work either way
+</details>
+
+## Interpreting Induction Heads During Training
+
+A particularly striking result about induction heads is that they consistently [form very abruptly in training as a phase change](https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html#argument-phase-change), and are such an important capability that there is a [visible non-convex bump in the loss curve](https://wandb.ai/mechanistic-interpretability/attn-only/reports/loss_ewma-22-08-24-22-08-00---VmlldzoyNTI2MDM0?accessToken=r6v951q0e1l4q4o70wb2q67wopdyo3v69kz54siuw7lwb4jz6u732vo56h6dr7c2) (in this model, approx 2B to 4B tokens). I have a bunch of checkpoints for this model, you can try re-running the induction head detection techniques on intermediate checkpoints and see what happens. (Bonus points if you have good ideas for how to efficiently send you a bunch of 300MB checkpoints from Wandb lol)
+
+""")
 
 # def section_home():
-#     st.markdown(r"""Coming soon!""")
+#     st.markdown(r'''Coming soon!""")
 
 # def section_1():
 #     pass
