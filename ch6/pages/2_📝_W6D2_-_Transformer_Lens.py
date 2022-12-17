@@ -1886,31 +1886,90 @@ Let's start with an easy parts of the circuit - the copying OV circuit of L1H4 a
     st.markdown(r"""
 You should get a matrix OV_circuit with shape `[d_vocab, d_vocab]`.
 
-Exercise: What does this matrix represent, conceptually?
+We want to calculate this matrix, and inspect it. We should find that its diagonal values are very high, and its non-diagonal values are very low.
 
-Tip: If you start running out of CUDA memory, cast everything to float16 (`tensor` -> `tensor.half()`) before multiplying - 50K x 50K matrices are large!
+**Question - why should we expect this observation? (Try and come up with your own answer before reading.)**
+""")
 
-Alternately, do the multiply on CPU if you have enough CPU memory. This should take less than a minute.
+    with st.expander("Hint"):
+        st.markdown(r"""
+Take a repeated pattern `[A] [B] ... [A] -> [B]`. Your induction head is responsible for making sure the prediction at the second `[A]` token is `[B]`.
+
+Try and work through each step of the matrix multiplication $(W_U W_{OV} W_E) x$, where $x$ is a one-hot encoding of the token $B$. In other words, first apply $W_E$, then $W_{OV}$, then $W_U$. What should you be left with at the end, if the induction head has done its job?
+""")
+
+    with st.expander("Answer"):
+        st.markdown(r"""
+The OV circuit $W_{OV}$ is meant to be a copy circuit. 
+
+What does this mean? Well, if your repeated pattern is `[A] [B] ... [A] -> [B]`, then the OV circuit should take the embedding vector for the first `[B]`, and return a vector **which will be predicted to be `[B]`** when the unembedding matrix $W_U$ is applied. The QK circuit then makes sure this vector is moved from the first `[B]` to the second `[A]`.
+
+If this still isn't clear, we can step through the matrix multiplications one at a time. Let $A$ and $B$ be our (1-hot encoded) tokens, then:
+
+* $W_E B$ is the embedding vector of token $B$.
+* $W_{OV} (W_E B)$ is the vector which gets moved from the first occurence of $B$ to the second occurrence of $A$ (in order to predict that $B$ will follow $A$)
+* $W_U (W_{OV} W_E B)$ is the logit distribution corresponding to our prediction for the token following $A$. This should be $B$.
+
+To make the last line more precise - the $(X, B)$th element of the matrix $W_U W_{OV} W_E$ is $X^T (W_U W_{OV} W_E) B$, which is the logit corresponding to the prediction that token $X$ will follow the second instance of $A$. We want high probability to be placed on $X=B$ and smaller probability on all other $X$ - in other words, the diagonal entry should be much larger than all other entries in the column.
+
+(If the last part is confusing, note that we can get next-token probabilities from the matrix $W_U W_{OV} W_E$ by taking the softmax over columns. Having the largest element of each column be on the diagonal is equivalent to this probability matrix being the identity.)
+
+---
+
+To describe this all in much fewer words:
+
+***The full OV circuit of a head describes how a token affects the output logits of the predicted token. This head's job is to copying - it takes as input the first instance of `[B]`, and it outputs `[B]` (which is then moved to the second `[A]`, to be used as the prediction for the following token). So it maps `[B]` $\to$ `[B]`, i.e. it is the identity map.***
+""")
+    st.markdown(r"")
+#     st.info(r"""
+# Reminder - you should think of the tensor product $A^h \otimes W_U W_O W_V W_E$ as the function that sends $t$ (our vector of tokens) to:
+
+# $$
+# A^h \;t\; (W_U W_O W_V W_E)^T = A^h \;t\; (W_E^T W_V^T W_O^T W_U^T) = A^h \;x\; W_V^T W_O^T W_U^T
+# $$
+
+# Where I've written $x = tW_E^T$ as our tensor of shape `(seq_len, hidden_size)`, which represents the embedding of each token (i.e. the initial residual stream).
+# """)
+
+    st.error(r"""
+Tip: If you start running out of CUDA memory, cast everything to float16 (`tensor` -> `tensor.half()`) before multiplying - 50K x 50K matrices are large! Alternately, do the multiply on CPU if you have enough CPU memory. This should take less than a minute.
 
 Note: on some machines like M1 Macs, half precision can be much slower on CPU - try doing a `%timeit` on a small matrix before doing a huge multiplication!
 
+If none of this works, you might have to use LambdaLabs for these exercises (I had to!). Here are a list of `pip install`'s that you'll need to run, to save you time:
+
+```python
+!pip install git+https://github.com/neelnanda-io/TransformerLens.git@new-demo
+!pip install circuitsvis
+!pip install fancy_einsum
+!pip install einops
+!pip install plotly
+!pip install torchtyping
+!pip install typeguard
+```
+""")
+
+    st.markdown(r"""
 ```python
 if MAIN:
     head_index = 4
     layer = 1
-    "TODO: YOUR CODE HERE"
+    OV_circuit_full = None # replace with the matrix calculation W_U W_O W_V W_E
 ```
 
-Now we want to check that this matrix is the identity. This is a surprisingly big pain! It's a 50K x 50K matrix, which is far too big to visualise. And in practice, this is going to be fairly noisy. And we don't strictly need to get it to be the identity, just have big terms along the diagonal.
+Now we want to check that this matrix is the identity. """)
+
+    
+
+    st.markdown(r"""This is a surprisingly big pain! It's a 50K x 50K matrix, which is far too big to visualise. And in practice, this is going to be fairly noisy. And we don't strictly need to get it to be the identity, just have big terms along the diagonal.
 
 First, to validate that it looks diagonal-ish, let's pick 200 random rows and columns and visualise that - it should at least look identity-ish here!
 
 
 ```python
 if MAIN:
-    rand_indices = t.randperm(cfg["d_vocab"])[:200]
-    px.imshow(to_numpy(OV_circuit[rand_indices][:, rand_indices])).show()
-
+    rand_indices = t.randperm(model.cfg.d_vocab)[:200]
+    px.imshow(to_numpy(OV_circuit_full[rand_indices][:, rand_indices])).show()
 ```
 
 Now we want to try to make a summary statistic to capture this. Accuracy is a good one - what fraction of the time is the largest logit in a column on the diagonal?
@@ -1921,71 +1980,85 @@ When I run this I get about 30.8% - pretty underwhelming. It goes up to 47.72% f
 
 
 ```python
-def top_1_acc(OV_circuit):
+def top_1_acc(OV_circuit_full):
     '''
     This should take the argmax of each column (ie over dim=0) and return the fraction of the time that's equal to the correct logit
     '''
     pass
 
-
 if MAIN:
     print("Fraction of the time that the best logit is on the diagonal:")
-    print(top_1_acc(OV_circuit))
-
+    print(top_1_acc(OV_circuit_full))
 ```
 
-Now we return to why we have *two* induction heads. If both have the same attention pattern, the effective OV circuit is actually W_U(W_O[4]W_V[4]+W_O[10]W_V[10])W_E, and this is what matters. So let's calculate this and re-run our analysis on that!
-<details>
+Now we return to why we have *two* induction heads. If both have the same attention pattern, the effective OV circuit is actually $W_U(W_O[4]W_V[4]+W_O[10]W_V[10])W_E$, and this is what matters. So let's calculate this and re-run our analysis on that!""")
 
-<summary>Exercise: Why might the model want to split the circuit across two heads?</summary>
+    with st.expander("Exercise: Why might the model want to split the circuit across two heads?"):
+        st.markdown(r"""
+Because $W_O W_V$ is a rank 64 matrix. The sum of two is a rank 128 matrix. This can be a significantly better approximation to the desired 50K x 50K matrix!""")
 
-Because W_OW_V is a rank 64 matrix. The sum of two is a rank 128 matrix. This can be a significantly better approximation to the desired 50K x 50K matrix!
-</details>
-
-
-
+    st.markdown(r"""
 ```python
 if MAIN:
-    try:
-        del OV_circuit
-    except:
-        pass
-    "TODO: YOUR CODE HERE"
-    print("Top 1 accuracy for the full OV Circuit:", top_1_acc(OV_circuit_full))
     try:
         del OV_circuit_full
     except:
         pass
-
+    "TODO: YOUR CODE HERE, DEFINE OV_circuit_full_both"
+    print("Top 1 accuracy for the full OV Circuit:", top_1_acc(OV_circuit_full_both))
+    try:
+        del OV_circuit_full_both
+    except:
+        pass
 ```
 
 ### Reverse Engineering Positional Embeddings + Prev Token Head
 
 The other easy circuit is the QK-circuit of L0H7 - how does it know to be a previous token circuit?
 
-We can multiply out the full QK circuit via the positional embeddings: W_pos.T W_Q.T W_K W_pos to get a matrix pos_by_pos of shape [max_ctx, max_ctx]
+We can multiply out the full QK circuit via the positional embeddings: $W_\text{pos}^T W_Q^T W_K W_\text{pos}$ to get a matrix `pos_by_pos` of shape `[max_ctx, max_ctx]` (max ctx = max context length, i.e. maximum length of a sequence we're allowing, which is set by our choice of dimensions in $W_\text{pos}$).
 
 We can then mask it and apply a softmax, and should get a clear stripe on the lower diagonal (Tip: Click and drag to zoom in, hover over cells to see their values and indices!)
 
+**Exercise - put in your own words, why we should expect this matrix to be a diagonal stripe.** Try to come up with an answer before looking at the answer below!
+""")
+
+    with st.expander("Answer"):
+        st.markdown(r"""
+The QK circuit $W_Q^T W_K$ has shape `[d_model, d_model]`. The attention patterns are created by right and left multiplying it by the source and destination embeddings respectively:
+
+$$
+(x_\text{pos}^\text{dest})^T \,W_Q^T\, W_K \,(x_\text{pos}^\text{src})
+$$
+
+where $x_\text{pos}^\text{src}$ stands for the positional embedding of the source token, etc.
+
+We want this to be large when the position index of $x_\text{pos}^\text{src}$ is one **smaller** than the position index of $x_\text{pos}^\text{dest})$ (because the destination token needs to attend to the **previous token**). This is equivalent to saying that the $(i, j)$ th entry of the matrix $W_\text{pos}^T W_Q^T W_K W_\text{pos}$ (after applying softmax) should be close to 1 when $j = i - 1$, and close to zero everywhere else. This is equivalent to having a diagonal stripe under the major diagonal.
+""")
+    st.markdown(r"""
 Hints:
 * Remember to divide by sqrt(d_head)!
-* Reuse the `mask_scores` from earlier
+* Use the `mask_scores` function we've provided you with
 
-(Note: If we were being properly rigorous, we'd also need to show that the token embedding wasn't important for the attention scores.)
+(Note: If we were being properly rigorous, we'd also need to show that the token embedding wasn't important for the attention scores.)""")
 
+    st.info(r"""If you're using VSCode, remember to periodically clear the plotly graphs from your screen; they can slow down your performance by quite a bit!""")
 
+    st.markdown(r"""
 ```python
+def mask_scores(
+    attn_scores: TT["query_d_model", "key_d_model"]
+):
+    '''Mask the attention scores so that tokens don't attend to previous tokens.'''
+    mask = t.tril(t.ones_like(attn_scores)).bool()
+    neg_inf = t.tensor(-1.0e6).to(attn_scores.device)
+    masked_attn_scores = t.where(mask, attn_scores, neg_inf)
+    return masked_attn_scores
+
 if MAIN:
     "TODO: YOUR CODE HERE"
-    px.imshow(
-        to_numpy(pos_by_pos_pattern[:200, :200]),
-        labels={"y": "Query", "k": "Key"},
-        color_continuous_scale="RdBu",
-        color_continuous_midpoint=0.0,
-    ).show()
-
+    imshow(to_numpy(pos_by_pos_pattern[:200, :200]), xaxis="Key", yaxis="Query")
 ```
-
 
 ### Composition Analysis
 
@@ -1993,13 +2066,29 @@ We now dig into the hard part of the circuit - demonstrating the K-Composition b
 
 #### Splitting activations
 
-We can repeat the trick from the logit attribution scores. The qk_input for layer 1 is the sum of 14 terms (2+n_heads) - the embedding, the positional embedding, and the results of each layer 0 head. So for each head in layer 1, the query tensor (ditto key) is:
-`W_Q @ qk_input == W_Q @ (embed + pos_embed + \sum result_i) == W_Q @ embed + W_Q @ pos_embed + \sum W_Q @ result_i`
+We can repeat the trick from the logit attribution scores. The QK-input for layer 1 is the sum of 14 terms (2+n_heads) - the token embedding, the positional embedding, and the results of each layer 0 head. So for each head in layer 1, the query tensor (ditto key) corresponding to sequence position $i$ is:
 
-We can now analyse the relative importance of these terms! A very crude measure is to take the norm of each term (by component and position) - when we do this here, we show clear dominance in the k from L0H7, and in the q from the embed (and pos embed).
+$$
+\begin{align*}
+W_Q x_i &= W_Q (e_i + p_i + \sum_{h=0}^{11} x_i^h) \\
+&= W_Q e_i + W_Q p_i + \sum_{h=0}^{11} W_Q x_i^h
+\end{align*}
+$$
 
-Note that this is a pretty dodgy metric - q and k are not inherently interpretable! But it can be a good and easy to compute proxy.
+where $e_i$ stands for the token embedding at sequence position $i$, $pe_i$ for the positional embedding, and $x_i^h$ for the output of head $h$ at sequence position $i$. So the expression above is a sum of matrix multiplications of dimensions `(d_k, d_model) @ (d_model,) -> (d_k,)`. 
 
+We can now analyse the relative importance of these 14 terms! A very crude measure is to take the norm of each term (by component and position) - when we do this here, we show clear dominance in the k from L0H7, and in the q from the embed (and pos embed).
+
+Note that this is a pretty dodgy metric - q and k are not inherently interpretable! But it can be a good and easy-to-compute proxy.""")
+
+    with st.expander("Question - why are Q and K not inherently interpretable? Why might the norm be a good metric in spite of this?"):
+        st.markdown(r"""
+They are not inherently interpretable because they operate on the residual stream, which doesn't have a **privileged basis**. You could stick a rotation matrix $R$ after all of the Q, K and V weights (and stick a rotation matrix before everything that writes to the residual stream), and the model would still behave exactly the same.
+
+The reason taking the norm is still a reasonable thing to do is that, despite the individual elements of these vectors not being inherently interpretable, it's still a safe bet that if they are larger than they will have a greater overall effect on the residual stream. So looking at the norm doesn't tell us how they work, but it does indicate which ones are more important.
+""")
+
+    st.markdown(r"""
 
 ```python
 def decompose_qk_input(cache: dict) -> t.Tensor:
@@ -2024,37 +2113,35 @@ def decompose_k(decomposed_qk_input: t.Tensor, ind_head_index: int) -> t.Tensor:
 
 
 if MAIN:
-    batch_index = 0
     ind_head_index = 4
     decomposed_qk_input = decompose_qk_input(rep_cache)
-    assert t.isclose(
-        decomposed_qk_input.sum(0), rep_cache["blocks.1.attn.hook_qk_input"][0], rtol=0.01, atol=1e-05
-    ).all()
+    t.testing.assert_close(decomposed_qk_input.sum(0), rep_cache["resid_pre", 1][0] + rep_cache["pos_embed"][0], rtol=0.01, atol=1e-05)
     decomposed_q = decompose_q(decomposed_qk_input, ind_head_index)
-    assert t.isclose(
-        decomposed_q.sum(0), rep_cache["blocks.1.attn.hook_q"][0, :, ind_head_index], rtol=0.01, atol=0.001
-    ).all()
+    t.testing.assert_close(decomposed_q.sum(0), rep_cache["blocks.1.attn.hook_q"][0, :, ind_head_index], rtol=0.01, atol=0.001)
     decomposed_k = decompose_k(decomposed_qk_input, ind_head_index)
-    assert t.isclose(
-        decomposed_k.sum(0), rep_cache["blocks.1.attn.hook_k"][0, :, ind_head_index], rtol=0.01, atol=0.01
-    ).all()
-    component_labels = ["Embed", "PosEmbed"] + [f"L0H{h}" for h in range(cfg["n_heads"])]
-    px.imshow(
-        to_numpy(decomposed_q.pow(2).sum([-1])),
-        color_continuous_scale="Blues",
-        labels={"x": "Pos", "y": "Component"},
-        y=component_labels,
-        title="Norms of components of query",
-    ).show()
-    px.imshow(
-        to_numpy(decomposed_k.pow(2).sum([-1])),
-        color_continuous_scale="Blues",
-        labels={"x": "Pos", "y": "Component"},
-        y=component_labels,
-        title="Norms of components of key",
-    ).show()
+    t.testing.assert_close(decomposed_k.sum(0), rep_cache["blocks.1.attn.hook_k"][0, :, ind_head_index], rtol=0.01, atol=0.01)
+    component_labels = ["Embed", "PosEmbed"] + [f"L0H{h}" for h in range(model.cfg.n_heads)]
+    imshow(to_numpy(decomposed_q.pow(2).sum([-1])), xaxis="Pos", yaxis="Component", title="Norms of components of query")
+    imshow(to_numpy(decomposed_k.pow(2).sum([-1])), xaxis="Pos", yaxis="Component", title="Norms of components of key")
 
+```""")
+
+    with st.expander("A technical note on the positional embeddings - reading optional, feel free to skip this."):
+        st.markdown(r"""
+You might be wondering why the tests compare the decomposed qk sum with the sum of the `resid_pre + pos_embed`, rather than just `resid_pre`. The answer lies in how we defined the transformer, specifically in this line from the config:
+
+```python
+positional_embedding_type="shortformer"
 ```
+
+The result of this is that the positional embedding isn't added to the residual stream. Instead, it's added as inputs to the Q and K calculation (i.e. we calculate `W_Q @ (resid_pre + pos_embed)` and same for `W_K`), but **not** as inputs to the V calculation (i.e. we just calculate `W_V @ resid_pre`). This isn't actually how attention works in general, but for our purposes it makes the analysis of induction heads cleaner because we don't have positional embeddings interfering with the OV circuit.
+
+Thus, the value `resid_pre` in the cache is actually equal to the input to our Q and K matrices **subtract the positional embedding**, and we need to add it back on before comparing the two.
+
+Don't worry too much about this though, it's only mentioned here for the sake of completeness!
+""")
+
+    st.markdown(r"""
 
 We can do one better, and take the decomposed attention scores. This is a bilinear function of q and k, and so we will end up with a decomposed_scores tensor with shape [query_component, key_component, query_pos, key_pos], where summing along BOTH of the first axes will give us the original attention scores (pre-mask)
 
@@ -2190,8 +2277,8 @@ if MAIN:
     v_comp_scores = get_v_comp_scores(W_OV_1, W_OV_0)
     px.imshow(
         to_numpy(q_comp_scores),
-        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
-        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        y=[f"L1H{h}" for h in range(model.cfg.n_heads)],
+        x=[f"L0H{h}" for h in range(model.cfg.n_heads)],
         labels={"x": "Layer 0", "y": "Layer 1"},
         title="Q Composition Scores",
         color_continuous_scale="Blues",
@@ -2199,8 +2286,8 @@ if MAIN:
     ).show()
     px.imshow(
         to_numpy(k_comp_scores),
-        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
-        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        y=[f"L1H{h}" for h in range(model.cfg.n_heads)],
+        x=[f"L0H{h}" for h in range(model.cfg.n_heads)],
         labels={"x": "Layer 0", "y": "Layer 1"},
         title="K Composition Scores",
         color_continuous_scale="Blues",
@@ -2208,8 +2295,8 @@ if MAIN:
     ).show()
     px.imshow(
         to_numpy(v_comp_scores),
-        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
-        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        y=[f"L1H{h}" for h in range(model.cfg.n_heads)],
+        x=[f"L0H{h}" for h in range(model.cfg.n_heads)],
         labels={"x": "Layer 0", "y": "Layer 1"},
         title="V Composition Scores",
         color_continuous_scale="Blues",
@@ -2253,8 +2340,8 @@ We can re-plot our above graphs with this baseline set to white. Look for intere
 if MAIN:
     px.imshow(
         to_numpy(q_comp_scores),
-        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
-        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        y=[f"L1H{h}" for h in range(model.cfg.n_heads)],
+        x=[f"L0H{h}" for h in range(model.cfg.n_heads)],
         labels={"x": "Layer 0", "y": "Layer 1"},
         title="Q Composition Scores",
         color_continuous_scale="RdBu",
@@ -2262,8 +2349,8 @@ if MAIN:
     ).show()
     px.imshow(
         to_numpy(k_comp_scores),
-        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
-        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        y=[f"L1H{h}" for h in range(model.cfg.n_heads)],
+        x=[f"L0H{h}" for h in range(model.cfg.n_heads)],
         labels={"x": "Layer 0", "y": "Layer 1"},
         title="K Composition Scores",
         color_continuous_scale="RdBu",
@@ -2271,8 +2358,8 @@ if MAIN:
     ).show()
     px.imshow(
         to_numpy(v_comp_scores),
-        y=[f"L1H{h}" for h in range(cfg["n_heads"])],
-        x=[f"L0H{h}" for h in range(cfg["n_heads"])],
+        y=[f"L1H{h}" for h in range(model.cfg.n_heads)],
+        x=[f"L0H{h}" for h in range(model.cfg.n_heads)],
         labels={"x": "Layer 0", "y": "Layer 1"},
         title="V Composition Scores",
         color_continuous_scale="RdBu",
@@ -2345,7 +2432,7 @@ def ablation_induction_score(prev_head_index: int, ind_head_index: int) -> t.Ten
 
 
 if MAIN:
-    for i in range(cfg["n_heads"]):
+    for i in range(model.cfg.n_heads):
         print(f"Ablation effect of head {i}:", ablation_induction_score(i, 4).item())
 
 ```
