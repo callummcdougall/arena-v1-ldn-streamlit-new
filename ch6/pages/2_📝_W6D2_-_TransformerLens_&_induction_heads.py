@@ -1575,6 +1575,7 @@ Remember that you should be using the object `cache["pattern", layer]` to get al
 """)
     with st.expander("Example solution for current_attn_detector (read if you're stuck)"):
         st.markdown(r"""
+```python
 def current_attn_detector(cache: ActivationCache) -> List[str]:
     '''
     Returns a list e.g. ["0.2", "1.4", "1.9"] of "layer.head" which you judge to be current-token heads
@@ -1588,6 +1589,7 @@ def current_attn_detector(cache: ActivationCache) -> List[str]:
             if current_attn_score > 0.5:
                 current_attn_heads.append(f"{layer}.{head}")
     return current_attn_heads
+```
 """)
 
     
