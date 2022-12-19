@@ -4,40 +4,76 @@ if not os.path.exists("./images"):
     os.chdir("./ch6")
 import re, json
 import plotly.io as pio
+import re
 
 from st_dependencies import *
 styling()
 
-text = st.text_input("Search for a key term:")
+st.markdown(
+"""
+This is a very unpolished version of Neel's glossary at the end of [200 Concrete Open Problems In Mechanistic Interpretability](https://docs.google.com/document/d/1WONBzNqfKIxERejrrPlQMyKqg7jSFW92x5UMXNrMdPo/edit#heading=h.n514s7caro7u). For now I'd recommend just using the google doc (e.g. I haven't fixed images here yet).
+"""
+)
 
-st.sidebar.markdown("""
+contents = """
 ## Table of Contents
 
-<ul class="contents">
-   <li><a class="contents-el" href="#mechanistic-interpretability">Mechanistic Interpretability</a></li>
-   <li><a class="contents-el" href="#representations-of-features-superposition">Representations of Features & Superposition</a></li>
-   <li><a class="contents-el" href="#toy-model-of-superposition">Toy Model of Superposition</a></li>
-   <li><a class="contents-el" href="#circuits-as-computational-subgraphs">Circuits As Computational Subgraphs</a></li>
-   <li><a class="contents-el" href="#linear-algebra">Linear Algebra</a></li>
-   <li><a class="contents-el" href="#circuits-in-language-models">Circuits in Language Models</a></li>
-   <li><a class="contents-el" href="#language-modelling">Language Modelling</a></li>
-   <li><a class="contents-el" href="#induction-circuits">Induction Circuits</a></li>
-   <li><a class="contents-el" href="#indirect-object-identification">Indirect Object Identification</a></li>
-   <li><a class="contents-el" href="#training-dynamics">Training Dynamics</a></li>
-   <li><a class="contents-el" href="#machine-learning">Machine Learning</a></li>
-   <li><a class="contents-el" href="#transformers">Transformers</a></li>
-   <li><a class="contents-el" href="#transformer-basics">Transformer Basics</a></li>
-   <li><a class="contents-el" href="#transformer-components">Transformer Components</a></li>
-   <li><a class="contents-el" href="#misc-transformer-words">Misc transformer words</a></li>
-   <li><a class="contents-el" href="#training">Training</a></li>
-   <li><a class="contents-el" href="#attention-heads">Attention Heads</a></li>
-   <li><a class="contents-el" href="#a-mathematical-framework-for-transformer-circuits">A Mathematical Framework for Transformer Circuits</a></li>
-   <li><a class="contents-el" href="#mechanistic-interpretability-techniques">Mechanistic Interpretability Techniques</a></li>
-   <li><a class="contents-el" href="#misc-techniques">Misc Techniques</a></li>
-   <li><a class="contents-el" href="#misc">Misc</a></li>
-   <li><a class="contents-el" href="#notable-models">Notable Models</a></li>
-</ul>
-""", unsafe_allow_html=True)
+<ul class="contents">"""
+
+def make_li(title, link):
+    return f"""\n    <li><a class="contents-el" href="#{link}">{title}</a></li>"""
+
+titles_all = [
+    "Mechanistic Interpretability",
+    "Representations of Features & Superposition",
+    "Toy Model of Superposition",
+    "Circuits As Computational Subgraphs",
+    "Linear Algebra",
+    "Circuits in Language Models",
+    "Language Modelling",
+    "Induction Circuits",
+    "Indirect Object Identification",
+    "Training Dynamics",
+    "Machine Learning",
+    "Transformers",
+    "Transformer Basics",
+    "Transformer Components",
+    "Misc transformer words",
+    "Training",
+    "Attention Heads",
+    "A Mathematical Framework for Transformer Circuits",
+    "Mechanistic Interpretability Techniques",
+    "Misc Techniques",
+    "Misc",
+    "Notable Models",
+]
+titles = []
+links = [
+    "mechanistic-interpretability",
+    "representations-of-features-superposition",
+    "toy-model-of-superposition",
+    "circuits-as-computational-subgraphs",
+    "linear-algebra",
+    "circuits-in-language-models",
+    "language-modelling",
+    "induction-circuits",
+    "indirect-object-identification",
+    "training-dynamics",
+    "machine-learning",
+    "transformers",
+    "transformer-basics",
+    "transformer-components",
+    "misc-transformer-words",
+    "training",
+    "attention-heads",
+    "a-mathematical-framework-for-transformer-circuits",
+    "mechanistic-interpretability-techniques",
+    "misc-techniques",
+    "misc",
+    "notable-models",
+]
+
+text = st.text_input("Search for a key term - type something in and hit enter, and the page will only show sections which include that term.")
 
 st.markdown("""
 
@@ -885,12 +921,16 @@ func_list = [
 
 ]
 
-import re
 if text:
-    func_list_reduced = [s for s in func_list if re.search(text, s, re.IGNORECASE)]
-    for func in func_list_reduced:
-        st.markdown(func)
+    bool_list = [re.search(text, s, re.IGNORECASE) for s in func_list]
 else:
-    for func in func_list:
-        st.markdown(func)
-    
+    bool_list = [True for s in func_list]
+
+for (s, b, t) in zip(func_list, bool_list, titles_all):
+    if b:
+        st.markdown(s)
+        contents += make_li(t, links.pop(0))
+
+st.sidebar.markdown(contents + "\n</ul>", unsafe_allow_html=True)
+
+st.code(contents + "\n</ul>", language="html")
