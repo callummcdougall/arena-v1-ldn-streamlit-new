@@ -1245,7 +1245,14 @@ def section_3():
 
 Now that we've seen some of the features of TransformerLens, let's apply them to the task of finding induction heads.
 
-If you don't fully understand the algorithm peformed by induction heads, this diagram may prove helpful.""")
+If you don't fully understand the algorithm peformed by induction heads, **this diagram may prove helpful as a reference point**:""")
+
+    with st.expander("Induction Heads Diagram"):
+        st_excalidraw("induction-heads-minimal", 1500)
+
+    st.markdown(r"""
+Alternatively, you can download a much larger diagram from the link below. It contains a lot more detail, in particular relating the movement of information through the model to actual matrix operations with the model weights. This may prove helpful later in this section, as we investigate these matrix operations.
+""")
 
     with open("images/induction-heads-2.svg", "r") as f:
         st.download_button("Download induction heads diagram", f.read(), "induction_head_diagram.svg")
@@ -1293,8 +1300,8 @@ The material in this section will heavily follow the Mathematical Framework for 
         * Rough heuristic for thinking about low rank factorisations and how good they can get - a good way to produce one is to take the SVD and zero out all but the first d_head singular values.
     * This is the key insight behind why polysemanticity (back from w1d5) is a thing and is a big deal - naturally the network would want to learn one feature per neuron, but it in fact can learn to compress more features than total neurons. It has some error introduced from interference, but this is likely worth the cost of more compression.
         * Just as we saw there, the sparsity of features is a big deal for the model deciding to compress things! Inteference cost goes down the more features are sparse (because unrelated features are unlikely to co-occur) while expressibility benefits don't really change that much.
-    * The residual stream is the central example of this - every time two parts of the network compose, they will be communicating intermediate states via the residual stream. Bandwidth is limited, so these will likely try to each be low rank. And the directions within that intermediate product will *only* make sense in the context of what the writing and reading components care about. So interpreting the residual stream seems likely fucked - it's just specific lower-dimensional parts of the residual stream that we care about at each point, corresponding to the bits that get preserved by our $W_Q$ / $W_K$ / $W_V$ projection matrices, or embedded by our W_O projection matrix. The entire residual stream will be a mix of a ton of different signals, only some of which will matter for each operation on it.
-* The 'the residual stream is fundamentally uninterpretable' claim is somewhat overblown - most models do dropout on the residual stream which somewhat privileges that basis
+    * The residual stream is the central example of this - every time two parts of the network compose, they will be communicating intermediate states via the residual stream. Bandwidth is limited, so these will likely try to each be low rank. And the directions within that intermediate product will *only* make sense in the context of what the writing and reading components care about. So interpreting the residual stream seems likely fucked - it's just specific lower-dimensional parts of the residual stream that we care about at each point, corresponding to the bits that get preserved by our $W_Q$ / $W_K$ / $W_V$ projection matrices, or embedded by our $W_O$ projection matrix. The entire residual stream will be a mix of a fuckton of different signals, only some of which will matter for each operation on it.
+* The *'the residual stream is fundamentally uninterpretable'* claim is somewhat overblown - most models do dropout on the residual stream which somewhat privileges that basis
     * And there are [*weird*](https://timdettmers.com/2022/08/17/llm-int8-and-emergent-features/) results about funky directions in the residual stream.
 * Getting your head around the idea of a privileged basis is very worthwhile! The key mental move is to flip between "a vector is a direction in a geometric space" and "a vector is a series of numbers in some meaningful basis, where each number is intrinsically meaningful". By default, it's easy to spend too much time in the second mode, because every vector is represented as a series of numbers within the GPU, but this is often less helpful!
 
@@ -2086,19 +2093,35 @@ The reason taking the norm is still a reasonable thing to do is that, despite th
 
     with st.expander("Help - I'm confused about how to implement this."):
         st.markdown(r"""
+`decomposed_qk_input` is a tensor with shape `[query_component, seq_pos, d_model]`. We can write it as follows:
+
+$$
+\left[\begin{array}{c}
+e \\
+pe \\
+x^0 \\
+x^1 \\
+\vdots \\
+x^{11}\end{array}\right]
+$$
+
+where each of these 13 terms is a matrix of shape `[query_pos, d_head]`.
+
+---
+
 `decomposed_q` is a tensor with shape `[query_component, query_pos, d_head]`. We can write it as follows:
 
 $$
 \left[\begin{array}{c}
-W^{[1,4]}_Q e \\
-W^{[1,4]}_Q pe \\
-W^{[1,4]}_Q x^0 \\
-W^{[1,4]}_Q x^1 \\
+W^{[1,h]}_Q e \\
+W^{[1,h]}_Q pe \\
+W^{[1,h]}_Q x^0 \\
+W^{[1,h]}_Q x^1 \\
 \vdots \\
-W^{[1,4]}_Q x^{11}\end{array}\right]
+W^{[1,h]}_Q x^{11}\end{array}\right]
 $$
 
-where each of these 13 terms is a matrix of shape `[query_pos, d_head]`.
+where $h$ is your `ind_head_index`, and each of these 13 terms is a matrix of shape `[query_pos, d_head]`.
 """)
 
     st.markdown(r"""
@@ -2166,10 +2189,6 @@ We can now look at the standard deviation across the key and query positions for
 We can even plot the attention scores for that component and see a clear induction stripe.
 
 """)
-    with st.expander("Exercise: Do you expect this to be symmetric? Why/why not?"):
-        st.markdown(r"""
-No, because the y axis is the component in the *query*, the x axis is the component in the *key* - these are not symmetric!
-""")
     with st.expander("Exercise: Why do I focus on the attention scores, not the attention pattern? (i.e. pre softmax not post softmax)"):
         st.markdown(r"""
 
@@ -2214,27 +2233,56 @@ Because the decomposition trick *only* works for things that are linear - softma
 # W^{[1,4]}_K x^{11}_0 & W^{[1,4]}_K x^{11}_1 & ... & W^{[1,4]}_K x^{11}_{n-1} \\
 # \end{bmatrix}
 # $$
-    with st.expander("Help - I'm confused about how to implement this."):
+    with st.expander("Help - I'm confused about this formula / how to implement this / why we're doing this."):
         st.markdown(r"""
-To calculate the attention position $i$ pays to position $j$, we take $W^{[1,4]}_Q x_i = W^{[1,4]}_Q (e_i + pe_i + \sum_{h=0}^{11}x^h)$, and $W^{[1,4]}_K x_j$ (defined similarly), then take the dot product between these two vectors:
+First, a visual explanation.
 
-$$
-\text{attn\_scores}_{i,j} = x_i^T W^{[1,4]\,T}_Q W^{[1,4]}_K x_j
-$$
+Remember that each of our components writes to the residual stream separately. So after layer 1, we have:
+""")
 
-By writing $x_i$ and $x_j$ each as a sum of `n_components` terms, we can write this expression as a sum of `n_components ** 2` terms:
-
-$$
-\text{attn\_scores}_{i,j} = e_i^T W^{[1,4]\,T}_Q W^{[1,4]}_K e_j + e_i^T W^{[1,4]\,T}_Q W^{[1,4]}_K pe_j + e_i^T W^{[1,4]\,T}_Q W^{[1,4]}_K x^0_j + ... + (x_i^{11})^T W^{[1,4]\,T}_Q W^{[1,4]}_K x_j^{11}
-$$
-
-For instance, the interpretation of $x_{i^{h_1}}^T W^{[1,4]\,T}_Q W^{[1,4]}_K x_{j^{h_2}}$ is ***"the component of the $(i, j)$th attention scores, with the query being supplied from the output of head $h_1$ in layer 0, and the key being output from head $h_2$ in layer 0."***
+        st_excalidraw("components", 550)
+        st.markdown(r"""
+We're particularly interested in the attention scores computed in head `1.4`. We have already decomposed the residual stream value $x$ into its terms $e$, $pe$, and $x^ 0$ through $x^{11}$, and we've done the same for key and query terms. We can picture these terms being passed into head `1.4` as:""")
+        st_excalidraw("components-2", 800)
+        st.markdown(r"""
+So when we expand them out in full, the attention scores are a sum of $14^2 = 196$ terms - one for each combination of `(query_component, key_component)`.
 
 ---
 
-Your matrix should have shape `[query_component, key_component, query_pos, key_pos]`, where the `[:, :, i, j]`th element is a matrix of precisely these `n_components ** 2` terms in the expression for $\text{attn\_scores}_{i,j}$.
+Your function below should return a tensor with shape `[query_component, key_component, query_pos, key_pos]`. The interpretation of the `[i, j, :, :]`th element of this tensor is the attention score contribution where the query is from component `i` and the key is from component `j`. In other words, we sum over these `i, j` to get the full attention scores.
+
+---
+
+We are doing this because we have a theory about a particular circuit in our model. We think that head `1.4` is an attention head, and the most important components that feed into this head are the next token head `0.7` (as key) and the token embedding (as query). This corresponds to one of the $14^2=196$ combinations of `(query_component, key_component)`. By decomposing the sum, we can check whether this component is indeed producing the characteristic induction head pattern, and the other 195 components don't really matter.
 """)
-    with st.expander("Help - I'm confused about why we're doing this."):
+
+    with st.expander("Help - I don't understand how to interpret the plots."):
+        st.markdown(r"""
+The first plot shows us that the contribution to the attention scores from the key $W_K^{[1.4]}x_{0.7}$ and query $W_Q^{[1.4]}e$ are indeed enough to produce the characteristic induction head attention pattern, i.e. the stripe below the major diagonal with offset `seq_len - 1`.
+
+The second plot confirms this observation by showing that the standard deviation of the 2D attention scores array for each of the other 195 combinations of `(query_component, key_component)` are much smaller. In other words, these contributions aren't really changing the overall pattention pattern for head `1.4`, so it is indeed mainly determined by this particular K-composition path.""")
+
+#     with st.expander("Help - I'm confused about how to implement this."):
+#         st.markdown(r"""
+# To calculate the attention position $i$ pays to position $j$, we take $W^{[1,4]}_Q x_i = W^{[1,4]}_Q (e_i + pe_i + \sum_{h=0}^{11}x^h)$, and $W^{[1,4]}_K x_j$ (defined similarly), then take the dot product between these two vectors:
+
+# $$
+# \text{attn\_scores}_{i,j} = x_i^T W^{[1,4]\,T}_Q W^{[1,4]}_K x_j
+# $$
+
+# By writing $x_i$ and $x_j$ each as a sum of `n_components` terms, we can write this expression as a sum of `n_components ** 2` terms:
+
+# $$
+# \text{attn\_scores}_{i,j} = e_i^T W^{[1,4]\,T}_Q W^{[1,4]}_K e_j + e_i^T W^{[1,4]\,T}_Q W^{[1,4]}_K pe_j + e_i^T W^{[1,4]\,T}_Q W^{[1,4]}_K x^0_j + ... + (x_i^{11})^T W^{[1,4]\,T}_Q W^{[1,4]}_K x_j^{11}
+# $$
+
+# For instance, the interpretation of $x_{i^{h_1}}^T W^{[1,4]\,T}_Q W^{[1,4]}_K x_{j^{h_2}}$ is ***"the component of the $(i, j)$th attention scores, with the query being supplied from the output of head $h_1$ in layer 0, and the key being output from head $h_2$ in layer 0."***
+
+# ---
+
+# Your matrix should have shape `[query_component, key_component, query_pos, key_pos]`, where the `[:, :, i, j]`th element is a matrix of precisely these `n_components ** 2` terms in the expression for $\text{attn\_scores}_{i,j}$.
+# """)
+#     with st.expander("Help - I'm confused about why we're doing this."):
         st.markdown(r"""
 We want to show that the main contributors to the distinctive `seq_len-1`-offset pattern we see in our L1H4 and L1H10 induction heads are as follows:
 
@@ -2259,12 +2307,20 @@ if MAIN:
     decomposed_stds = reduce(
         decomposed_scores, "query_decomp key_decomp query_pos key_pos -> query_decomp key_decomp", t.std
     )
-    # First plot: std dev over query and key positions, shown by component
+    # First plot: attention score contribution from (query_component, key_component) = (Embed, L0H7)
     imshow(to_numpy(t.tril(decomposed_scores[0, 9])), title="Attention Scores for component from Q=Embed and K=Prev Token Head")
-    # Second plot: attention score contribution from (query_component, key_component) = (Embed, L0H7)
+    # Second plot: std dev over query and key positions, shown by component
     imshow(to_numpy(decomposed_stds), xaxis="Key Component", yaxis="Query Component", title="Standard deviations of components of scores", x=component_labels, y=component_labels)
 
-```
+```""")
+
+    with st.expander("Exercise: Is this plot symmetric? Does this seem surprising or unsurprising?"):
+        st.markdown(r"""
+You should find that the plot isn't symmetric.
+
+This is unsurprising, because the y axis is the component in the *query*, the x axis is the component in the *key* - these are not symmetric!
+""")
+    st.markdown(r"""
 
 #### Interpreting the K-Composition Circuit
 Now we know that head L1H4 is composing with head L0H7 via K composition, we can multiply through to create a full end-to-end circuit:
@@ -2282,21 +2338,27 @@ This one is a bit more confusing, and I'd recommend reading my diagram to unders
 
 ---
 
-Let $\color{red}A$ and $\color{red}B$ be one-hot encoded vectors, representing tokens `[A]` and `[B]` in the repeating pattern `[A] [B] ... [A] [B]`. The $(\color{red}A\color{black}, \color{red}A\color{black})$th element of the matrix above is:
+Let $\color{black}A$ and $\color{black}B$ be one-hot encoded vectors, representing tokens `[A]` and `[B]` in the repeating pattern `[A] [B] ... [A] [B]`. The $(\color{black}A\color{black}, \color{black}A\color{black})$th element of the matrix above is:
 
 $$
-\color{red}A^T\color{black}W_E^T W_Q^{[1, 4]T} W_K^{[1, 4]} W_O^{[0, 7]} W_V^{[0, 7]} W_E \color{red}A
+\color{black}A^T\color{black}W_E^T W_Q^{[1, 4]T} W_K^{[1, 4]} W_{O}^{[0, 7]} W_V^{[0, 7]} W_E \color{black}A
 $$
 
-The $OV^{[0, 7]}$-circuit is designed to give us the information that will then be copied one position forwards by the $QK^{[0, 7]}$ circuit. In other words, $W_O^{[0, 7]} W_V^{[0, 7]} W_E \color{red}B$ is a vector in the residual stream which gets stored in the second `[B]` token, and represents the information ***"the token before this one is `[A]`"***.
+For ease of notation, I'll write $\color{red}A\color{black} = W_E A$ as the embedding vector for token $A$, so this simplifies to:
 
-The $QK^{[1, 4]}$-circuit is designed to produce a high attention score between this token and the second instance of `[A]`. In other words, the query vector $q := W_Q^{[1, 4]} W_E \color{red}A$ and the key vector $k := W_K^{[1, 4]} (W_O^{[0, 7]} W_V^{[0, 7]} W_E\color{red}B\color{black})$ should have high attention score $q^T k$.
+$$
+\color{red}A^T\color{black}W_Q^{[1, 4]T} W_K^{[1, 4]} W_{O}^{[0, 7]} W_V^{[0, 7]} \color{red}A
+$$
 
-Thus, we've argued that the $(\color{red}A\color{black}, \color{red}A\color{black})$th element of this matrix will be large. But if we instead look at the $(\color{red}A\color{black}, \color{red}X\color{black})$th element for some arbitrary $X$, this would result in a different key vector $k' := W_K^{[1, 4]} (W_O^{[0, 7]} W_V^{[0, 7]} W_E\color{red}X\color{black})$. This stores the information ***"the token before this one is `[X]`"***, so this doesn't give us information about the token following `[A]`, and we *don't* want our second `[A]` token to attend to it. So the value $q^T k'$ should be small.
+The $OV^{[0, 7]}$-circuit is designed to give us the information that will then be copied one position forwards by the $QK^{[0, 7]}$ circuit. In other words, $W_O^{[0, 7]} W_V^{[0, 7]} \color{red}A$ is a vector in the residual stream which gets stored in the first `[B]` token, and represents the information ***"the token before this one is `[A]`"***.
+
+The $QK^{[1, 4]}$-circuit is designed to make sure the second instance of `[A]` pays attention to the first instance of `[B]`. In other words, the query vector $q := W_Q^{[1, 4]} \color{red}A$ and the key vector $k := W_K^{[1, 4]} (W_O^{[0, 7]} W_V^{[0, 7]} \color{red}A\color{black})$ should have high attention score $q^T k$.
+
+Thus, we've argued that the $(\color{black}A\color{black}, \color{black}A\color{black})$th element of this matrix will be large. But if we instead look at the $(\color{black}A\color{black}, \color{black}X\color{black})$th element for some arbitrary $X$, this would result in a different key vector $k' := W_K^{[1, 4]} (W_O^{[0, 7]} W_V^{[0, 7]} \color{red}X\color{black})$. This stores the information ***"the token before this one is `[X]`"***, which is not useful when it comes to predicting the token following `[A]`. So we *don't* want our second `[A]` token to attend to it. So the value $q^T k'$ should be small.
 
 ---
 
-Note - this actually shows why the largest element of each **row** of the matrix should be the diagonal one, rather than the largest element on each column. It's important to get this the right way round - remember that logits are invariant to the addition of a constant, so it's meaningless to compare across two different logit distributions! That's why, in the code below, we've applied the test to the transpose of the function's output.
+Note - this actually shows why the largest element of each **row** of the matrix should be the diagonal one, rather than the largest element on each column. It's important to get this the right way round - remember that logits are invariant to the addition of a constant, so it's meaningless to compare across two different logit distributions! That's why, in the code below, we've applied the test to the transpose of your function's output.
 """)
 
 # We can now reuse our `top_1_acc` code from before to check that it's identity-like, we see that half the time the diagonal is the top (goes up to 89% with top 5 accuracy) (We transpose first, because we want the argmax over the key dimension)
