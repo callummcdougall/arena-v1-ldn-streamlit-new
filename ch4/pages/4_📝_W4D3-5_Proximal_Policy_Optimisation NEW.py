@@ -352,7 +352,6 @@ $$
 
 """)
 
-
 def section_1_math_heavy():
     st.sidebar.markdown("""
 ## Table of Contents

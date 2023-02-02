@@ -472,7 +472,7 @@ fig.show()
 You can try and play around with a few optimisers. Do Adam and RMSprop do well on this function? Why / why not? Can you find some other functions where they do better / worse, and plot those?
 """)
 
-def section1_part2():
+def section2():
     st.sidebar.markdown("""
 ## Table of Contents
 
@@ -547,7 +547,7 @@ utils.test_sgd_param_groups(SGD)
 You can also try to rewrite the learning rate schedulers from yesterday, to work on optimisers which store their params and hyperparams in the `param_groups` attribute (this will just require replacing one line in each of your schedulers).
 """)
 
-def section2():
+def section3():
     st.sidebar.markdown("""
 ## Table of Contents
 
@@ -723,7 +723,7 @@ fig.show()
 How close can you get to the optimum within 100 steps, starting from (-1.5, 2.5)? Share screenshots of your best runs on Slack!
 """)
     
-func_list = [section_home, section1, section1_part2, section2]
+func_list = [section_home, section1, section2, section3]
 
 page_list = ["🏠 Home", "1️⃣ Optimizers", "2️⃣ Optimizer groups", "3️⃣ Learning rate schedulers"]
 page_dict = {name: idx for idx, name in enumerate(page_list)}
